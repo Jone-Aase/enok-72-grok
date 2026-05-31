@@ -2545,17 +2545,148 @@ bindToggle('layer-square-grid', subMap.squareGrid);
 bindToggle('layer-meridians', subMap.meridians);
 bindToggle('layer-latcircles', subMap.latcircles);
 bindToggle('layer-coast', subMap.coast);
-// Norge-fork 2026-05-31: 'Norgeskart (Kartverket)'-toggle styrer iframe-overlegg av norge.html
-// over Norge-omraadet paa AE-disken. Iframen ligger i index.html (#norge-iframe-wrap)
-// og inneholder Leaflet med Kartverket WMTS (zoom 1:5000, sjokart, byer). norge.html er uroert.
+// Norge-fork 2026-05-31 (rev 2): NY VERDENS-CANVAS
+// 'Nytt verdenskart' (layer-world-canvas) skjuler UN AE-canvasen og viser ny
+// verdens-canvas (1800x900 px, 5 px/grad, square grid-skala 110.593 km/grad).
+// 'Norgeskart (Kartverket)' (layer-norge-kart) styrer synlighet av Norge-vinduet
+// (Leaflet-iframe fra norge.html) inne i verdens-canvasen.
+// norge.html er uroert. UN AE-canvas (#cv) er uroert (kun skjult/vist via display).
 {
-  const el = document.getElementById('layer-norge-kart');
-  const wrap = document.getElementById('norge-iframe-wrap');
-  if (el && wrap) {
-    const sync = () => { wrap.style.display = el.checked ? 'block' : 'none'; };
-    el.addEventListener('change', sync);
-    sync();
+  const worldToggle = document.getElementById('layer-world-canvas');
+  const norgeToggle = document.getElementById('layer-norge-kart');
+  const worldWrap = document.getElementById('world-canvas-wrap');
+  const norgeWrap = document.getElementById('norge-leaflet-wrap');
+  const norgeLabel = norgeWrap ? norgeWrap.nextElementSibling : null;
+  const aeCanvas = document.getElementById('cv');
+
+  // World canvas pan/zoom state
+  let worldScale = 0.38;  // start-zoom (1800px * 0.38 = 684 px, passer i 680 px canvas-wrap)
+  let worldTx = 0;
+  let worldTy = 0;
+  const viewport = document.getElementById('world-canvas-viewport');
+
+  function applyWorldTransform() {
+    if (viewport) {
+      viewport.style.transform = `scale(${worldScale}) translate(${worldTx}px, ${worldTy}px)`;
+    }
   }
+
+  function syncWorld() {
+    if (!worldToggle || !worldWrap || !aeCanvas) return;
+    const on = worldToggle.checked;
+    worldWrap.style.display = on ? 'block' : 'none';
+    // Skjul UN AE-canvas naar nytt verdenskart er pa
+    aeCanvas.style.visibility = on ? 'hidden' : 'visible';
+    // Skjul ogsa tooltip og zoom-indicator hvis vi har dem
+    const tooltip = document.getElementById('tooltip');
+    const zoomInd = document.getElementById('zoom-indicator');
+    if (tooltip) tooltip.style.display = on ? 'none' : '';
+    if (zoomInd) zoomInd.style.display = on ? 'none' : '';
+  }
+
+  function syncNorge() {
+    if (!norgeToggle || !norgeWrap) return;
+    const on = norgeToggle.checked;
+    norgeWrap.style.display = on ? 'block' : 'none';
+    if (norgeLabel) norgeLabel.style.display = on ? 'block' : 'none';
+  }
+
+  if (worldToggle) {
+    worldToggle.addEventListener('change', syncWorld);
+    syncWorld();
+  }
+  if (norgeToggle) {
+    norgeToggle.addEventListener('change', syncNorge);
+    syncNorge();
+  }
+
+  // Generer square grid (5 grader, gull-farge)
+  const gridSvg = document.getElementById('world-square-grid');
+  if (gridSvg) {
+    const g = gridSvg.querySelector('g');
+    if (g) {
+      g.innerHTML = '';
+      const PX_PER_DEG = 5;
+      // Vertikale linjer (meridianer) hver 5 grader
+      for (let lon = -180; lon <= 180; lon += 5) {
+        const x = (lon + 180) * PX_PER_DEG;
+        const isMajor = (lon % 30 === 0);
+        const stroke = isMajor ? '#e0b85d' : '#c9a247';
+        const w = isMajor ? 1 : 0.4;
+        g.innerHTML += `<line x1="${x}" y1="0" x2="${x}" y2="900" stroke="${stroke}" stroke-width="${w}"/>`;
+      }
+      // Horisontale linjer (breddegrader) hver 5 grader
+      for (let lat = -90; lat <= 90; lat += 5) {
+        const y = (90 - lat) * PX_PER_DEG;
+        const isMajor = (lat % 30 === 0);
+        const isEquator = (lat === 0);
+        const stroke = isEquator ? '#ff6b35' : (isMajor ? '#e0b85d' : '#c9a247');
+        const w = isEquator ? 1.5 : (isMajor ? 1 : 0.4);
+        g.innerHTML += `<line x1="0" y1="${y}" x2="1800" y2="${y}" stroke="${stroke}" stroke-width="${w}"/>`;
+      }
+      // Lengdegrad-tall (hver 30 grader)
+      for (let lon = -180; lon <= 180; lon += 30) {
+        const x = (lon + 180) * PX_PER_DEG;
+        const label = lon === 0 ? '0' : (lon > 0 ? `${lon}\u00b0E` : `${-lon}\u00b0W`);
+        g.innerHTML += `<text x="${x+2}" y="12" fill="#e0b85d" font-size="9" font-family="monospace">${label}</text>`;
+      }
+      // Breddegrad-tall (hver 30 grader)
+      for (let lat = -90; lat <= 90; lat += 30) {
+        const y = (90 - lat) * PX_PER_DEG;
+        const label = lat === 0 ? '0' : (lat > 0 ? `${lat}\u00b0N` : `${-lat}\u00b0S`);
+        g.innerHTML += `<text x="2" y="${y-2}" fill="#e0b85d" font-size="9" font-family="monospace">${label}</text>`;
+      }
+    }
+  }
+
+  // Zoom/pan-kontroller
+  const btnIn = document.getElementById('world-zoom-in');
+  const btnOut = document.getElementById('world-zoom-out');
+  const btnReset = document.getElementById('world-zoom-reset');
+  if (btnIn) btnIn.addEventListener('click', () => { worldScale *= 1.25; applyWorldTransform(); });
+  if (btnOut) btnOut.addEventListener('click', () => { worldScale /= 1.25; applyWorldTransform(); });
+  if (btnReset) btnReset.addEventListener('click', () => { worldScale = 0.38; worldTx = 0; worldTy = 0; applyWorldTransform(); });
+
+  // Musehjul zoom
+  if (worldWrap) {
+    worldWrap.addEventListener('wheel', (e) => {
+      if (worldWrap.style.display === 'none') return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      worldScale *= delta;
+      worldScale = Math.max(0.1, Math.min(10, worldScale));
+      applyWorldTransform();
+    }, { passive: false });
+
+    // Dra-pan (kun naar man drar pa selve canvas-bakgrunnen, ikke pa Norge-vinduet)
+    let dragging = false, lastX = 0, lastY = 0;
+    worldWrap.addEventListener('mousedown', (e) => {
+      // Ikke pan hvis brukeren klikket inni Norge-vinduet
+      if (e.target.closest('#norge-leaflet-wrap')) return;
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      worldWrap.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const dx = (e.clientX - lastX) / worldScale;
+      const dy = (e.clientY - lastY) / worldScale;
+      worldTx += dx;
+      worldTy += dy;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      applyWorldTransform();
+    });
+    window.addEventListener('mouseup', () => {
+      if (dragging) {
+        dragging = false;
+        worldWrap.style.cursor = 'grab';
+      }
+    });
+  }
+
+  applyWorldTransform();
 }
 // v16.49: FN-kart-rotasjon slider (for å finjustere Greenwich-orientering)
 {
