@@ -214,6 +214,16 @@ const MARKERS = [
   { id:"ANT-27", g:"Antarktis-Base", n:"Commonwealth Bay Cape Denison", lat:-67.008511, lon:142.659117, type:"antarktis-base", info:"Australia. Adelie Land. Mawsons originale base 1912. Jone-Aase GE-koordinat.", src:"https://www.antarctica.gov.au/" },
   { id:"ANT-28", g:"Antarktis-Base", n:"Dumont d'Urville", lat:-66.663825, lon:140.000808, type:"antarktis-base", info:"Frankrike. Adelie Land. Jone-Aase GE-koordinat.", src:"https://www.institut-polaire.fr/" },
   { id:"ANT-29", g:"Antarktis-Base", n:"Mirny", lat:-66.526114, lon:92.993797, type:"antarktis-base", info:"Russland. Davis-havet. Jone-Aase GE-koordinat.", src:"https://www.aari.ru/" },
+  // NORGE-TEST (Norge-fork, 2026-05-31): 8 norske byer plottet pa AE-disken med v16.77-formelen r = R_OUTER * (90-lat)/180.
+  // Test: Nordkapp og Tromso skal ligge innenfor polarsirkelen (r=4091 km), Lindesnes mye lenger ut. WGS84-koordinater fra Kartverket SSR.
+  { id:"NO-01", g:"Norge-test", n:"Nordkapp",     lat:71.17, lon:25.78, type:"norge-test", info:"Finnmark. Nordligste punkt pa fastlandet (Magerøya). Innenfor polarsirkelen.", src:"https://www.kartverket.no/" },
+  { id:"NO-02", g:"Norge-test", n:"Tromsø",       lat:69.65, lon:18.96, type:"norge-test", info:"Troms. Nord-Norges storste by. Innenfor polarsirkelen.", src:"https://www.kartverket.no/" },
+  { id:"NO-03", g:"Norge-test", n:"Trondheim",    lat:63.43, lon:10.40, type:"norge-test", info:"Trøndelag. Tredje storste by i Norge. Like sor for polarsirkelen.", src:"https://www.kartverket.no/" },
+  { id:"NO-04", g:"Norge-test", n:"Bergen",       lat:60.39, lon:5.32,  type:"norge-test", info:"Vestland. Norges nest storste by. Vestlandet.", src:"https://www.kartverket.no/" },
+  { id:"NO-05", g:"Norge-test", n:"Oslo",         lat:59.91, lon:10.74, type:"norge-test", info:"Oslo. Hovedstaden i Norge.", src:"https://www.kartverket.no/" },
+  { id:"NO-06", g:"Norge-test", n:"Stavanger",    lat:58.97, lon:5.73,  type:"norge-test", info:"Rogaland. Oljebyen pa Sor-Vestlandet.", src:"https://www.kartverket.no/" },
+  { id:"NO-07", g:"Norge-test", n:"Kristiansand", lat:58.15, lon:7.99,  type:"norge-test", info:"Agder. Storste by pa Sorlandet.", src:"https://www.kartverket.no/" },
+  { id:"NO-08", g:"Norge-test", n:"Lindesnes",    lat:57.98, lon:7.05,  type:"norge-test", info:"Agder. Sorligste punkt pa fastlandet. Lengst ute fra Nordpolen pa AE.", src:"https://www.kartverket.no/" },
   // AFRIKA-MARKORER (v16.44) - 23 punkter fra afrika-markorer-perplexity.csv (Ekvator/Cancer/Capricorn)
   { id:"AFR-005", g:"Ekvator", n:"Semliki Base", lat:0.850000, lon:30.100000, type:"triangulering", info:"Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 94 km (nær_sirkel).", src:"https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf" },
   { id:"AFR-006", g:"Ekvator", n:"Omunturok", lat:0.300000, lon:30.050000, type:"triangulering", info:"Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 33 km (nær_sirkel).", src:"https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf" },
@@ -329,6 +339,8 @@ const FARGER = {
   "Akse-0":        "#ffffff",  // hvit — akse 0°↔180°
   // v16.65: Antarktis-baser — lys cyan, godt synlig på hvit isring
   "Antarktis-Base": "#00d4ff",
+  // Norge-fork 2026-05-31: 8 norske byer — sterkt rødt for kontrast mot grønn landfarge
+  "Norge-test":     "#ff3333",
 };
 
 const FILTER_KEY = {
@@ -352,6 +364,8 @@ const FILTER_KEY = {
   "Akse-0":        "layer-antipodal-axes",
   // v16.65: Antarktis-baser styres av egen toggle
   "Antarktis-Base": "layer-antarctica-bases",
+  // Norge-fork 2026-05-31: Norge-test-byer styres av egen toggle
+  "Norge-test":     "layer-norge-test",
 };
 
 // =================================================================
@@ -3041,7 +3055,7 @@ function applyFilters() {
   const antipodalEl = document.getElementById('layer-antipodal-axes');
   if (subMap.antipodalAxes) subMap.antipodalAxes.visible = !antipodalEl || antipodalEl.checked;
 }
-['filt-equator', 'filt-cancer', 'filt-capricorn', 'filt-arctic', 'filt-port', 'filt-megalithic', 'filt-vendekretsmon', 'filt-havn-sor', 'filt-mer-110e', 'filt-mer-150e', 'filt-mer-149w', 'filt-mer-70w', 'layer-antipodal-axes', 'layer-axis-70w-110e', 'layer-antarctica-bases'].forEach(id => {
+['filt-equator', 'filt-cancer', 'filt-capricorn', 'filt-arctic', 'filt-port', 'filt-megalithic', 'filt-vendekretsmon', 'filt-havn-sor', 'filt-mer-110e', 'filt-mer-150e', 'filt-mer-149w', 'filt-mer-70w', 'layer-antipodal-axes', 'layer-axis-70w-110e', 'layer-antarctica-bases', 'layer-norge-test'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', applyFilters);
 });
