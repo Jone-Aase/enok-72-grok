@@ -754,41 +754,11 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
 }
 
 // =================================================================
-// NORGE-KART (Norge-fork 2026-05-31)
-// Kartverket WMTS topograatone reprojisert pixel-for-pixel til AE.
-// Bygget med build_norge_kartverket.py: 156 fliser fra Kartverket (zoom 7),
-// syd sammen til Mercator-mosaikk, reprojisert til AE med samme formel som UN-kartet.
-// Output dekker AE-disken fra Nordpolen (sentrum) ut til lat 56N (R_OUTER * 0.1889).
-// Kun fastland - Jan Mayen og Svalbard ekskludert.
+// NORGE-KART (Norge-fork)
+// Toggle-en 'Norgeskart (Kartverket)' i Layer 1 styrer subMap.norgeKart-gruppen,
+// men gruppen er tom inntil vi bestemmer hvordan kartet fra norge.html
+// skal legges inn over Norge-omraadet paa UN AE map.
 // =================================================================
-const NORGE_AE_RADIUS = R_OUTER * 0.1889;  // 5.937 enheter - matcher build-scriptet
-{
-  const loader = new THREE.TextureLoader();
-  loader.load('norge-kartverket-ae.png?v=3', (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    tex.premultiplyAlpha = false;
-    tex.needsUpdate = true;
-    // Samme orientering som UN-kartet. Bilde-opp -> scene -Z.
-    const geom = new THREE.CircleGeometry(NORGE_AE_RADIUS, 128);
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex,
-      transparent: true,
-      opacity: 1.0,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      alphaTest: 0.05,        // kutt transparente piksler helt - hindrer hvit kant rundt
-      premultipliedAlpha: false,
-    });
-    const disk = new THREE.Mesh(geom, mat);
-    disk.rotation.x = -Math.PI / 2;
-    disk.position.y = 0.07;
-    subMap.norgeKart.add(disk);
-    console.log('Norge-kart (Kartverket): lastet, radius =', NORGE_AE_RADIUS.toFixed(2), 'enheter');
-  }, undefined, (err) => {
-    console.warn('Norge-kart (Kartverket) lasting feilet:', err);
-  });
-}
 
 // =================================================================
 // BYGG LAG 1 — ENOK-KARTET
