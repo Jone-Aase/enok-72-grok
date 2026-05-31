@@ -764,13 +764,12 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
 const NORGE_AE_RADIUS = R_OUTER * 0.1889;  // 5.937 enheter - matcher build-scriptet
 {
   const loader = new THREE.TextureLoader();
-  loader.load('norge-kartverket-ae.webp?v=1', (tex) => {
+  loader.load('norge-kartverket-ae.webp?v=2', (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
-    // Samme orientering som UN-kartet (CircleGeometry + rotation.x = -PI/2):
-    // Bilde-opp -> scene -Z (lon=0 / Greenwich peker oppover pa skjerm).
-    // Vi bygde norge-kartverket-ae.webp med atan2(dx, -dy) der lon=0 maler mot -y i bildet,
-    // som etter rotation.x = -PI/2 lander pa scene -Z. Perfekt match med UN-kartet.
+    tex.premultiplyAlpha = false;
+    tex.needsUpdate = true;
+    // Samme orientering som UN-kartet. Bilde-opp -> scene -Z.
     const geom = new THREE.CircleGeometry(NORGE_AE_RADIUS, 128);
     const mat = new THREE.MeshBasicMaterial({
       map: tex,
@@ -778,10 +777,12 @@ const NORGE_AE_RADIUS = R_OUTER * 0.1889;  // 5.937 enheter - matcher build-scri
       opacity: 1.0,
       side: THREE.DoubleSide,
       depthWrite: false,
+      alphaTest: 0.05,        // kutt transparente piksler helt - hindrer hvit kant rundt
+      premultipliedAlpha: false,
     });
     const disk = new THREE.Mesh(geom, mat);
     disk.rotation.x = -Math.PI / 2;
-    disk.position.y = 0.07;  // litt over UN-kartet (0.04) sa det vises
+    disk.position.y = 0.07;
     subMap.norgeKart.add(disk);
     console.log('Norge-kart (Kartverket): lastet, radius =', NORGE_AE_RADIUS.toFixed(2), 'enheter');
   }, undefined, (err) => {
