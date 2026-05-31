@@ -1,0 +1,121 @@
+id,group,name,lat,lon,type,ae_radius_km,ae_compass_deg,ae_x_km,ae_z_km,info,source_url
+EKV-01,Ekvator,Catequilla,0.000000,-78.428690,observatorium,15710.27,258.4287,-15390.98,3151.28,Pre-columbiansk ca. 800 e.Kr. Eksakt 0.00000°N.,https://en.wikipedia.org/wiki/Catequilla
+EKV-02,Ekvator,Pyramid of Oyambaro,-0.160000,-78.320000,baseline,15738.20,258.3200,-15412.32,3186.13,French Geodesic 1736.,
+EKV-03,Ekvator,Pyramid of Caraburo,-0.130000,-78.360000,baseline,15732.97,258.3600,-15409.41,3174.31,French Geodesic 1736.,
+EKV-04,Ekvator,Mitad del Mundo,-0.002220,-78.455830,feilmonument,15710.66,258.4558,-15392.85,3144.07,1979-1982. Feilplassert 240 m sør.,
+EKV-05,Ekvator,Pontianak Tugu Khatulistiwa,0.001056,109.322222,observatorium,15710.09,70.6778,14825.18,-5198.16,Solkulminasjon 21-23 mars og sept.,
+EKV-06,Ekvator,Quitsato Sundial,0.000000,-78.175000,moderne-solur,15710.27,258.1750,-15376.87,3219.40,2006. 1 mm GPS.,
+EKV-07,Ekvator,Jardim Marco Zero (Macapá),0.000739,-51.078131,ekvator-monument,15710.15,231.0781,-12222.55,9870.06,"Av. Equatorial, Macapá, Amapá Brasil. 0°00'02.66""N 51°04'41.27""W. På_sirkel (0.08 km nord for ekvator).","https://maps.google.com/?q=0.000739,-51.078131"
+CAN-01,Cancer,Modhera Sun Temple,23.583806,72.132686,soltempel,11593.52,107.8673,11034.36,3557.05,1026 e.Kr. UNESCO.,
+CAN-02,Cancer,Dholavira,23.888606,70.213636,by,11540.31,109.7864,10858.99,3906.56,Harappan 2650 f.Kr.,
+CAN-03,Cancer,Chiayi Tropic Monument,23.453917,120.416722,monument,11616.19,59.5833,10017.41,-5881.11,1908.,
+CAN-04,Cancer,Aswan/Syene (Eratosthenes),24.088000,32.899000,observasjon,11505.51,147.1010,6249.33,9660.36,Eratosthenes 240 f.Kr.,
+CAN-05,Cancer,Ujjain Jantar Mantar,23.182400,75.776400,observatorium,11663.59,104.2236,11306.03,2865.82,1719/1725.,
+CAN-06,Cancer,Mazatlán,23.217000,-106.420000,havn,11657.55,286.4200,-11182.10,-3295.31,Spansk koloni.,
+CAN-07,Cancer,Havana,23.114000,-82.370000,havn,11675.53,262.3700,-11572.15,1550.22,Spansk 1519.,
+CAN-08,Cancer,Muscat,23.610000,58.590000,havn,11588.95,121.4100,9890.70,6039.68,Arabisk handel.,
+CAN-09,Cancer,Kandla,23.030000,70.220000,havn,11690.19,109.7800,11000.46,3956.07,Gujarat.,
+CAN-10,Cancer,Guangzhou,23.130000,113.260000,havn,11672.73,66.7400,10724.00,-4609.61,Eldgammel kinesisk havn.,
+CAN-11,Cancer,Macao,22.171000,113.550000,havn,11840.14,66.4500,10853.99,-4730.72,Portugisisk 1557.,
+CAN-12,Cancer,Nassau,25.060000,-77.340000,havn,11335.84,257.3400,-11060.24,2484.42,Britisk 1648.,
+CAN-13,Cancer,Nabta Playa,22.507970,30.725600,megalittisk,11781.32,149.2744,6019.39,10127.50,5500 f.Kr.,
+CAP-06,Capricorn,Rio de Janeiro,-23.043000,-43.170000,havn,19732.63,223.1700,-13500.38,14391.54,Portugisisk 1565.,
+CAP-07,Capricorn,Sao Paulo,-23.550000,-46.630000,by,19821.13,226.6300,-14408.66,13611.31,Portugisisk 1554.,
+CAP-08,Capricorn,Antofagasta,-23.650000,-70.400000,havn,19838.59,250.4000,-18689.09,6654.88,Chilensk.,
+CAP-09,Capricorn,Pretoria,-25.740000,28.190000,by,20203.41,151.8100,9544.03,17807.00,Sør-Afrika.,
+CAP-10,Capricorn,Campo de Marte Airport (São Paulo),-23.507286,-46.633928,flyplass,19813.67,226.6339,-14404.17,13605.20,"Av. Santos Dumont 1979, Santana, São Paulo SP 02012-010, Brasil. 23°30'26.23""S 46°38'02.14""W. 8.2 km sør for nominell Capricorn-sirkel (-23.4333\u00b0).","https://maps.google.com/?q=-23.507286,-46.633928"
+CAN-23,Cancer,Hartswell (Bahamas),23.449894,-75.671764,cancer-presisjon,11616.89,255.6718,-11255.54,2874.91,"Bahamas, Long Island/Exuma-området. 23°26'59.62""N 75°40'18.35""W. På_sirkel (23°27'-presisjon).","https://maps.google.com/?q=23.449894,-75.671764"
+MR70W-01,Meridian-70W,"Póvalo Salcedo (Puno, Peru)",-15.862547,-70.000003,meridian-70w,18479.22,250.0000,-17364.79,6320.26,"Puno 21002, Peru. Plus 42P3+729. 15°51'45.17""S 70°00'00.01""W. Eksakt på 70W (avvik 3 cm).","https://maps.google.com/?q=-15.862547,-70.000003"
+MR70W-02,Meridian-70W,"Orquidea Lodge (Puerto Maldonado, Peru)",-12.652161,-70.000031,meridian-70w,17918.82,250.0000,-16838.18,6128.59,"Rio Madre de Dios, Tambopata, Puerto Maldonado, Peru. 12°39'07.78""S 70°00'00.11""W. Eksakt på 70W (avvik 3 m).","https://maps.google.com/?q=-12.652161,-70.000031"
+MR70W-03,Meridian-70W,Punta Cardon (Venezuela),11.570117,-70.000008,meridian-70w,13690.61,250.0000,-12864.97,4682.46,"Falcón, Venezuela. 11°34'12.42""N 70°00'00.03""W. Eksakt på 70W (avvik 1 m).","https://maps.google.com/?q=11.570117,-70.000008"
+MR70W-04,Meridian-70W,Barcadera Port (Aruba),12.480906,-70.000008,meridian-70w,13531.63,250.0000,-12715.57,4628.09,"Aruba (NL Karibien). 12°28'51.26""N 70°00'00.03""W. Eksakt på 70W (avvik 1 m).","https://maps.google.com/?q=12.480906,-70.000008"
+MR70W-05,Meridian-70W,Santo Domingo (DR),18.501275,-70.000181,meridian-70w,12480.72,250.0002,-11728.05,4268.62,"Dominikanske Republikk. 18°30'04.59""N 70°00'00.65""W. Eksakt på 70W (avvik 19 m).","https://maps.google.com/?q=18.501275,-70.000181"
+MR70W-06,Meridian-70W,"32 Cabot Ln, Chatham MA",41.670867,-70.000206,meridian-70w,8436.27,250.0002,-7927.51,2885.34,"Cape Cod, Massachusetts, USA. 41°40'15.12""N 70°00'00.74""W. Eksakt på 70W (avvik 17 m).","https://maps.google.com/?q=41.670867,-70.000206"
+MR70W-07,Meridian-70W,"Topsham, ME",43.934017,-70.000011,meridian-70w,8041.21,250.0000,-7556.27,2750.26,"Maine, USA. 43°56'02.46""N 70°00'00.04""W. Eksakt på 70W (avvik 1 m).","https://maps.google.com/?q=43.934017,-70.000011"
+MR70W-08,Meridian-70W,"Iqaluit (Nunavut, Canada)",63.749292,-68.520197,meridian-70w-naer,4582.29,248.5202,-4264.03,1677.91,"Hovedstad i Nunavut. 63°44'57.45""N 68°31'12.71""W. Nær 70W (~73 km øst).","https://maps.google.com/?q=63.749292,-68.520197"
+MR70W-09,Meridian-70W,Clyde River Airport (Nunavut),70.485461,-68.511117,meridian-70w-naer,3406.43,248.5111,-3169.65,1247.85,"Clyde River, NU X0A 0A7, Canada. 70°29'07.66""N 68°30'40.02""W. Nær 70W (~56 km øst på 70.5°N).","https://maps.google.com/?q=70.485461,-68.511117"
+MR70W-10,Meridian-70W,Moriusaq (Grønland),76.753342,-69.846903,meridian-70w-naer,2312.32,249.8469,-2170.75,796.66,"Avalannguaq-området, Grønland. Plus Q538+9QP. 76°45'12.03""N 69°50'48.85""W. Nær 70W (~4 km øst).","https://maps.google.com/?q=76.753342,-69.846903"
+MR70W-11,Meridian-70W,Herbert Ø 1967 (Grønland),77.420631,-70.172181,meridian-70w-naer,2195.84,250.1722,-2065.66,744.82,"Herbert Island, Grønland. 1967 ekspedisjon. 77°25'14.27""N 70°10'19.85""W. Eksakt på 70W (~4 km vest).","https://maps.google.com/?q=77.420631,-70.172181"
+MR70W-12,Meridian-70W,"Rawlings Bay (Ellesmere, Canada)",80.305603,-70.000094,meridian-70w,1692.24,250.0001,-1590.19,578.78,"Ellesmere Island, Nunavut, Canada. 80°18'20.17""N 70°00'00.34""W. Eksakt på 70W (avvik 9 m).","https://maps.google.com/?q=80.305603,-70.000094"
+MEG-14,Megalithic,Auckland Island / Motu Maha (NZ),-50.732353,166.094872,subantarktisk,24566.04,13.9051,5903.59,-23846.14,"Auckland Islands, New Zealand. Maori-navn: Motu Maha. 50°43'56.47""S 166°05'41.54""E. Subantarktisk øgruppe.","https://maps.google.com/?q=-50.732353,166.094872"
+EK-22,Meridian-110E,Lebo (Java),-6.963539,110.033475,meridian-110-east-naer,16925.82,69.9665,15901.68,-5798.26,"Lebo, Sentral-Java, Indonesia. 6\u00b057'48.74""S 110\u00b002'00.51""E. Nær 110E (~3.7 km øst).","https://maps.google.com/?q=-6.963539,110.033475"
+EK-23,Meridian-110E,Yogyakarta International Airport,-7.896131,110.034731,meridian-110-east-naer,17088.61,69.9653,16054.50,-5854.38,"YIA flyplass, Kulon Progo, Yogyakarta, Indonesia. 7\u00b053'46.07""S 110\u00b002'05.03""E. Nær 110E (~3.8 km øst).","https://maps.google.com/?q=-7.896131,110.034731"
+AFR-005,Ekvator,Semliki Base,0.850000,30.100000,triangulering,15561.90,149.9000,7804.46,13463.40,Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 94 km (nær_sirkel).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-006,Ekvator,Omunturok,0.300000,30.050000,triangulering,15657.91,149.9500,7840.78,13553.31,Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 33 km (nær_sirkel).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-007,Ekvator,NKenda,0.200000,30.100000,triangulering,15675.36,149.9000,7861.36,13561.56,Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 22 km (nær_sirkel).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-008,Ekvator,Kasunju,-0.250000,29.950000,triangulering,15753.91,150.0500,7865.05,13650.16,Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 28 km (nær_sirkel).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-009,Ekvator,Karangora,0.300000,30.000000,triangulering,15657.91,150.0000,7828.95,13560.15,Uganda. 1908. Smith 2005 FIG. Avstand til sirkel: 33 km (nær_sirkel).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-017,Ekvator,Lake Rudolph Base,5.500000,30.500000,triangulering,14750.20,149.5000,7486.29,12709.20,Sudan. 1903. Smith 2005 FIG. Avstand til sirkel: 611 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-019,Ekvator,Juba Base,4.850000,31.600000,triangulering,14863.67,148.4000,7788.35,12659.78,Sudan. 1952. Smith 2005 FIG. Avstand til sirkel: 539 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-021,Ekvator,Abu Qarn Base,10.000000,30.000000,triangulering,13964.69,150.0000,6982.34,12093.78,Sudan. 1951. Smith 2005 FIG. Avstand til sirkel: 1113 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-030,Ekvator,Kayabwe Equator Monument,-0.000811,32.039169,vendekrets-monument,15710.42,147.9608,8334.36,13317.49,Uganda. 1980. Wikimedia Commons; OpenStreetMap. Avstand til sirkel: 0.09 km (på_sirkel).,https://commons.wikimedia.org/wiki/File:Uganda_Equator_(Kayabwe).jpg
+AFR-011,Cancer,Wadi Halfa,21.800000,31.350000,triangulering,11904.90,148.6500,6193.70,10166.84,Sudan. 1893. Smith 2005 FIG. Avstand til sirkel: 184 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-012,Cancer,Murrat Wells,20.500000,30.800000,triangulering,12131.82,149.2000,6212.01,10420.75,Sudan. 1893. Smith 2005 FIG. Avstand til sirkel: 328 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-013,Cancer,Kerma,19.650000,30.400000,triangulering,12280.20,149.6000,6214.19,10591.84,Sudan. 1896. Smith 2005 FIG. Avstand til sirkel: 422 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-014,Cancer,Merowe,18.450000,31.800000,triangulering,12489.67,148.2000,6581.50,10614.88,Sudan. 1898. Smith 2005 FIG. Avstand til sirkel: 555 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-015,Cancer,Abu Hamed,19.530000,33.320000,triangulering,12301.15,146.6800,6757.20,10279.03,Sudan. 1898. Smith 2005 FIG. Avstand til sirkel: 430 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-026,Cancer,Luxor Base,25.670000,32.650000,triangulering,11229.36,147.3500,6058.30,9454.91,Egypt. 1922. Smith 2005 FIG. Avstand til sirkel: 248 km (langt_fra).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-027,Cancer,Aswan Base,24.090000,32.900000,triangulering,11505.16,147.1000,6249.31,9659.96,Egypt. 1927. Smith 2005 FIG; Wikipedia Aswan. Avstand til sirkel: 73 km (nær_sirkel).,https://www.fig.net/resources/proceedings/fig_proceedings/cairo/papers/wshs_03/wshs03_01_smith.pdf
+AFR-028,Cancer,Adindan Base,22.170000,31.500000,triangulering,11840.31,148.5000,6186.55,10095.52,Egypt. 1930. Smith 2005 FIG; EPSG:4201. Avstand til sirkel: 141 km (langt_fra).,https://epsg.io/4201
+AFR-036,Cancer,Aswan Eratosthenes locus,24.089800,32.899700,observatorium,11505.19,147.1003,6249.28,9660.02,Egypt. -240. Wikipedia Aswan; Eratosthenes 240 BC. Avstand til sirkel: 73 km (nær_sirkel).,https://en.wikipedia.org/wiki/Aswan
+AFR-031,Capricorn,Tropic of Capricorn Sign Namibia,-23.436940,15.500000,vendekrets-monument,19801.39,164.5000,5291.69,19081.23,Namibia. 1970. Facebook 4x4Rentals; Wikipedia Tropic Capricorn. Avstand til sirkel: 0.05 km (på_sirkel).,https://en.wikipedia.org/wiki/Tropic_of_Capricorn
+AFR-032,Capricorn,Tropic of Capricorn Monument Botswana,-23.433000,20.000000,vendekrets-monument,19800.71,160.0000,6772.24,18606.58,Botswana. 1970. Wikipedia Tropic Capricorn. Avstand til sirkel: 0.7 km (på_sirkel).,https://en.wikipedia.org/wiki/Tropic_of_Capricorn
+AFR-033,Capricorn,Tropic of Capricorn Marker Limpopo,-23.433000,27.300000,vendekrets-monument,19800.71,152.7000,9081.59,17595.25,Sør-Afrika. 1970. Wikipedia Tropic Capricorn; AARoads N1. Avstand til sirkel: 0.7 km (på_sirkel).,https://en.wikipedia.org/wiki/Tropic_of_Capricorn
+AFR-034,Capricorn,Tropic of Capricorn Mozambique,-23.433000,31.550000,vendekrets-monument,19800.71,148.4500,10360.57,16873.84,Mosambik. 1970. Wikipedia Tropic Capricorn. Avstand til sirkel: 0.7 km (på_sirkel).,https://en.wikipedia.org/wiki/Tropic_of_Capricorn
+AFR-035,Capricorn,Tropic of Capricorn Madagaskar,-23.433000,43.750000,vendekrets-monument,19800.71,136.2500,13692.45,14303.32,Madagaskar. 1970. Wikipedia Tropic Capricorn. Avstand til sirkel: 0.7 km (på_sirkel).,https://en.wikipedia.org/wiki/Tropic_of_Capricorn
+STRUVE-01,Struve,Fuglenes Hammerfest,70.670000,23.663330,geodetisk,3374.22,156.3367,1354.28,3090.51,Nordligste 1816-1855. UNESCO.,
+STRUVE-10,Struve,Aavasaksa Ylitornio,66.397780,23.725280,geodetisk,4119.97,156.2747,1657.68,3771.77,Maupertuis 1736.,
+STRUVE-19,Struve,Tartu Old Observatory,58.378789,26.720169,geodetisk,5519.75,153.2798,2481.87,4930.32,Struves base.,
+STRUVE-34,Struve,Staro-Nekrasivka,45.332639,28.927780,geodetisk,7797.07,151.0722,3771.50,6824.23,Svartehavet — sør-ende.,
+POL-01,Polarsirkel,Orbis et Globus (Grímsey),66.563420,-18.017830,polarsirkel-monument,4091.06,198.0178,-1265.42,3890.43,3m betongkule 2017.,
+MEG-01,Megalithic,Stonehenge,51.178890,-1.826110,megalittisk,6776.56,181.8261,-215.94,6773.12,3000 f.Kr.,
+MEG-02,Megalithic,Newgrange,53.694720,-6.475280,megalittisk,6337.40,186.4753,-714.70,6296.97,3200 f.Kr.,
+MEG-03,Megalithic,Goseck Circle,51.197780,11.860560,megalittisk,6773.26,168.1394,1392.11,6628.66,4900 f.Kr.,
+MEG-05,Megalithic,Mnajdra,35.826670,14.436390,megalittisk,9456.42,165.5636,2357.53,9157.83,3600 f.Kr.,
+MEG-06,Megalithic,Bighorn Medicine Wheel,44.826110,-107.921670,megalittisk,7885.49,287.9217,-7502.87,-2426.50,1200-1700 e.Kr.,
+OBS-01,Megalithic,Gaocheng Observatory,34.402780,113.140830,observatorium,9704.97,66.8592,8924.13,-3813.98,1276 e.Kr.,
+OBS-02,Megalithic,El Caracol Chichen Itza,20.679200,-88.570700,observatorium,12100.54,268.5707,-12096.78,301.83,Maya ca. 800 e.Kr.,
+OBS-03,Megalithic,Machu Picchu Intihuatana,-13.163330,-72.545560,observatorium,18008.05,252.5456,-17178.88,5401.47,Inka 1450 e.Kr.,
+OBS-05,Megalithic,Chankillo Solar Observatory,-9.559170,-78.233330,observatorium,17378.91,258.2333,-17013.71,3544.02,250 f.Kr.,
+OBS-06,Megalithic,Karnak Temple,25.718890,32.657500,soltempel,11220.82,147.3425,6054.93,9446.94,2055 f.Kr.,
+OBS-07,Megalithic,Abu Simbel,22.337500,31.625830,soltempel,11811.07,148.3742,6193.37,10057.02,1264 f.Kr.,
+OBS-08,Megalithic,Tikal Mundo Perdido,17.221940,-89.623610,observatorium,12704.04,269.6236,-12703.76,83.46,Maya.,
+OBS-09,Megalithic,Ahu Akivi,-27.115280,-109.414720,moai,20443.48,289.4147,-19281.01,-6795.48,Rapa Nui 1500-tallet.,
+VKM-01,Vendekrets-Monument,Hito al Trópico de Capricornio (Antofagasta),-23.443100,-70.428270,vendekrets-monument,19802.47,250.4283,-18658.34,6633.56,"Capricorn-monument, Chile. Eksakt 23°26'35.16""S.",https://www.wikidata.org/wiki/Q9004360
+VKM-02,Vendekrets-Monument,Monolito del Trópico de Capricornio (Belén),-23.437520,-57.270180,vendekrets-monument,19801.50,237.2702,-16657.60,10706.24,"Capricorn-monolitt, Paraguay. 23°26'15.07""S.",https://mapcarta.com/N4939298321
+VKM-03,Vendekrets-Monument,Monolito sin sombra (Huacalera),-23.438300,-65.350800,vendekrets-monument,19801.63,245.3508,-17997.27,8258.50,"Capricorn-monolitt, Argentina, Ruta Nacional 9. 23°26'17.88""S.",https://es.wikipedia.org/wiki/Huacalera
+VKM-04,Vendekrets-Monument,Museu Florestal Octávio Vecchi (São Paulo),-23.462570,-46.637070,vendekrets-monument,19805.87,226.6371,-14399.24,13599.05,"Capricorn-marker, Brasil, Parque Alberto Löfgren. 23°27'45.25""S.",https://en.wikipedia.org/wiki/Albert_L%C3%B6fgren_State_Park
+VKM-05,Vendekrets-Monument,Marco do Trópico de Capricórnio (Maringá),-23.425300,-51.938600,vendekrets-monument,19799.36,231.9386,-15589.04,12206.42,"Capricorn-marker, Paraná Brasil, Avenida Cerro Azul. 23°25'31.08""S.",https://time-ok.com/coordinates/maringa
+VKM-06,Vendekrets-Monument,Tropic of Capricorn Spire (Rockhampton),-23.378100,150.513600,vendekrets-monument,19791.12,29.4864,9741.53,-17227.63,"Capricorn-spire, QLD Australia. Gladstone Rd Allenstown. 23°22'41.16""S.",https://en.wikipedia.org/wiki/Rockhampton
+VKM-07,Vendekrets-Monument,Tropic of Capricorn Marker (Alice Springs),-23.441890,133.832800,vendekrets-monument,19802.26,46.1672,14284.63,-13714.18,"Capricorn-marker, NT Australia, Stuart Highway. 23°26'30.80""S.",https://www.monumentaustralia.org/themes/landscape/settlement/display/101471
+VKM-08,Vendekrets-Monument,Tropic of Capricorn Sign (Solitaire),-23.500230,15.772140,vendekrets-monument,19812.44,164.2279,5385.27,19066.51,"Capricorn-skilt, Khomas Namibia, Rute C14. 23°30'00.83""S.",https://www.findlatitudeandlongitude.com/
+VKM-09,Vendekrets-Monument,Monumento al Trópico de Cáncer (San Luis Potosí),23.449440,-100.605000,vendekrets-monument,11616.97,280.6050,-11418.55,-2137.95,"Cancer-monument, Mexico, Carretera 57. 23°26'58""N.",http://wikimapia.org/34376176
+VKM-10,Vendekrets-Monument,Plaza Turística Trópico de Cáncer (Santiago BCS),23.500000,-109.716670,vendekrets-monument,11608.15,289.7167,-10927.59,-3916.23,"Cancer-plaza, Baja California Sur Mexico, km 81.5 Hwy 1. 23°30'00""N.",https://www.loscabosguide.com/tropic-of-cancer-monument/
+VKM-15,Vendekrets-Monument,Trópico de Cáncer Plaza del Pueblo (Cabo San Lucas),23.447875,-109.703106,vendekrets-monument,11617.25,289.7031,-10937.08,-3916.71,"Cancer-park, Baja California Sur Mexico, 23500 Cabo San Lucas. 23°26'52.35""N 109°42'11.18""W. På_sirkel (1.6 km fra nominell 23.4333°).","https://maps.google.com/?q=23.447875,-109.703106"
+VKM-16,Vendekrets-Monument,Trópico de Cáncer C. Centenario 8 (El Centro BCS),23.450006,-110.225467,vendekrets-monument,11616.87,290.2255,-10900.57,-4016.13,"Cancer-marker, Baja California Sur Mexico, 23880 Centro. 23°27'00.02""N 110°13'31.68""W. På_sirkel (1.9 km fra nominell 23.4333°).","https://maps.google.com/?q=23.450006,-110.225467"
+VKM-11,Vendekrets-Monument,Aswan/Syene Eratosthenes-brønn,24.088890,32.899720,vendekrets-monument,11505.35,147.1003,6249.37,9660.15,"Cancer-observasjon, Egypt. Eratosthenes' brønn 240 f.Kr. Utligger 24.089°N.",https://en.wikipedia.org/wiki/Aswan
+VKM-12,Vendekrets-Monument,Symbolic Tower of Tropic of Cancer (Shantou),23.442400,116.588850,vendekrets-monument,11618.20,63.4112,10389.48,-5200.13,"Cancer-tårn, Guangdong Kina, Jilong-fjellet. 23°26'33""N.",https://en.wikipedia.org/wiki/Shantou
+VKM-13,Vendekrets-Monument,Gate of Nature Tropic Tower (Nan'ao),23.433000,117.017000,vendekrets-monument,11619.84,62.9830,10351.79,-5278.37,"Cancer-tårn, Nan'ao øy Guangdong Kina, Qing'ao Bay. 23°25'58.8""N.",https://en.wikipedia.org/wiki/Nan%27ao_County
+VKM-14,Vendekrets-Monument,Tropic of Cancer Solar Exploration Center (Chiayi),23.454620,120.416970,vendekrets-monument,11616.07,59.5830,10017.28,-5881.09,"Cancer-senter, Shuishang Taiwan. 23°27'16.63""N.",https://jotarofootsteps.blogspot.com/
+VKM-17,Vendekrets-Monument,Giant Crab Tropic of Capricorn (Mantos Blancos),-23.487144,-70.000003,vendekrets-monument,19810.16,250.0000,-18615.46,6775.47,"Capricorn-monument, Sierra Gorda Antofagasta Chile. Historical landmark, G273+44. 23°29'13.72""S 70°00'00.01""W.","https://maps.google.com/?q=-23.487144,-70.000003"
+EK-01,Havn-Sor,Punta Arenas,-53.150520,-70.902980,skipslogg-referanse,24988.16,250.9030,-23612.96,8175.34,"EK_Data V6. Raw GE: 53°9'1.88""S 70°54'10.74""W",
+EK-02,Havn-Sor,Puerto Harris,-53.840060,-70.443780,skipslogg-referanse,25108.52,250.4438,-23660.10,8404.62,"EK_Data V6. Raw GE: 53°50'24.23""S 70°26'37.61""W",
+EK-03,Meridian-110E,Beihai Port,20.279380,110.000010,meridian-110-east,12170.33,70.0000,11436.37,-4162.50,"EK_Data V6. Raw GE: 20°16'45.77""N 110°0'0.04""E",
+EK-04,Meridian-110E,Hainan,19.930090,110.000000,meridian-110-east,12231.31,70.0000,11493.67,-4183.35,"EK_Data V6. Raw GE: 19°55'48.34""N 110°0'0.00""E",
+EK-05,Meridian-110E,Xincun Habor Yanjincun,18.434030,110.000170,meridian-110-east,12492.46,69.9998,11739.06,-4272.71,"EK_Data V6. Raw GE: 18°26'2.52""N 110°0'0.60""E",
+EK-06,Meridian-150E,Urup (Kuril-øyene),46.201770,150.504650,meridian-150-east,7645.36,29.4954,3764.21,-6654.49,"EK_Data V6. Raw GE: 46°12'6.39""N 150°30'16.75""E",
+EK-07,Meridian-150E,Magadan Oblast,59.548290,150.789770,meridian-150-east,5315.61,29.2102,2594.10,-4639.65,"EK_Data V6. Raw GE: 59°32'53.86""N 150°47'23.19""E",
+EK-08,Meridian-150E,Sinegor'e (Magadan),62.078630,150.505530,meridian-150-east,4873.92,29.4945,2399.62,-4242.27,"EK_Data V6. Raw GE: 62°4'43.07""N 150°30'19.89""E",
+EK-09,Meridian-150E,Tumannyi,62.680970,150.505140,meridian-150-east,4768.77,29.4949,2347.88,-4150.74,"EK_Data V6. Raw GE: 62°40'51.48""N 150°30'18.52""E",
+EK-10,Meridian-150E,Usun-Kiuell,66.344060,150.505260,meridian-150-east,4129.35,29.4947,2033.06,-3594.19,"EK_Data V6. Raw GE: 66°20'38.62"" 150°30'18.92""E",
+EK-11,Capricorn,Tubuai (Fransk Polynesia),-23.375770,-149.468300,capricorn-punkt,19790.72,329.4683,-10053.98,-17046.70,"EK_Data V6. Raw GE: 23°22'32.76""S 149°28'5.87""W",
+EK-12,Meridian-149W,Michou (Fransk Polynesia),-17.506820,-149.468260,meridian-149-west,18766.24,329.4683,-9533.54,-16164.26,"EK_Data V6. Raw GE: 17°30'24.56""S 149°28'5.73""W",
+EK-13,Meridian-149W,Seward (Alaska),60.120900,-149.468480,meridian-149-west,5215.65,329.4685,-2649.62,-4492.50,"EK_Data V6. Raw GE: 60°7'15.25""N 149°28'6.54""W",
+EK-14,Meridian-149W,Kongiganak Anchorage (Alaska),60.973310,-149.468260,meridian-149-west,5066.86,329.4683,-2574.04,-4364.33,"EK_Data V6. Raw GE: 60°58'23.92""N 149°28'5.74""W",
+EK-15,Meridian-149W,Chugiak Birchwood Loop (Alaska),61.403950,-149.468260,meridian-149-west,4991.69,329.4683,-2535.85,-4299.58,"EK_Data V6. Raw GE: 61°24'14.21""N 149°28'5.74""W",
+EK-16,Polarsirkel,Toolik Lake Field Station,68.627580,-149.594270,polarsirkel-punkt,3730.74,329.5943,-1888.20,-3217.63,"EK_Data V6. Raw GE: 68°37'39.30""N 149°35'39.38""W",
+EK-17,Meridian-149W,Kuparuk Rd (Alaska),70.326160,-149.595950,meridian-149-west,3434.24,329.5960,-1738.05,-2961.95,"EK_Data V6. Raw GE: 70°19'34.16""N 149°35'45.43""W",
+EK-18,Polarsirkel,Hestmona Storselsøy,66.550020,12.847140,polarsirkel-punkt,4093.40,167.1529,910.17,3990.92,"EK_Data V6. Raw GE: 66°33'0.08""N 12°50'49.72""E",
+EK-19,Polarsirkel,Raudskjærholmen,66.543290,12.165750,polarsirkel-punkt,4094.57,167.8342,862.89,4002.62,"EK_Data V6. Raw GE: 66°32'35.83""N 12°9'56.69""E",
+EK-20,Polarsirkel,Itilleq Arsaattarfik (Grønland),66.576950,-53.498410,polarsirkel-punkt,4088.70,233.4984,-3286.66,2432.14,"EK_Data V6. Raw GE: 66°34'37.01""N 53°29'54.27""W",
+EK-21,Polarsirkel,Nedlung,66.543160,-71.328390,polarsirkel-punkt,4094.59,251.3284,-3879.09,1310.86,"EK_Data V6. Raw GE: 66°32'35.39""N 71°19'42.20""W",
