@@ -764,7 +764,7 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
 const NORGE_AE_RADIUS = R_OUTER * 0.1889;  // 5.937 enheter - matcher build-scriptet
 {
   const loader = new THREE.TextureLoader();
-  loader.load('norge-kartverket-ae.webp?v=2', (tex) => {
+  loader.load('norge-kartverket-ae.png?v=3', (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
     tex.premultiplyAlpha = false;
