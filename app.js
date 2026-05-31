@@ -784,8 +784,7 @@ const NORGE_AE_RADIUS = R_OUTER * 0.1889;  // 5.937 enheter - matcher build-scri
     disk.rotation.x = -Math.PI / 2;
     disk.position.y = 0.07;
     subMap.norgeKart.add(disk);
-    window.__debugNorge = { disk, tex, mat };  // debug-eksponering
-    console.log('Norge-kart (Kartverket): lastet, radius =', NORGE_AE_RADIUS.toFixed(2), 'enheter', 'tex.image:', tex.image && tex.image.width);
+    console.log('Norge-kart (Kartverket): lastet, radius =', NORGE_AE_RADIUS.toFixed(2), 'enheter');
   }, undefined, (err) => {
     console.warn('Norge-kart (Kartverket) lasting feilet:', err);
   });
