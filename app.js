@@ -754,11 +754,78 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
 }
 
 // =================================================================
-// NORGE-KART (Norge-fork)
-// Toggle-en 'Norgeskart (Kartverket)' i Layer 1 styrer subMap.norgeKart-gruppen,
-// men gruppen er tom inntil vi bestemmer hvordan kartet fra norge.html
-// skal legges inn over Norge-omraadet paa UN AE map.
+// NORGE-KART (Norge-fork 2026-05-31)
+// Kartverket WMTS topograatone-fliser (samme som norge.html bruker)
+// lagt som flat Mercator-mosaikk-tekstur paa et plan over Norge paa AE-disken.
+// Toggle 'Norgeskart (Kartverket)' styrer synligheten.
+// PLASSERING/STORRELSE er foreloebig - finjusteres etter Jone-Aases instruksjoner.
+// Mercator-bbox: lon 2.8125..33.7500, lat 57.3265..71.5249.
 // =================================================================
+fetch('norge-mercator-bbox.json').then(r => r.json()).then(bbox => {
+  const loader = new THREE.TextureLoader();
+  loader.load('norge-mercator.png', (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    tex.needsUpdate = true;
+    // Hvor stort skal kartet vaere? Vi tar utgangspunkt i at Norge paa AE-disken
+    // strekker seg fra lat 90 (sentrum) ut til lat 57 (radius). Vi maaler den faktiske
+    // pikselbredden av Norge paa AE og setter plane-størrelsen til aa matche.
+    // Norge i AE: senter ca (lat 64.5, lon 18.5), bredde fra (57,4) til (71.3,32).
+    // Vi bruker AE-scene-enheter (R_OUTER = 31.42).
+    function latLonToAE(lat, lon) {
+      const r = R_OUTER * (90 - lat) / 180;
+      const lonRad = lon * Math.PI / 180;
+      // lon=0 -> -z, lon=90 -> +x (samme orientering som UN-kartet)
+      const x = r * Math.sin(lonRad);
+      const z = -r * Math.cos(lonRad);
+      return { x, z };
+    }
+    // Finn senter av bbox (geometrisk midt) projisert til AE
+    const latCenter = (bbox.lat_min + bbox.lat_max) / 2;
+    const lonCenter = (bbox.lon_min + bbox.lon_max) / 2;
+    const centerAE = latLonToAE(latCenter, lonCenter);
+    // Mal bredde og hoyde i AE-scene-enheter (omtrent - dette er Mercator paa et flat plan,
+    // ikke reprojisert, saa stoerrelsen er en tilnaerming)
+    const cornerNE = latLonToAE(bbox.lat_max, bbox.lon_max);
+    const cornerSW = latLonToAE(bbox.lat_min, bbox.lon_min);
+    const cornerNW = latLonToAE(bbox.lat_max, bbox.lon_min);
+    const cornerSE = latLonToAE(bbox.lat_min, bbox.lon_max);
+    // Plane-stoerrelse: tar den største utstrekningen
+    const xs = [cornerNE.x, cornerSW.x, cornerNW.x, cornerSE.x];
+    const zs = [cornerNE.z, cornerSW.z, cornerNW.z, cornerSE.z];
+    const planeW = Math.max(...xs) - Math.min(...xs);
+    const planeH = Math.max(...zs) - Math.min(...zs);
+    // Plane-aspekt skal matche bilde-aspekt for aa unngaa stretching:
+    // Bruk bilde-aspekt og skaler ned slik at minste side passer
+    const imgAspect = bbox.width / bbox.height;
+    const sceneAspect = planeW / planeH;
+    let finalW, finalH;
+    if (imgAspect > sceneAspect) {
+      finalW = planeW;
+      finalH = planeW / imgAspect;
+    } else {
+      finalH = planeH;
+      finalW = planeH * imgAspect;
+    }
+    const geom = new THREE.PlaneGeometry(finalW, finalH);
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 1.0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const plane = new THREE.Mesh(geom, mat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(centerAE.x, 0.1, centerAE.z);  // y=0.1 saa det ligger over UN-kartet
+    subMap.norgeKart.add(plane);
+    console.log('Norge-kart (Kartverket Mercator): lastet,',
+      'plane=', finalW.toFixed(2), 'x', finalH.toFixed(2),
+      'sentrum=(', centerAE.x.toFixed(2), centerAE.z.toFixed(2), ')');
+  }, undefined, (err) => {
+    console.warn('Norge-kart lasting feilet:', err);
+  });
+}).catch(err => console.warn('Norge-bbox lasting feilet:', err));
 
 // =================================================================
 // BYGG LAG 1 — ENOK-KARTET
@@ -2545,18 +2612,9 @@ bindToggle('layer-square-grid', subMap.squareGrid);
 bindToggle('layer-meridians', subMap.meridians);
 bindToggle('layer-latcircles', subMap.latcircles);
 bindToggle('layer-coast', subMap.coast);
-// Norge-fork 2026-05-31: 'Norgeskart (Kartverket)'-toggle styrer iframe-overlegg av norge.html
-// over Norge-omraadet paa AE-disken. Iframen ligger i index.html (#norge-iframe-wrap)
-// og inneholder Leaflet med Kartverket WMTS (zoom 1:5000, sjokart, byer). norge.html er uroert.
-{
-  const el = document.getElementById('layer-norge-kart');
-  const wrap = document.getElementById('norge-iframe-wrap');
-  if (el && wrap) {
-    const sync = () => { wrap.style.display = el.checked ? 'block' : 'none'; };
-    el.addEventListener('change', sync);
-    sync();
-  }
-}
+// Norge-fork 2026-05-31: 'Norgeskart (Kartverket)' styrer synligheten
+// av Kartverket-mosaikken som ligger over Norge paa AE-disken.
+bindToggle('layer-norge-kart', subMap.norgeKart);
 // v16.49: FN-kart-rotasjon slider (for å finjustere Greenwich-orientering)
 {
   const slider = document.getElementById('map-rotation');

@@ -1,0 +1,13 @@
+{
+  "lon_min": 2.8125,
+  "lon_max": 33.75,
+  "lat_min": 57.32652122521708,
+  "lat_max": 71.52490903732816,
+  "width": 2816,
+  "height": 3072,
+  "zoom": 7,
+  "tile_x_min": 65,
+  "tile_x_max": 75,
+  "tile_y_min": 27,
+  "tile_y_max": 38
+}
