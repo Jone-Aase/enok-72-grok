@@ -2545,7 +2545,18 @@ bindToggle('layer-square-grid', subMap.squareGrid);
 bindToggle('layer-meridians', subMap.meridians);
 bindToggle('layer-latcircles', subMap.latcircles);
 bindToggle('layer-coast', subMap.coast);
-bindToggle('layer-norge-kart', subMap.norgeKart);  // Norge-fork: vektor-kystpolygon for Norge
+// Norge-fork 2026-05-31: 'Norgeskart (Kartverket)'-toggle styrer iframe-overlegg av norge.html
+// over Norge-omraadet paa AE-disken. Iframen ligger i index.html (#norge-iframe-wrap)
+// og inneholder Leaflet med Kartverket WMTS (zoom 1:5000, sjokart, byer). norge.html er uroert.
+{
+  const el = document.getElementById('layer-norge-kart');
+  const wrap = document.getElementById('norge-iframe-wrap');
+  if (el && wrap) {
+    const sync = () => { wrap.style.display = el.checked ? 'block' : 'none'; };
+    el.addEventListener('change', sync);
+    sync();
+  }
+}
 // v16.49: FN-kart-rotasjon slider (for å finjustere Greenwich-orientering)
 {
   const slider = document.getElementById('map-rotation');
