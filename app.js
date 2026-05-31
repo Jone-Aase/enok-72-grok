@@ -755,72 +755,39 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
 
 // =================================================================
 // NORGE-KART (Norge-fork 2026-05-31)
-// Henter Natural Earth ne_50m Norway-kystpolygoner og tegner dem pa AE-disken
-// med samme formel som markorer: r = R_OUTER * (90 - lat) / 180.
-// Vinkel theta = (lon + 180) for a matche orientering i instrumentet.
+// Kartverket WMTS topograatone reprojisert pixel-for-pixel til AE.
+// Bygget med build_norge_kartverket.py: 156 fliser fra Kartverket (zoom 7),
+// syd sammen til Mercator-mosaikk, reprojisert til AE med samme formel som UN-kartet.
+// Output dekker AE-disken fra Nordpolen (sentrum) ut til lat 56N (R_OUTER * 0.1889).
+// Kun fastland - Jan Mayen og Svalbard ekskludert.
 // =================================================================
-function latLonToAE(lat, lon) {
-  // Samme projeksjon som markorer (se latToR i app.js)
-  const r = R_OUTER * (90 - lat) / 180;
-  // Kontinent-kartet i un-map.webp er bygget slik at lon=0 (Greenwich) peker nedover (-Z),
-  // og lon=90E peker mot +X. Det betyr theta = lon (i radianer) maler riktig retning
-  // i scene-koordinater: x = r * sin(lon_rad), z = r * cos(lon_rad).
-  // Vi forskyver med +90 grader for a fa lon=0 mot scene -Z (samme som FN-kartet).
-  const lonRad = lon * Math.PI / 180;
-  const x = r * Math.sin(lonRad);
-  const z = -r * Math.cos(lonRad);  // lon=0 -> z=-r (nedover/sor pa skjerm)
-  return { x, z };
+const NORGE_AE_RADIUS = R_OUTER * 0.1889;  // 5.937 enheter - matcher build-scriptet
+{
+  const loader = new THREE.TextureLoader();
+  loader.load('norge-kartverket-ae.webp?v=1', (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    // Samme orientering som UN-kartet (CircleGeometry + rotation.x = -PI/2):
+    // Bilde-opp -> scene -Z (lon=0 / Greenwich peker oppover pa skjerm).
+    // Vi bygde norge-kartverket-ae.webp med atan2(dx, -dy) der lon=0 maler mot -y i bildet,
+    // som etter rotation.x = -PI/2 lander pa scene -Z. Perfekt match med UN-kartet.
+    const geom = new THREE.CircleGeometry(NORGE_AE_RADIUS, 128);
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 1.0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const disk = new THREE.Mesh(geom, mat);
+    disk.rotation.x = -Math.PI / 2;
+    disk.position.y = 0.07;  // litt over UN-kartet (0.04) sa det vises
+    subMap.norgeKart.add(disk);
+    console.log('Norge-kart (Kartverket): lastet, radius =', NORGE_AE_RADIUS.toFixed(2), 'enheter');
+  }, undefined, (err) => {
+    console.warn('Norge-kart (Kartverket) lasting feilet:', err);
+  });
 }
-
-fetch('norge-kyst.json?v=1')
-  .then(r => r.json())
-  .then(data => {
-    const NORGE_COLOR_FILL = 0xff6b6b;    // Lett rod fyll
-    const NORGE_COLOR_EDGE = 0xcc1111;    // Sterk rod kystlinje
-    const NORGE_OPACITY_FILL = 0.55;
-    const NORGE_LIFT = 0.06;              // Litt over UN-kartet (0.04) sa det vises
-
-    function buildPolygons(polygons, label) {
-      polygons.forEach((ring, idx) => {
-        if (ring.length < 3) return;
-        // 1) Fyll-mesh (Shape -> ShapeGeometry)
-        const shape = new THREE.Shape();
-        ring.forEach((pt, i) => {
-          const p = latLonToAE(pt[1], pt[0]);
-          if (i === 0) shape.moveTo(p.x, p.z);
-          else         shape.lineTo(p.x, p.z);
-        });
-        const geom = new THREE.ShapeGeometry(shape);
-        // ShapeGeometry tegner i XY-planet; legg flatt med rotation.x = -PI/2
-        const mat = new THREE.MeshBasicMaterial({
-          color: NORGE_COLOR_FILL,
-          transparent: true,
-          opacity: NORGE_OPACITY_FILL,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-        });
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = NORGE_LIFT;
-        subMap.norgeKart.add(mesh);
-
-        // 2) Kystlinje (LineLoop)
-        const pts = ring.map(pt => {
-          const p = latLonToAE(pt[1], pt[0]);
-          return new THREE.Vector3(p.x, NORGE_LIFT + 0.005, p.z);
-        });
-        const lineGeom = new THREE.BufferGeometry().setFromPoints(pts);
-        const lineMat = new THREE.LineBasicMaterial({ color: NORGE_COLOR_EDGE, transparent: false });
-        const line = new THREE.LineLoop(lineGeom, lineMat);
-        subMap.norgeKart.add(line);
-      });
-      console.log(`Norge-kart: ${label} bygget med ${polygons.length} polygoner`);
-    }
-
-    if (data.fastland) buildPolygons(data.fastland, 'Fastland');
-    if (data.svalbard) buildPolygons(data.svalbard, 'Svalbard');
-  })
-  .catch(err => console.warn('Norge-kart lasting feilet:', err));
 
 // =================================================================
 // BYGG LAG 1 — ENOK-KARTET
