@@ -432,7 +432,6 @@
     <!-- v16.40: Enoch 72 og Evidence Archive flyttet inn i Documents-modalen. Knappene 'btn-enok72' og 'btn-evidence' er skjult her men finnes fortsatt som id-elementer inne i Documents-modalen. -->
     <button class="toolbar-btn" id="btn-docs" title="Download project documents and instructions">⧫ Documents</button>
     <a href="contact.html" target="_blank" rel="noopener" class="toolbar-btn" id="btn-contact" title="Contact Jone-Aase — research and collaboration" style="text-decoration:none;display:inline-flex;align-items:center">✉ Contact</a>
-    <a href="norge.html" class="toolbar-btn" id="btn-norge" title="Norge-test: Kartverket-data + 8 byer fra SSR" style="text-decoration:none;display:inline-flex;align-items:center;background:linear-gradient(180deg,#3d2a0e,#1f1505);color:#ffd76b;border-color:#c9a247">⚐ Norge-test</a>
     <button class="toolbar-btn gold" id="btn-share" title="Copy shareable link">Share</button>
     <button class="toolbar-btn" id="btn-export" title="Export view as PNG">Export PNG</button>
   </div>
@@ -1175,6 +1174,11 @@
             <span id="map-rotation-val" style="width:42px;text-align:right;font-family:monospace;color:#c9a247">0°</span>
           </label>
         </div>
+        <label class="layer-toggle" title="Norge-fork: vektor-kystpolygon (Natural Earth ne_50m). Tegnet pa AE-disken med samme formel som markorer.">
+          <input type="checkbox" id="layer-norge-kart" checked>
+          <span class="layer-color" style="background:#cc1111"></span>
+          Norgeskart (Natural Earth)
+        </label>
         <label class="layer-toggle">
           <input type="checkbox" id="layer-ports" checked>
           <span class="layer-color" style="background:#a08040"></span>
@@ -1211,7 +1215,7 @@
         <label class="ctrl"><input type="checkbox" id="layer-antipodal-axes" checked> Antipodal akser (5 par)</label>
         <label class="ctrl"><input type="checkbox" id="layer-axis-70w-110e" checked> Akse 70°W &harr; 110°E (Carvajal-Casey)</label>
         <label class="ctrl"><input type="checkbox" id="layer-antarctica-bases" checked> Antarktis-baser (29)</label>
-        <label class="ctrl" style="background:rgba(255,80,80,0.10);border-left:3px solid #ff3333;padding-left:6px"><input type="checkbox" id="layer-norge-test" checked> Norge-test (8 byer)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-norge-test" checked> Norge-test (8 byer)</label>
         <label class="ctrl"><input type="checkbox" id="show-labels"> Show labels</label>
       </div>
 

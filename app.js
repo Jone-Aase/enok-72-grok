@@ -465,6 +465,7 @@ const subMap = {
   daynight: new THREE.Group(),
   clockSol: new THREE.Group(),   // Sol-klokke (Enok-tid, drives av sunLonAngle)
   clockAtom: new THREE.Group(),  // Atom-klokke (sann tid, drives av Date)
+  norgeKart: new THREE.Group(),  // Norge-fork: Norge-kystpolygon tegnet pa AE-disken (Natural Earth ne_50m). Fastland + Svalbard.
 };
 Object.values(subMap).forEach(g => grpMap.add(g));
 
@@ -751,6 +752,75 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
     console.warn('UN map texture failed to load:', err);
   });
 }
+
+// =================================================================
+// NORGE-KART (Norge-fork 2026-05-31)
+// Henter Natural Earth ne_50m Norway-kystpolygoner og tegner dem pa AE-disken
+// med samme formel som markorer: r = R_OUTER * (90 - lat) / 180.
+// Vinkel theta = (lon + 180) for a matche orientering i instrumentet.
+// =================================================================
+function latLonToAE(lat, lon) {
+  // Samme projeksjon som markorer (se latToR i app.js)
+  const r = R_OUTER * (90 - lat) / 180;
+  // Kontinent-kartet i un-map.webp er bygget slik at lon=0 (Greenwich) peker nedover (-Z),
+  // og lon=90E peker mot +X. Det betyr theta = lon (i radianer) maler riktig retning
+  // i scene-koordinater: x = r * sin(lon_rad), z = r * cos(lon_rad).
+  // Vi forskyver med +90 grader for a fa lon=0 mot scene -Z (samme som FN-kartet).
+  const lonRad = lon * Math.PI / 180;
+  const x = r * Math.sin(lonRad);
+  const z = -r * Math.cos(lonRad);  // lon=0 -> z=-r (nedover/sor pa skjerm)
+  return { x, z };
+}
+
+fetch('norge-kyst.json?v=1')
+  .then(r => r.json())
+  .then(data => {
+    const NORGE_COLOR_FILL = 0xff6b6b;    // Lett rod fyll
+    const NORGE_COLOR_EDGE = 0xcc1111;    // Sterk rod kystlinje
+    const NORGE_OPACITY_FILL = 0.55;
+    const NORGE_LIFT = 0.06;              // Litt over UN-kartet (0.04) sa det vises
+
+    function buildPolygons(polygons, label) {
+      polygons.forEach((ring, idx) => {
+        if (ring.length < 3) return;
+        // 1) Fyll-mesh (Shape -> ShapeGeometry)
+        const shape = new THREE.Shape();
+        ring.forEach((pt, i) => {
+          const p = latLonToAE(pt[1], pt[0]);
+          if (i === 0) shape.moveTo(p.x, p.z);
+          else         shape.lineTo(p.x, p.z);
+        });
+        const geom = new THREE.ShapeGeometry(shape);
+        // ShapeGeometry tegner i XY-planet; legg flatt med rotation.x = -PI/2
+        const mat = new THREE.MeshBasicMaterial({
+          color: NORGE_COLOR_FILL,
+          transparent: true,
+          opacity: NORGE_OPACITY_FILL,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.y = NORGE_LIFT;
+        subMap.norgeKart.add(mesh);
+
+        // 2) Kystlinje (LineLoop)
+        const pts = ring.map(pt => {
+          const p = latLonToAE(pt[1], pt[0]);
+          return new THREE.Vector3(p.x, NORGE_LIFT + 0.005, p.z);
+        });
+        const lineGeom = new THREE.BufferGeometry().setFromPoints(pts);
+        const lineMat = new THREE.LineBasicMaterial({ color: NORGE_COLOR_EDGE, transparent: false });
+        const line = new THREE.LineLoop(lineGeom, lineMat);
+        subMap.norgeKart.add(line);
+      });
+      console.log(`Norge-kart: ${label} bygget med ${polygons.length} polygoner`);
+    }
+
+    if (data.fastland) buildPolygons(data.fastland, 'Fastland');
+    if (data.svalbard) buildPolygons(data.svalbard, 'Svalbard');
+  })
+  .catch(err => console.warn('Norge-kart lasting feilet:', err));
 
 // =================================================================
 // BYGG LAG 1 — ENOK-KARTET
@@ -2537,6 +2607,7 @@ bindToggle('layer-square-grid', subMap.squareGrid);
 bindToggle('layer-meridians', subMap.meridians);
 bindToggle('layer-latcircles', subMap.latcircles);
 bindToggle('layer-coast', subMap.coast);
+bindToggle('layer-norge-kart', subMap.norgeKart);  // Norge-fork: vektor-kystpolygon for Norge
 // v16.49: FN-kart-rotasjon slider (for å finjustere Greenwich-orientering)
 {
   const slider = document.getElementById('map-rotation');
