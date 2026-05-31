@@ -1,0 +1,2250 @@
+{
+  "source": "One-voice-740-Perplexity-V6.xlsx ark T (rad 26-227)",
+  "extracted": "v16.29 — 2026-05-26",
+  "axis_east_deg": 60,
+  "axis_west_deg": 300,
+  "wall_info": {
+    "axes_deg": [
+      60,
+      300
+    ],
+    "half_width_deg": 1.0,
+    "wall_row_pairs": [
+      [
+        28,
+        29,
+        null,
+        180,
+        "Ekvator-vegg ved Steinbukken (rad 30 = vintersolverv dag 273)"
+      ],
+      [
+        61,
+        62,
+        151,
+        150,
+        "Mellom port 1 og 2 (vest) / mellom port 5 og 6 (øst, bane 30-31)"
+      ],
+      [
+        93,
+        94,
+        121,
+        120,
+        "Mellom port 2 og 3 (vest)"
+      ],
+      [
+        126,
+        127,
+        null,
+        90,
+        "Jevndøgn-vegg ved rad 125 = dag 182 (vårjevndøgn-overgang)"
+      ],
+      [
+        158,
+        159,
+        61,
+        60,
+        "Mellom port 4 og 5 (vest)"
+      ],
+      [
+        190,
+        191,
+        31,
+        30,
+        "Mellom port 5 og 6 (vest)"
+      ],
+      [
+        223,
+        224,
+        null,
+        null,
+        "Ekvator-vegg ved Krepsen (rad 222 = sommersolverv dag 91)"
+      ]
+    ]
+  },
+  "days": [
+    {
+      "day": 1,
+      "bane": 90,
+      "lat": 0.1324,
+      "isVendepunkt": false
+    },
+    {
+      "day": 2,
+      "bane": 89,
+      "lat": 0.3972,
+      "isVendepunkt": false
+    },
+    {
+      "day": 3,
+      "bane": 88,
+      "lat": 0.662,
+      "isVendepunkt": false
+    },
+    {
+      "day": 4,
+      "bane": 87,
+      "lat": 0.9268,
+      "isVendepunkt": false
+    },
+    {
+      "day": 5,
+      "bane": 86,
+      "lat": 1.1916,
+      "isVendepunkt": false
+    },
+    {
+      "day": 6,
+      "bane": 85,
+      "lat": 1.4564,
+      "isVendepunkt": false
+    },
+    {
+      "day": 7,
+      "bane": 84,
+      "lat": 1.7212,
+      "isVendepunkt": false
+    },
+    {
+      "day": 8,
+      "bane": 83,
+      "lat": 1.986,
+      "isVendepunkt": false
+    },
+    {
+      "day": 9,
+      "bane": 82,
+      "lat": 2.2508,
+      "isVendepunkt": false
+    },
+    {
+      "day": 10,
+      "bane": 81,
+      "lat": 2.5156,
+      "isVendepunkt": false
+    },
+    {
+      "day": 11,
+      "bane": 80,
+      "lat": 2.7804,
+      "isVendepunkt": false
+    },
+    {
+      "day": 12,
+      "bane": 79,
+      "lat": 3.0453,
+      "isVendepunkt": false
+    },
+    {
+      "day": 13,
+      "bane": 78,
+      "lat": 3.3101,
+      "isVendepunkt": false
+    },
+    {
+      "day": 14,
+      "bane": 77,
+      "lat": 3.5749,
+      "isVendepunkt": false
+    },
+    {
+      "day": 15,
+      "bane": 76,
+      "lat": 3.8397,
+      "isVendepunkt": false
+    },
+    {
+      "day": 16,
+      "bane": 75,
+      "lat": 4.1045,
+      "isVendepunkt": false
+    },
+    {
+      "day": 17,
+      "bane": 74,
+      "lat": 4.3693,
+      "isVendepunkt": false
+    },
+    {
+      "day": 18,
+      "bane": 73,
+      "lat": 4.6341,
+      "isVendepunkt": false
+    },
+    {
+      "day": 19,
+      "bane": 72,
+      "lat": 4.8989,
+      "isVendepunkt": false
+    },
+    {
+      "day": 20,
+      "bane": 71,
+      "lat": 5.1637,
+      "isVendepunkt": false
+    },
+    {
+      "day": 21,
+      "bane": 70,
+      "lat": 5.4285,
+      "isVendepunkt": false
+    },
+    {
+      "day": 22,
+      "bane": 69,
+      "lat": 5.6933,
+      "isVendepunkt": false
+    },
+    {
+      "day": 23,
+      "bane": 68,
+      "lat": 5.9581,
+      "isVendepunkt": false
+    },
+    {
+      "day": 24,
+      "bane": 67,
+      "lat": 6.2229,
+      "isVendepunkt": false
+    },
+    {
+      "day": 25,
+      "bane": 66,
+      "lat": 6.4877,
+      "isVendepunkt": false
+    },
+    {
+      "day": 26,
+      "bane": 65,
+      "lat": 6.7525,
+      "isVendepunkt": false
+    },
+    {
+      "day": 27,
+      "bane": 64,
+      "lat": 7.0173,
+      "isVendepunkt": false
+    },
+    {
+      "day": 28,
+      "bane": 63,
+      "lat": 7.2821,
+      "isVendepunkt": false
+    },
+    {
+      "day": 29,
+      "bane": 62,
+      "lat": 7.5469,
+      "isVendepunkt": false
+    },
+    {
+      "day": 30,
+      "bane": 61,
+      "lat": 7.8117,
+      "isVendepunkt": false
+    },
+    {
+      "day": 31,
+      "bane": 60,
+      "lat": 8.0765,
+      "isVendepunkt": false
+    },
+    {
+      "day": 32,
+      "bane": 59,
+      "lat": 8.3413,
+      "isVendepunkt": false
+    },
+    {
+      "day": 33,
+      "bane": 58,
+      "lat": 8.6061,
+      "isVendepunkt": false
+    },
+    {
+      "day": 34,
+      "bane": 57,
+      "lat": 8.8709,
+      "isVendepunkt": false
+    },
+    {
+      "day": 35,
+      "bane": 56,
+      "lat": 9.1358,
+      "isVendepunkt": false
+    },
+    {
+      "day": 36,
+      "bane": 55,
+      "lat": 9.4006,
+      "isVendepunkt": false
+    },
+    {
+      "day": 37,
+      "bane": 54,
+      "lat": 9.6654,
+      "isVendepunkt": false
+    },
+    {
+      "day": 38,
+      "bane": 53,
+      "lat": 9.9302,
+      "isVendepunkt": false
+    },
+    {
+      "day": 39,
+      "bane": 52,
+      "lat": 10.195,
+      "isVendepunkt": false
+    },
+    {
+      "day": 40,
+      "bane": 51,
+      "lat": 10.4598,
+      "isVendepunkt": false
+    },
+    {
+      "day": 41,
+      "bane": 50,
+      "lat": 10.7246,
+      "isVendepunkt": false
+    },
+    {
+      "day": 42,
+      "bane": 49,
+      "lat": 10.9894,
+      "isVendepunkt": false
+    },
+    {
+      "day": 43,
+      "bane": 48,
+      "lat": 11.2542,
+      "isVendepunkt": false
+    },
+    {
+      "day": 44,
+      "bane": 47,
+      "lat": 11.519,
+      "isVendepunkt": false
+    },
+    {
+      "day": 45,
+      "bane": 46,
+      "lat": 11.7838,
+      "isVendepunkt": false
+    },
+    {
+      "day": 46,
+      "bane": 45,
+      "lat": 12.0486,
+      "isVendepunkt": false
+    },
+    {
+      "day": 47,
+      "bane": 44,
+      "lat": 12.3134,
+      "isVendepunkt": false
+    },
+    {
+      "day": 48,
+      "bane": 43,
+      "lat": 12.5782,
+      "isVendepunkt": false
+    },
+    {
+      "day": 49,
+      "bane": 42,
+      "lat": 12.843,
+      "isVendepunkt": false
+    },
+    {
+      "day": 50,
+      "bane": 41,
+      "lat": 13.1078,
+      "isVendepunkt": false
+    },
+    {
+      "day": 51,
+      "bane": 40,
+      "lat": 13.3726,
+      "isVendepunkt": false
+    },
+    {
+      "day": 52,
+      "bane": 39,
+      "lat": 13.6374,
+      "isVendepunkt": false
+    },
+    {
+      "day": 53,
+      "bane": 38,
+      "lat": 13.9022,
+      "isVendepunkt": false
+    },
+    {
+      "day": 54,
+      "bane": 37,
+      "lat": 14.167,
+      "isVendepunkt": false
+    },
+    {
+      "day": 55,
+      "bane": 36,
+      "lat": 14.4318,
+      "isVendepunkt": false
+    },
+    {
+      "day": 56,
+      "bane": 35,
+      "lat": 14.6966,
+      "isVendepunkt": false
+    },
+    {
+      "day": 57,
+      "bane": 34,
+      "lat": 14.9615,
+      "isVendepunkt": false
+    },
+    {
+      "day": 58,
+      "bane": 33,
+      "lat": 15.2263,
+      "isVendepunkt": false
+    },
+    {
+      "day": 59,
+      "bane": 32,
+      "lat": 15.4911,
+      "isVendepunkt": false
+    },
+    {
+      "day": 60,
+      "bane": 31,
+      "lat": 15.7559,
+      "isVendepunkt": false
+    },
+    {
+      "day": 61,
+      "bane": 30,
+      "lat": 16.0207,
+      "isVendepunkt": false
+    },
+    {
+      "day": 62,
+      "bane": 29,
+      "lat": 16.2855,
+      "isVendepunkt": false
+    },
+    {
+      "day": 63,
+      "bane": 28,
+      "lat": 16.5503,
+      "isVendepunkt": false
+    },
+    {
+      "day": 64,
+      "bane": 27,
+      "lat": 16.8151,
+      "isVendepunkt": false
+    },
+    {
+      "day": 65,
+      "bane": 26,
+      "lat": 17.0799,
+      "isVendepunkt": false
+    },
+    {
+      "day": 66,
+      "bane": 25,
+      "lat": 17.3447,
+      "isVendepunkt": false
+    },
+    {
+      "day": 67,
+      "bane": 24,
+      "lat": 17.6095,
+      "isVendepunkt": false
+    },
+    {
+      "day": 68,
+      "bane": 23,
+      "lat": 17.8743,
+      "isVendepunkt": false
+    },
+    {
+      "day": 69,
+      "bane": 22,
+      "lat": 18.1391,
+      "isVendepunkt": false
+    },
+    {
+      "day": 70,
+      "bane": 21,
+      "lat": 18.4039,
+      "isVendepunkt": false
+    },
+    {
+      "day": 71,
+      "bane": 20,
+      "lat": 18.6687,
+      "isVendepunkt": false
+    },
+    {
+      "day": 72,
+      "bane": 19,
+      "lat": 18.9335,
+      "isVendepunkt": false
+    },
+    {
+      "day": 73,
+      "bane": 18,
+      "lat": 19.1983,
+      "isVendepunkt": false
+    },
+    {
+      "day": 74,
+      "bane": 17,
+      "lat": 19.4631,
+      "isVendepunkt": false
+    },
+    {
+      "day": 75,
+      "bane": 16,
+      "lat": 19.7279,
+      "isVendepunkt": false
+    },
+    {
+      "day": 76,
+      "bane": 15,
+      "lat": 19.9927,
+      "isVendepunkt": false
+    },
+    {
+      "day": 77,
+      "bane": 14,
+      "lat": 20.2575,
+      "isVendepunkt": false
+    },
+    {
+      "day": 78,
+      "bane": 13,
+      "lat": 20.5223,
+      "isVendepunkt": false
+    },
+    {
+      "day": 79,
+      "bane": 12,
+      "lat": 20.7872,
+      "isVendepunkt": false
+    },
+    {
+      "day": 80,
+      "bane": 11,
+      "lat": 21.052,
+      "isVendepunkt": false
+    },
+    {
+      "day": 81,
+      "bane": 10,
+      "lat": 21.3168,
+      "isVendepunkt": false
+    },
+    {
+      "day": 82,
+      "bane": 9,
+      "lat": 21.5816,
+      "isVendepunkt": false
+    },
+    {
+      "day": 83,
+      "bane": 8,
+      "lat": 21.8464,
+      "isVendepunkt": false
+    },
+    {
+      "day": 84,
+      "bane": 7,
+      "lat": 22.1112,
+      "isVendepunkt": false
+    },
+    {
+      "day": 85,
+      "bane": 6,
+      "lat": 22.376,
+      "isVendepunkt": false
+    },
+    {
+      "day": 86,
+      "bane": 5,
+      "lat": 22.6408,
+      "isVendepunkt": false
+    },
+    {
+      "day": 87,
+      "bane": 4,
+      "lat": 22.9056,
+      "isVendepunkt": false
+    },
+    {
+      "day": 88,
+      "bane": 3,
+      "lat": 23.1704,
+      "isVendepunkt": false
+    },
+    {
+      "day": 89,
+      "bane": 2,
+      "lat": 23.4352,
+      "isVendepunkt": false
+    },
+    {
+      "day": 90,
+      "bane": 1,
+      "lat": 23.7,
+      "isVendepunkt": false
+    },
+    {
+      "day": 91,
+      "bane": null,
+      "lat": 23.7,
+      "isVendepunkt": true
+    },
+    {
+      "day": 92,
+      "bane": 1,
+      "lat": 23.7,
+      "isVendepunkt": false
+    },
+    {
+      "day": 93,
+      "bane": 2,
+      "lat": 23.4352,
+      "isVendepunkt": false
+    },
+    {
+      "day": 94,
+      "bane": 3,
+      "lat": 23.1704,
+      "isVendepunkt": false
+    },
+    {
+      "day": 95,
+      "bane": 4,
+      "lat": 22.9056,
+      "isVendepunkt": false
+    },
+    {
+      "day": 96,
+      "bane": 5,
+      "lat": 22.6408,
+      "isVendepunkt": false
+    },
+    {
+      "day": 97,
+      "bane": 6,
+      "lat": 22.376,
+      "isVendepunkt": false
+    },
+    {
+      "day": 98,
+      "bane": 7,
+      "lat": 22.1112,
+      "isVendepunkt": false
+    },
+    {
+      "day": 99,
+      "bane": 8,
+      "lat": 21.8464,
+      "isVendepunkt": false
+    },
+    {
+      "day": 100,
+      "bane": 9,
+      "lat": 21.5816,
+      "isVendepunkt": false
+    },
+    {
+      "day": 101,
+      "bane": 10,
+      "lat": 21.3168,
+      "isVendepunkt": false
+    },
+    {
+      "day": 102,
+      "bane": 11,
+      "lat": 21.052,
+      "isVendepunkt": false
+    },
+    {
+      "day": 103,
+      "bane": 12,
+      "lat": 20.7872,
+      "isVendepunkt": false
+    },
+    {
+      "day": 104,
+      "bane": 13,
+      "lat": 20.5223,
+      "isVendepunkt": false
+    },
+    {
+      "day": 105,
+      "bane": 14,
+      "lat": 20.2575,
+      "isVendepunkt": false
+    },
+    {
+      "day": 106,
+      "bane": 15,
+      "lat": 19.9927,
+      "isVendepunkt": false
+    },
+    {
+      "day": 107,
+      "bane": 16,
+      "lat": 19.7279,
+      "isVendepunkt": false
+    },
+    {
+      "day": 108,
+      "bane": 17,
+      "lat": 19.4631,
+      "isVendepunkt": false
+    },
+    {
+      "day": 109,
+      "bane": 18,
+      "lat": 19.1983,
+      "isVendepunkt": false
+    },
+    {
+      "day": 110,
+      "bane": 19,
+      "lat": 18.9335,
+      "isVendepunkt": false
+    },
+    {
+      "day": 111,
+      "bane": 20,
+      "lat": 18.6687,
+      "isVendepunkt": false
+    },
+    {
+      "day": 112,
+      "bane": 21,
+      "lat": 18.4039,
+      "isVendepunkt": false
+    },
+    {
+      "day": 113,
+      "bane": 22,
+      "lat": 18.1391,
+      "isVendepunkt": false
+    },
+    {
+      "day": 114,
+      "bane": 23,
+      "lat": 17.8743,
+      "isVendepunkt": false
+    },
+    {
+      "day": 115,
+      "bane": 24,
+      "lat": 17.6095,
+      "isVendepunkt": false
+    },
+    {
+      "day": 116,
+      "bane": 25,
+      "lat": 17.3447,
+      "isVendepunkt": false
+    },
+    {
+      "day": 117,
+      "bane": 26,
+      "lat": 17.0799,
+      "isVendepunkt": false
+    },
+    {
+      "day": 118,
+      "bane": 27,
+      "lat": 16.8151,
+      "isVendepunkt": false
+    },
+    {
+      "day": 119,
+      "bane": 28,
+      "lat": 16.5503,
+      "isVendepunkt": false
+    },
+    {
+      "day": 120,
+      "bane": 29,
+      "lat": 16.2855,
+      "isVendepunkt": false
+    },
+    {
+      "day": 121,
+      "bane": 30,
+      "lat": 16.0207,
+      "isVendepunkt": false
+    },
+    {
+      "day": 122,
+      "bane": 31,
+      "lat": 15.7559,
+      "isVendepunkt": false
+    },
+    {
+      "day": 123,
+      "bane": 32,
+      "lat": 15.4911,
+      "isVendepunkt": false
+    },
+    {
+      "day": 124,
+      "bane": 33,
+      "lat": 15.2263,
+      "isVendepunkt": false
+    },
+    {
+      "day": 125,
+      "bane": 34,
+      "lat": 14.9615,
+      "isVendepunkt": false
+    },
+    {
+      "day": 126,
+      "bane": 35,
+      "lat": 14.6966,
+      "isVendepunkt": false
+    },
+    {
+      "day": 127,
+      "bane": 36,
+      "lat": 14.4318,
+      "isVendepunkt": false
+    },
+    {
+      "day": 128,
+      "bane": 37,
+      "lat": 14.167,
+      "isVendepunkt": false
+    },
+    {
+      "day": 129,
+      "bane": 38,
+      "lat": 13.9022,
+      "isVendepunkt": false
+    },
+    {
+      "day": 130,
+      "bane": 39,
+      "lat": 13.6374,
+      "isVendepunkt": false
+    },
+    {
+      "day": 131,
+      "bane": 40,
+      "lat": 13.3726,
+      "isVendepunkt": false
+    },
+    {
+      "day": 132,
+      "bane": 41,
+      "lat": 13.1078,
+      "isVendepunkt": false
+    },
+    {
+      "day": 133,
+      "bane": 42,
+      "lat": 12.843,
+      "isVendepunkt": false
+    },
+    {
+      "day": 134,
+      "bane": 43,
+      "lat": 12.5782,
+      "isVendepunkt": false
+    },
+    {
+      "day": 135,
+      "bane": 44,
+      "lat": 12.3134,
+      "isVendepunkt": false
+    },
+    {
+      "day": 136,
+      "bane": 45,
+      "lat": 12.0486,
+      "isVendepunkt": false
+    },
+    {
+      "day": 137,
+      "bane": 46,
+      "lat": 11.7838,
+      "isVendepunkt": false
+    },
+    {
+      "day": 138,
+      "bane": 47,
+      "lat": 11.519,
+      "isVendepunkt": false
+    },
+    {
+      "day": 139,
+      "bane": 48,
+      "lat": 11.2542,
+      "isVendepunkt": false
+    },
+    {
+      "day": 140,
+      "bane": 49,
+      "lat": 10.9894,
+      "isVendepunkt": false
+    },
+    {
+      "day": 141,
+      "bane": 50,
+      "lat": 10.7246,
+      "isVendepunkt": false
+    },
+    {
+      "day": 142,
+      "bane": 51,
+      "lat": 10.4598,
+      "isVendepunkt": false
+    },
+    {
+      "day": 143,
+      "bane": 52,
+      "lat": 10.195,
+      "isVendepunkt": false
+    },
+    {
+      "day": 144,
+      "bane": 53,
+      "lat": 9.9302,
+      "isVendepunkt": false
+    },
+    {
+      "day": 145,
+      "bane": 54,
+      "lat": 9.6654,
+      "isVendepunkt": false
+    },
+    {
+      "day": 146,
+      "bane": 55,
+      "lat": 9.4006,
+      "isVendepunkt": false
+    },
+    {
+      "day": 147,
+      "bane": 56,
+      "lat": 9.1358,
+      "isVendepunkt": false
+    },
+    {
+      "day": 148,
+      "bane": 57,
+      "lat": 8.8709,
+      "isVendepunkt": false
+    },
+    {
+      "day": 149,
+      "bane": 58,
+      "lat": 8.6061,
+      "isVendepunkt": false
+    },
+    {
+      "day": 150,
+      "bane": 59,
+      "lat": 8.3413,
+      "isVendepunkt": false
+    },
+    {
+      "day": 151,
+      "bane": 60,
+      "lat": 8.0765,
+      "isVendepunkt": false
+    },
+    {
+      "day": 152,
+      "bane": 61,
+      "lat": 7.8117,
+      "isVendepunkt": false
+    },
+    {
+      "day": 153,
+      "bane": 62,
+      "lat": 7.5469,
+      "isVendepunkt": false
+    },
+    {
+      "day": 154,
+      "bane": 63,
+      "lat": 7.2821,
+      "isVendepunkt": false
+    },
+    {
+      "day": 155,
+      "bane": 64,
+      "lat": 7.0173,
+      "isVendepunkt": false
+    },
+    {
+      "day": 156,
+      "bane": 65,
+      "lat": 6.7525,
+      "isVendepunkt": false
+    },
+    {
+      "day": 157,
+      "bane": 66,
+      "lat": 6.4877,
+      "isVendepunkt": false
+    },
+    {
+      "day": 158,
+      "bane": 67,
+      "lat": 6.2229,
+      "isVendepunkt": false
+    },
+    {
+      "day": 159,
+      "bane": 68,
+      "lat": 5.9581,
+      "isVendepunkt": false
+    },
+    {
+      "day": 160,
+      "bane": 69,
+      "lat": 5.6933,
+      "isVendepunkt": false
+    },
+    {
+      "day": 161,
+      "bane": 70,
+      "lat": 5.4285,
+      "isVendepunkt": false
+    },
+    {
+      "day": 162,
+      "bane": 71,
+      "lat": 5.1637,
+      "isVendepunkt": false
+    },
+    {
+      "day": 163,
+      "bane": 72,
+      "lat": 4.8989,
+      "isVendepunkt": false
+    },
+    {
+      "day": 164,
+      "bane": 73,
+      "lat": 4.6341,
+      "isVendepunkt": false
+    },
+    {
+      "day": 165,
+      "bane": 74,
+      "lat": 4.3693,
+      "isVendepunkt": false
+    },
+    {
+      "day": 166,
+      "bane": 75,
+      "lat": 4.1045,
+      "isVendepunkt": false
+    },
+    {
+      "day": 167,
+      "bane": 76,
+      "lat": 3.8397,
+      "isVendepunkt": false
+    },
+    {
+      "day": 168,
+      "bane": 77,
+      "lat": 3.5749,
+      "isVendepunkt": false
+    },
+    {
+      "day": 169,
+      "bane": 78,
+      "lat": 3.3101,
+      "isVendepunkt": false
+    },
+    {
+      "day": 170,
+      "bane": 79,
+      "lat": 3.0453,
+      "isVendepunkt": false
+    },
+    {
+      "day": 171,
+      "bane": 80,
+      "lat": 2.7804,
+      "isVendepunkt": false
+    },
+    {
+      "day": 172,
+      "bane": 81,
+      "lat": 2.5156,
+      "isVendepunkt": false
+    },
+    {
+      "day": 173,
+      "bane": 82,
+      "lat": 2.2508,
+      "isVendepunkt": false
+    },
+    {
+      "day": 174,
+      "bane": 83,
+      "lat": 1.986,
+      "isVendepunkt": false
+    },
+    {
+      "day": 175,
+      "bane": 84,
+      "lat": 1.7212,
+      "isVendepunkt": false
+    },
+    {
+      "day": 176,
+      "bane": 85,
+      "lat": 1.4564,
+      "isVendepunkt": false
+    },
+    {
+      "day": 177,
+      "bane": 86,
+      "lat": 1.1916,
+      "isVendepunkt": false
+    },
+    {
+      "day": 178,
+      "bane": 87,
+      "lat": 0.9268,
+      "isVendepunkt": false
+    },
+    {
+      "day": 179,
+      "bane": 88,
+      "lat": 0.662,
+      "isVendepunkt": false
+    },
+    {
+      "day": 180,
+      "bane": 89,
+      "lat": 0.3972,
+      "isVendepunkt": false
+    },
+    {
+      "day": 181,
+      "bane": 90,
+      "lat": 0.1324,
+      "isVendepunkt": false
+    },
+    {
+      "day": 182,
+      "bane": null,
+      "lat": 0.0,
+      "isVendepunkt": true
+    },
+    {
+      "day": 183,
+      "bane": 91,
+      "lat": -0.1324,
+      "isVendepunkt": false
+    },
+    {
+      "day": 184,
+      "bane": 92,
+      "lat": -0.3972,
+      "isVendepunkt": false
+    },
+    {
+      "day": 185,
+      "bane": 93,
+      "lat": -0.662,
+      "isVendepunkt": false
+    },
+    {
+      "day": 186,
+      "bane": 94,
+      "lat": -0.9268,
+      "isVendepunkt": false
+    },
+    {
+      "day": 187,
+      "bane": 95,
+      "lat": -1.1916,
+      "isVendepunkt": false
+    },
+    {
+      "day": 188,
+      "bane": 96,
+      "lat": -1.4564,
+      "isVendepunkt": false
+    },
+    {
+      "day": 189,
+      "bane": 97,
+      "lat": -1.7212,
+      "isVendepunkt": false
+    },
+    {
+      "day": 190,
+      "bane": 98,
+      "lat": -1.986,
+      "isVendepunkt": false
+    },
+    {
+      "day": 191,
+      "bane": 99,
+      "lat": -2.2508,
+      "isVendepunkt": false
+    },
+    {
+      "day": 192,
+      "bane": 100,
+      "lat": -2.5156,
+      "isVendepunkt": false
+    },
+    {
+      "day": 193,
+      "bane": 101,
+      "lat": -2.7804,
+      "isVendepunkt": false
+    },
+    {
+      "day": 194,
+      "bane": 102,
+      "lat": -3.0453,
+      "isVendepunkt": false
+    },
+    {
+      "day": 195,
+      "bane": 103,
+      "lat": -3.3101,
+      "isVendepunkt": false
+    },
+    {
+      "day": 196,
+      "bane": 104,
+      "lat": -3.5749,
+      "isVendepunkt": false
+    },
+    {
+      "day": 197,
+      "bane": 105,
+      "lat": -3.8397,
+      "isVendepunkt": false
+    },
+    {
+      "day": 198,
+      "bane": 106,
+      "lat": -4.1045,
+      "isVendepunkt": false
+    },
+    {
+      "day": 199,
+      "bane": 107,
+      "lat": -4.3693,
+      "isVendepunkt": false
+    },
+    {
+      "day": 200,
+      "bane": 108,
+      "lat": -4.6341,
+      "isVendepunkt": false
+    },
+    {
+      "day": 201,
+      "bane": 109,
+      "lat": -4.8989,
+      "isVendepunkt": false
+    },
+    {
+      "day": 202,
+      "bane": 110,
+      "lat": -5.1637,
+      "isVendepunkt": false
+    },
+    {
+      "day": 203,
+      "bane": 111,
+      "lat": -5.4285,
+      "isVendepunkt": false
+    },
+    {
+      "day": 204,
+      "bane": 112,
+      "lat": -5.6933,
+      "isVendepunkt": false
+    },
+    {
+      "day": 205,
+      "bane": 113,
+      "lat": -5.9581,
+      "isVendepunkt": false
+    },
+    {
+      "day": 206,
+      "bane": 114,
+      "lat": -6.2229,
+      "isVendepunkt": false
+    },
+    {
+      "day": 207,
+      "bane": 115,
+      "lat": -6.4877,
+      "isVendepunkt": false
+    },
+    {
+      "day": 208,
+      "bane": 116,
+      "lat": -6.7525,
+      "isVendepunkt": false
+    },
+    {
+      "day": 209,
+      "bane": 117,
+      "lat": -7.0173,
+      "isVendepunkt": false
+    },
+    {
+      "day": 210,
+      "bane": 118,
+      "lat": -7.2821,
+      "isVendepunkt": false
+    },
+    {
+      "day": 211,
+      "bane": 119,
+      "lat": -7.5469,
+      "isVendepunkt": false
+    },
+    {
+      "day": 212,
+      "bane": 120,
+      "lat": -7.8117,
+      "isVendepunkt": false
+    },
+    {
+      "day": 213,
+      "bane": 121,
+      "lat": -8.0765,
+      "isVendepunkt": false
+    },
+    {
+      "day": 214,
+      "bane": 122,
+      "lat": -8.3413,
+      "isVendepunkt": false
+    },
+    {
+      "day": 215,
+      "bane": 123,
+      "lat": -8.6061,
+      "isVendepunkt": false
+    },
+    {
+      "day": 216,
+      "bane": 124,
+      "lat": -8.8709,
+      "isVendepunkt": false
+    },
+    {
+      "day": 217,
+      "bane": 125,
+      "lat": -9.1358,
+      "isVendepunkt": false
+    },
+    {
+      "day": 218,
+      "bane": 126,
+      "lat": -9.4006,
+      "isVendepunkt": false
+    },
+    {
+      "day": 219,
+      "bane": 127,
+      "lat": -9.6654,
+      "isVendepunkt": false
+    },
+    {
+      "day": 220,
+      "bane": 128,
+      "lat": -9.9302,
+      "isVendepunkt": false
+    },
+    {
+      "day": 221,
+      "bane": 129,
+      "lat": -10.195,
+      "isVendepunkt": false
+    },
+    {
+      "day": 222,
+      "bane": 130,
+      "lat": -10.4598,
+      "isVendepunkt": false
+    },
+    {
+      "day": 223,
+      "bane": 131,
+      "lat": -10.7246,
+      "isVendepunkt": false
+    },
+    {
+      "day": 224,
+      "bane": 132,
+      "lat": -10.9894,
+      "isVendepunkt": false
+    },
+    {
+      "day": 225,
+      "bane": 133,
+      "lat": -11.2542,
+      "isVendepunkt": false
+    },
+    {
+      "day": 226,
+      "bane": 134,
+      "lat": -11.519,
+      "isVendepunkt": false
+    },
+    {
+      "day": 227,
+      "bane": 135,
+      "lat": -11.7838,
+      "isVendepunkt": false
+    },
+    {
+      "day": 228,
+      "bane": 136,
+      "lat": -12.0486,
+      "isVendepunkt": false
+    },
+    {
+      "day": 229,
+      "bane": 137,
+      "lat": -12.3134,
+      "isVendepunkt": false
+    },
+    {
+      "day": 230,
+      "bane": 138,
+      "lat": -12.5782,
+      "isVendepunkt": false
+    },
+    {
+      "day": 231,
+      "bane": 139,
+      "lat": -12.843,
+      "isVendepunkt": false
+    },
+    {
+      "day": 232,
+      "bane": 140,
+      "lat": -13.1078,
+      "isVendepunkt": false
+    },
+    {
+      "day": 233,
+      "bane": 141,
+      "lat": -13.3726,
+      "isVendepunkt": false
+    },
+    {
+      "day": 234,
+      "bane": 142,
+      "lat": -13.6374,
+      "isVendepunkt": false
+    },
+    {
+      "day": 235,
+      "bane": 143,
+      "lat": -13.9022,
+      "isVendepunkt": false
+    },
+    {
+      "day": 236,
+      "bane": 144,
+      "lat": -14.167,
+      "isVendepunkt": false
+    },
+    {
+      "day": 237,
+      "bane": 145,
+      "lat": -14.4318,
+      "isVendepunkt": false
+    },
+    {
+      "day": 238,
+      "bane": 146,
+      "lat": -14.6966,
+      "isVendepunkt": false
+    },
+    {
+      "day": 239,
+      "bane": 147,
+      "lat": -14.9615,
+      "isVendepunkt": false
+    },
+    {
+      "day": 240,
+      "bane": 148,
+      "lat": -15.2263,
+      "isVendepunkt": false
+    },
+    {
+      "day": 241,
+      "bane": 149,
+      "lat": -15.4911,
+      "isVendepunkt": false
+    },
+    {
+      "day": 242,
+      "bane": 150,
+      "lat": -15.7559,
+      "isVendepunkt": false
+    },
+    {
+      "day": 243,
+      "bane": 151,
+      "lat": -16.0207,
+      "isVendepunkt": false
+    },
+    {
+      "day": 244,
+      "bane": 152,
+      "lat": -16.2855,
+      "isVendepunkt": false
+    },
+    {
+      "day": 245,
+      "bane": 153,
+      "lat": -16.5503,
+      "isVendepunkt": false
+    },
+    {
+      "day": 246,
+      "bane": 154,
+      "lat": -16.8151,
+      "isVendepunkt": false
+    },
+    {
+      "day": 247,
+      "bane": 155,
+      "lat": -17.0799,
+      "isVendepunkt": false
+    },
+    {
+      "day": 248,
+      "bane": 156,
+      "lat": -17.3447,
+      "isVendepunkt": false
+    },
+    {
+      "day": 249,
+      "bane": 157,
+      "lat": -17.6095,
+      "isVendepunkt": false
+    },
+    {
+      "day": 250,
+      "bane": 158,
+      "lat": -17.8743,
+      "isVendepunkt": false
+    },
+    {
+      "day": 251,
+      "bane": 159,
+      "lat": -18.1391,
+      "isVendepunkt": false
+    },
+    {
+      "day": 252,
+      "bane": 160,
+      "lat": -18.4039,
+      "isVendepunkt": false
+    },
+    {
+      "day": 253,
+      "bane": 161,
+      "lat": -18.6687,
+      "isVendepunkt": false
+    },
+    {
+      "day": 254,
+      "bane": 162,
+      "lat": -18.9335,
+      "isVendepunkt": false
+    },
+    {
+      "day": 255,
+      "bane": 163,
+      "lat": -19.1983,
+      "isVendepunkt": false
+    },
+    {
+      "day": 256,
+      "bane": 164,
+      "lat": -19.4631,
+      "isVendepunkt": false
+    },
+    {
+      "day": 257,
+      "bane": 165,
+      "lat": -19.7279,
+      "isVendepunkt": false
+    },
+    {
+      "day": 258,
+      "bane": 166,
+      "lat": -19.9927,
+      "isVendepunkt": false
+    },
+    {
+      "day": 259,
+      "bane": 167,
+      "lat": -20.2575,
+      "isVendepunkt": false
+    },
+    {
+      "day": 260,
+      "bane": 168,
+      "lat": -20.5223,
+      "isVendepunkt": false
+    },
+    {
+      "day": 261,
+      "bane": 169,
+      "lat": -20.7872,
+      "isVendepunkt": false
+    },
+    {
+      "day": 262,
+      "bane": 170,
+      "lat": -21.052,
+      "isVendepunkt": false
+    },
+    {
+      "day": 263,
+      "bane": 171,
+      "lat": -21.3168,
+      "isVendepunkt": false
+    },
+    {
+      "day": 264,
+      "bane": 172,
+      "lat": -21.5816,
+      "isVendepunkt": false
+    },
+    {
+      "day": 265,
+      "bane": 173,
+      "lat": -21.8464,
+      "isVendepunkt": false
+    },
+    {
+      "day": 266,
+      "bane": 174,
+      "lat": -22.1112,
+      "isVendepunkt": false
+    },
+    {
+      "day": 267,
+      "bane": 175,
+      "lat": -22.376,
+      "isVendepunkt": false
+    },
+    {
+      "day": 268,
+      "bane": 176,
+      "lat": -22.6408,
+      "isVendepunkt": false
+    },
+    {
+      "day": 269,
+      "bane": 177,
+      "lat": -22.9056,
+      "isVendepunkt": false
+    },
+    {
+      "day": 270,
+      "bane": 178,
+      "lat": -23.1704,
+      "isVendepunkt": false
+    },
+    {
+      "day": 271,
+      "bane": 179,
+      "lat": -23.4352,
+      "isVendepunkt": false
+    },
+    {
+      "day": 272,
+      "bane": 180,
+      "lat": -23.7,
+      "isVendepunkt": false
+    },
+    {
+      "day": 273,
+      "bane": null,
+      "lat": -23.7,
+      "isVendepunkt": true
+    },
+    {
+      "day": 274,
+      "bane": 180,
+      "lat": -23.7,
+      "isVendepunkt": false
+    },
+    {
+      "day": 275,
+      "bane": 179,
+      "lat": -23.4352,
+      "isVendepunkt": false
+    },
+    {
+      "day": 276,
+      "bane": 178,
+      "lat": -23.1704,
+      "isVendepunkt": false
+    },
+    {
+      "day": 277,
+      "bane": 177,
+      "lat": -22.9056,
+      "isVendepunkt": false
+    },
+    {
+      "day": 278,
+      "bane": 176,
+      "lat": -22.6408,
+      "isVendepunkt": false
+    },
+    {
+      "day": 279,
+      "bane": 175,
+      "lat": -22.376,
+      "isVendepunkt": false
+    },
+    {
+      "day": 280,
+      "bane": 174,
+      "lat": -22.1112,
+      "isVendepunkt": false
+    },
+    {
+      "day": 281,
+      "bane": 173,
+      "lat": -21.8464,
+      "isVendepunkt": false
+    },
+    {
+      "day": 282,
+      "bane": 172,
+      "lat": -21.5816,
+      "isVendepunkt": false
+    },
+    {
+      "day": 283,
+      "bane": 171,
+      "lat": -21.3168,
+      "isVendepunkt": false
+    },
+    {
+      "day": 284,
+      "bane": 170,
+      "lat": -21.052,
+      "isVendepunkt": false
+    },
+    {
+      "day": 285,
+      "bane": 169,
+      "lat": -20.7872,
+      "isVendepunkt": false
+    },
+    {
+      "day": 286,
+      "bane": 168,
+      "lat": -20.5223,
+      "isVendepunkt": false
+    },
+    {
+      "day": 287,
+      "bane": 167,
+      "lat": -20.2575,
+      "isVendepunkt": false
+    },
+    {
+      "day": 288,
+      "bane": 166,
+      "lat": -19.9927,
+      "isVendepunkt": false
+    },
+    {
+      "day": 289,
+      "bane": 165,
+      "lat": -19.7279,
+      "isVendepunkt": false
+    },
+    {
+      "day": 290,
+      "bane": 164,
+      "lat": -19.4631,
+      "isVendepunkt": false
+    },
+    {
+      "day": 291,
+      "bane": 163,
+      "lat": -19.1983,
+      "isVendepunkt": false
+    },
+    {
+      "day": 292,
+      "bane": 162,
+      "lat": -18.9335,
+      "isVendepunkt": false
+    },
+    {
+      "day": 293,
+      "bane": 161,
+      "lat": -18.6687,
+      "isVendepunkt": false
+    },
+    {
+      "day": 294,
+      "bane": 160,
+      "lat": -18.4039,
+      "isVendepunkt": false
+    },
+    {
+      "day": 295,
+      "bane": 159,
+      "lat": -18.1391,
+      "isVendepunkt": false
+    },
+    {
+      "day": 296,
+      "bane": 158,
+      "lat": -17.8743,
+      "isVendepunkt": false
+    },
+    {
+      "day": 297,
+      "bane": 157,
+      "lat": -17.6095,
+      "isVendepunkt": false
+    },
+    {
+      "day": 298,
+      "bane": 156,
+      "lat": -17.3447,
+      "isVendepunkt": false
+    },
+    {
+      "day": 299,
+      "bane": 155,
+      "lat": -17.0799,
+      "isVendepunkt": false
+    },
+    {
+      "day": 300,
+      "bane": 154,
+      "lat": -16.8151,
+      "isVendepunkt": false
+    },
+    {
+      "day": 301,
+      "bane": 153,
+      "lat": -16.5503,
+      "isVendepunkt": false
+    },
+    {
+      "day": 302,
+      "bane": 152,
+      "lat": -16.2855,
+      "isVendepunkt": false
+    },
+    {
+      "day": 303,
+      "bane": 151,
+      "lat": -16.0207,
+      "isVendepunkt": false
+    },
+    {
+      "day": 304,
+      "bane": 150,
+      "lat": -15.7559,
+      "isVendepunkt": false
+    },
+    {
+      "day": 305,
+      "bane": 149,
+      "lat": -15.4911,
+      "isVendepunkt": false
+    },
+    {
+      "day": 306,
+      "bane": 148,
+      "lat": -15.2263,
+      "isVendepunkt": false
+    },
+    {
+      "day": 307,
+      "bane": 147,
+      "lat": -14.9615,
+      "isVendepunkt": false
+    },
+    {
+      "day": 308,
+      "bane": 146,
+      "lat": -14.6966,
+      "isVendepunkt": false
+    },
+    {
+      "day": 309,
+      "bane": 145,
+      "lat": -14.4318,
+      "isVendepunkt": false
+    },
+    {
+      "day": 310,
+      "bane": 144,
+      "lat": -14.167,
+      "isVendepunkt": false
+    },
+    {
+      "day": 311,
+      "bane": 143,
+      "lat": -13.9022,
+      "isVendepunkt": false
+    },
+    {
+      "day": 312,
+      "bane": 142,
+      "lat": -13.6374,
+      "isVendepunkt": false
+    },
+    {
+      "day": 313,
+      "bane": 141,
+      "lat": -13.3726,
+      "isVendepunkt": false
+    },
+    {
+      "day": 314,
+      "bane": 140,
+      "lat": -13.1078,
+      "isVendepunkt": false
+    },
+    {
+      "day": 315,
+      "bane": 139,
+      "lat": -12.843,
+      "isVendepunkt": false
+    },
+    {
+      "day": 316,
+      "bane": 138,
+      "lat": -12.5782,
+      "isVendepunkt": false
+    },
+    {
+      "day": 317,
+      "bane": 137,
+      "lat": -12.3134,
+      "isVendepunkt": false
+    },
+    {
+      "day": 318,
+      "bane": 136,
+      "lat": -12.0486,
+      "isVendepunkt": false
+    },
+    {
+      "day": 319,
+      "bane": 135,
+      "lat": -11.7838,
+      "isVendepunkt": false
+    },
+    {
+      "day": 320,
+      "bane": 134,
+      "lat": -11.519,
+      "isVendepunkt": false
+    },
+    {
+      "day": 321,
+      "bane": 133,
+      "lat": -11.2542,
+      "isVendepunkt": false
+    },
+    {
+      "day": 322,
+      "bane": 132,
+      "lat": -10.9894,
+      "isVendepunkt": false
+    },
+    {
+      "day": 323,
+      "bane": 131,
+      "lat": -10.7246,
+      "isVendepunkt": false
+    },
+    {
+      "day": 324,
+      "bane": 130,
+      "lat": -10.4598,
+      "isVendepunkt": false
+    },
+    {
+      "day": 325,
+      "bane": 129,
+      "lat": -10.195,
+      "isVendepunkt": false
+    },
+    {
+      "day": 326,
+      "bane": 128,
+      "lat": -9.9302,
+      "isVendepunkt": false
+    },
+    {
+      "day": 327,
+      "bane": 127,
+      "lat": -9.6654,
+      "isVendepunkt": false
+    },
+    {
+      "day": 328,
+      "bane": 126,
+      "lat": -9.4006,
+      "isVendepunkt": false
+    },
+    {
+      "day": 329,
+      "bane": 125,
+      "lat": -9.1358,
+      "isVendepunkt": false
+    },
+    {
+      "day": 330,
+      "bane": 124,
+      "lat": -8.8709,
+      "isVendepunkt": false
+    },
+    {
+      "day": 331,
+      "bane": 123,
+      "lat": -8.6061,
+      "isVendepunkt": false
+    },
+    {
+      "day": 332,
+      "bane": 122,
+      "lat": -8.3413,
+      "isVendepunkt": false
+    },
+    {
+      "day": 333,
+      "bane": 121,
+      "lat": -8.0765,
+      "isVendepunkt": false
+    },
+    {
+      "day": 334,
+      "bane": 120,
+      "lat": -7.8117,
+      "isVendepunkt": false
+    },
+    {
+      "day": 335,
+      "bane": 119,
+      "lat": -7.5469,
+      "isVendepunkt": false
+    },
+    {
+      "day": 336,
+      "bane": 118,
+      "lat": -7.2821,
+      "isVendepunkt": false
+    },
+    {
+      "day": 337,
+      "bane": 117,
+      "lat": -7.0173,
+      "isVendepunkt": false
+    },
+    {
+      "day": 338,
+      "bane": 116,
+      "lat": -6.7525,
+      "isVendepunkt": false
+    },
+    {
+      "day": 339,
+      "bane": 115,
+      "lat": -6.4877,
+      "isVendepunkt": false
+    },
+    {
+      "day": 340,
+      "bane": 114,
+      "lat": -6.2229,
+      "isVendepunkt": false
+    },
+    {
+      "day": 341,
+      "bane": 113,
+      "lat": -5.9581,
+      "isVendepunkt": false
+    },
+    {
+      "day": 342,
+      "bane": 112,
+      "lat": -5.6933,
+      "isVendepunkt": false
+    },
+    {
+      "day": 343,
+      "bane": 111,
+      "lat": -5.4285,
+      "isVendepunkt": false
+    },
+    {
+      "day": 344,
+      "bane": 110,
+      "lat": -5.1637,
+      "isVendepunkt": false
+    },
+    {
+      "day": 345,
+      "bane": 109,
+      "lat": -4.8989,
+      "isVendepunkt": false
+    },
+    {
+      "day": 346,
+      "bane": 108,
+      "lat": -4.6341,
+      "isVendepunkt": false
+    },
+    {
+      "day": 347,
+      "bane": 107,
+      "lat": -4.3693,
+      "isVendepunkt": false
+    },
+    {
+      "day": 348,
+      "bane": 106,
+      "lat": -4.1045,
+      "isVendepunkt": false
+    },
+    {
+      "day": 349,
+      "bane": 105,
+      "lat": -3.8397,
+      "isVendepunkt": false
+    },
+    {
+      "day": 350,
+      "bane": 104,
+      "lat": -3.5749,
+      "isVendepunkt": false
+    },
+    {
+      "day": 351,
+      "bane": 103,
+      "lat": -3.3101,
+      "isVendepunkt": false
+    },
+    {
+      "day": 352,
+      "bane": 102,
+      "lat": -3.0453,
+      "isVendepunkt": false
+    },
+    {
+      "day": 353,
+      "bane": 101,
+      "lat": -2.7804,
+      "isVendepunkt": false
+    },
+    {
+      "day": 354,
+      "bane": 100,
+      "lat": -2.5156,
+      "isVendepunkt": false
+    },
+    {
+      "day": 355,
+      "bane": 99,
+      "lat": -2.2508,
+      "isVendepunkt": false
+    },
+    {
+      "day": 356,
+      "bane": 98,
+      "lat": -1.986,
+      "isVendepunkt": false
+    },
+    {
+      "day": 357,
+      "bane": 97,
+      "lat": -1.7212,
+      "isVendepunkt": false
+    },
+    {
+      "day": 358,
+      "bane": 96,
+      "lat": -1.4564,
+      "isVendepunkt": false
+    },
+    {
+      "day": 359,
+      "bane": 95,
+      "lat": -1.1916,
+      "isVendepunkt": false
+    },
+    {
+      "day": 360,
+      "bane": 94,
+      "lat": -0.9268,
+      "isVendepunkt": false
+    },
+    {
+      "day": 361,
+      "bane": 93,
+      "lat": -0.662,
+      "isVendepunkt": false
+    },
+    {
+      "day": 362,
+      "bane": 92,
+      "lat": -0.3972,
+      "isVendepunkt": false
+    },
+    {
+      "day": 363,
+      "bane": 91,
+      "lat": -0.1324,
+      "isVendepunkt": false
+    },
+    {
+      "day": 364,
+      "bane": null,
+      "lat": 0.0,
+      "isVendepunkt": true
+    }
+  ]
+}

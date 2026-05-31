@@ -1,0 +1,2662 @@
+The 'Astronomical' Chapters of
+the Ethiopic Book of Enoch (72 to 82)
+TRANSLATION AND COMMENTARY
+by OTTO NEUGEBAUER
+
+With Additional Notes on the Aramaic Fragments
+by Matthew Black
+,
+
+Det Kongelige Danske Videnskabernes Selskab
+Matematisk-fysiske Meddelelser 40 : 10
+
+Kommissionær: Munksgaard
+København 1981
+
+Summary
+Ethiopic literature has preserved the "Book of Enoch" which is, as we know, closely related to the
+Jewish sect that is represented in the "Dead Sea Scrolls". Ten chapters of this work arc concerned with
+astronomical concepts of a rather primitive character (variation in the length of daylight, illumination
+and rising amplitude of the moon, wind-directions, etc.), dominated by simple arithmetical patterns.
+The present paper gives a new translation of these chapters, followed by notes where the meaning
+of the text is not self-explanatory. An appendix, with additional notes, deals with related source
+material in the Qumran astronomical scrolls.
+OTTO NEUGEBAUER
+
+MATTHEW BLACK
+
+Professor
+
+Professor
+
+Brown University, Box 1900
+
+40 Buchanan Gardens
+
+Providence
+Rhode Island 02912, USA
+
+St. Andrews
+Fife, Scotland
+
+Bibliographical Abbreviations
+Charles, Enoch: R. H. Charles, The Book of Enoch, 2nd ed., Oxford 1912.
+Dillmann, Henoch: A. Dillmann, Das Buch Henoch, Leipzig 1853.
+Flemming, Henoch: J. Flemming, Das Buch Henoch, Leipzig 1902.
+Knibb, Enoch: M. A. Knibb, The Ethiopic Book of Enoch, 2 vols., Oxford 1978.
+Martin, Le Livre d'Henoch, F. Martin, Paris 1906.
+Milik, Enoch: J. T. Milik, The Books of Enoch, Oxford, 1976.
+Neugebauer, EAC: O. Neugebauer, Ethiopic Astronomy and Computus, Österr. Akad. d. Wiss.,
+Philos.-Hist. Kl., SB 347 (1979).
+P -Sm Payne Smith, Thesaurus Syricus, Oxford, 1879.
+'lh W NT 'theologisches Wörterbuch zum Neuen Testament.
+
+© Det Kongelige Danske Videnskabernes Selskab 1981.
+Printed in Danmark by Bianco Lunos Bogtrykkeri A-S. ISSN 0023-3323. ISBN 87-7304-1173
+
+3
+
+40:10
+
+Introduction
+It has long been recognized that the astronomical chapters of the Book of Enoch
+constitute a composition of their own without much direct contact with the
+other parts of the treatise. This does not mean, however, that the astronomical
+book is unrelated to the rest of the Book of Enoch. On the contrar y , its contents
+reflect faithfully, but in greater detail, the simple cosmologic concepts that
+prevailed in the communities which produced the Enochian literature.
+I do not think, however, that one should consider the astronomical chapters
+as a literary unit composed by one author who followed some stylistic reasoning.
+It seems obvious to me that the text, as we have it, consists of two major versions,
+both covering essentially the same material, to which are added several still more
+fragmentary pieces. What we have is not the work of one author (or "redactor")
+but a conglomerate of closely related versions made by generations of scribes
+who assembled, to the best of their knowledge, the teaching current in their
+community about the structure and the laws of the cosmos. It is also important
+to note that purely calendaric rules on fasts and feasts are conspicuously absent,
+in marked contrast to the later Ethiopic "computus" of Judaic and Christian
+origin.
+It is, of course, possible that there existed originally one treatise written to
+codify the astronomical doctrines of a religious sect. Such a treatise would then
+have reached us only in several more or less modified versions, two of which are
+reflected in the present chapters 72 to 76 and 77 to 79,1 respectively. Fragments
+from additional versions are preserved in 79,2 to 80,1 while the description in 82
+of the angelical hierarchy of the stars evidently belongs to a quite different source.
+Furthermore it should be remembered that innumerable fragments of Enochian
+"astronomy" (concerning the variation of the length of daylight, the "gates,"
+the winds, etc.) are scattered all through the Ethiopian "computus"-treatises.
+The several chapters of our treatise are grouped around only a small number
+of topics: solar year and lunar months, winds, the hierarchy of the stars, always
+hemmed in by a rigid schematism unrelated to reality. First the reader is told
+about the division of the "solar" year into four seasons of 30+30+31 days each.
+Then comes the variation of the length of daylight, based on a linear progression
+with extrema in the ratio 2:1. 'Then the lunar phases are also described by a linear
+pattern, assuming day 14 or da y 15, respectively, as full moon dates. 'The variable
+
+40:10
+
+4
+
+illumination of the moon is expressed either in terms of the moon's illuminated
+area (from 1 to 14 parts) or in relation to the sun's brightness, thus increasing from
+1/98 (i.e. 1/7 14) to 1/7 (at full moon). Finally lunar months, alternatingly full
+and hollow, are related to the (schematic) solar year (but without any trace of a
+cyclic adjustment) and to the rising and setting in the "gates" at the eastern,
+respectively western, horizon. Unrelated to these gates are the twelve gates for
+the winds, four of which are beneficial, while eight bring discomfort and destruction. In contrast the stars are astronomically totally insignificant, being nothing
+but a replica of the division of the solar year. Neither constellations nor the zodiac
+nor planets are ever mentioned. This remains the rule also for the Ethiopic
+computus until the Arab conquest.
+The search for time and place of origin of this primitive picture of the cosmic
+order can hardly be expected to lead to definitive results. The use of 30-day
+schematic months could have been inspired, e.g., by Babylonian arithmetical
+schemes (of the type of"Mul-Apin"), or by the Egyptian calendar. But the number
+and location of the epagomenal days was obviously chosen under the influence
+of the Jewish seven-day week and has no parallel elsewhere. The linear pattern
+for the variation of the length of daylight as well as the ratio 2:1 of its extrema
+suggests an early Babylonian background. But there is no visible trace of the
+sophisticated Babylonian astronomy of the Persian or Seleucid-Parthian period.
+Dillmann's statement' that the astronomical part of the Book of Enoch is
+based on concepts extant in the Old Testament is simply incorrect: the Enoch
+year is not an old semitic calendaric unit; the schematic alternation between
+hollow and full months is not a real lunar calendar, and there exists no linear
+scheme in the Old Testament for the length of daylight, or patterns for "gates",
+for winds, or for "thousands" of stars, related to the schematic year. 'The whole
+Enochian astronomy is clearly an ad hoc construction and not the result of a
+common semitic tradition.
+
+Summary of the Contents of Ch. 72 to 82
+First Version: 72 to 76 (with 74 probably being an intrusion)
+72,2-5: Gates and Windows; winds drive the chariot of the sun (cf. 73,2 and also 18,41
+6-36: length of daylight, M:m = 12:6; year of 4 . 91" = 364°
+37: brightness and size of sun and moon (cf 73,3; 78,3,4)
+73,1-3: winds drive the chariot of the moon (cf. 72,5); brightness of sun and moon
+(cf. 72,37; 78,4)
+4-8: increase of the area of illumination and of brightness of the moon from day 1
+1: Dillinann, Henoch, p. 220.
+
+40:10
+
+5
+
+to day 14 (incomplete); first visibility on the preceding day 30(i.e., after a
+hollow month)
+74,1-4: illumination of the moon during 15 days (i.e., for a full month)
+5--9: Gates and moon rise (incomplete)
+10-16: garbled description of an octaeteris
+75,1--7: stars ("thousands") and seasons (cf. 82,4-20)
+8,9: circumpolar stars
+76,1-13: the 12 gates of the winds and their qualities (cf. the short version 33 to 36)
+14: concluding words to Methuselah (cf. 79,1)
+Second Version : 77 to 79,1
+77: Mythical geography
+78,1: two-division of the year (cf. 78,15,16; 79,4,5)
+2-5: lunar phases; size and brightness of sun and moon (cf. 72,33-37); Gates
+6-14: lunar visibility, waning moon; hollow and full months (cf. 73,4-8 and 74,1-4)
+15,16: two-division of the lunar year (cf. 78,1; 79,4,5)
+1 7 : visibility of the moon during night and daytime
+79,1: concluding words to Methuselah (cf. 76,14)
+Additional Fragments: 79,2 to 80,1; 82,4-20 (80,2 to 82,3 intrusion: apocalyptic)
+79,2,3: Gates and lunar phases
+4,5: two-division of the Enoch-year (cf. 78,1,15,16) and Enoch epact
+6,80,1: concluding speech of Uriel
+82,4-20: hierarchy of stars ("thousands"), their leaders during the Enoch year (cf.
+75,1) .
+It seemed tempting to utilize in this commentary to the astronomical chapters of
+the Book of Enoch the numerous parallels and variants found in the Ethiopic
+"computus" treatises.' Since, however, practically all of these texts are unpublished
+and since only a detailed study could bring order and relative completeness to
+this huge mass of material,' I have usually abstained from referring to such
+"secondary" sources, though they may well contain information more reliable
+than the Book of Enoch in its present condition. I made good use, however, of
+the possibility of discussing my interpretations of the text with Professor Ephraim
+Isaac at the Institute for Advanced Study in Princeton.
+In many ways every student of Enoch is indebted to Dillmann's pioneering
+work. When deviating from it in some technical details, however, I did not find
+it necessary always to quote Dillmann's translation and notes. In particular I did
+not refer to all the cases where the mix-up between the "gates" in the horizon
+and the modern concepts of orbital motion in the ecliptic produced misleading
+explanations. The insight into its archaic primitiveness is the key to understanding
+Enochian "astronomy."
+
+2: Cf. for these texts my EAC.
+3: The majority of printed catalogues deals only in a very unreliable fashion with treatises of this type.
+
+40:10
+
+6
+Ch apter 72
+
+1. Book on the Motion of the Luminaries of the Heaven, how each one of them
+stands in relation to their number, to their powers and their times, to their
+names and their origins and their months, as the holy angel Uriel, who is their
+leader, showed to me when he was with me. And he showed to me their whole
+description as they are, and for the years of the World to eternity, until the creation
+will be made anew to last forever.
+2. This is the first law of the luminaries: the light (called) Sun has its exit
+among the gates of heaven in the east and it sets among the gates of heaven in
+the west.
+3. And I saw six gates from which the sun rises and six gates where the sun
+sets; and (also) the moon rises and sets in these gates, as well as the leaders of the
+stars together with those which they lead. Six (gates) are in the east and six in
+the west and all of them are arranged in sequence. And there are many windows
+to the right and to the left of these gates.
+4. And first comes out the great light called Sun and its roundness is as the
+roundness of heaven and it is all filled with fire that illuminates and heats.
+5. And the chariot in which it rises the winds drive. And the sun goes down
+from the heaven and it turns toward north in order to travel toward the east;
+and it is guided in such a way that it enters in the (proper) gate and shines (again)
+in heaven.
+6. In this way (the sun) emerges in the first month from the great gate, the
+fourth of these six gates in the east.
+7. And in this fourth gate from which the sun emerges in the first month there
+are twelve window-openings from which flames come forth when (these windows)
+are opened in their (proper) times.
+a. e. When the sun rises in the sky it rises from this fourth gate (during) 30
+days; and the sun sets exactly in this (fourth) gate in the west. 9 And in these days
+the day increases over the (preceding) day and the night decreases from the
+(preceding) night during 30 days. 10 'And on this (30th) day the day is two ninths,
+(i.e. two) "parts", longer than the night, the day being exactly 10 parts and the
+night exactly 8 parts. "And the sun rises from the fourth gate and sets in the
+fourth (gate).
+b. (Then) the sun moves to the fifth gate in the east, for 30 days, and it rises
+from it and it sets in the fifth gate. ' 2 And then the day increases two parts and
+the day amounts to eleven parts and the night decreases and amounts to seven parts.
+c. 13 •And (the sun) returns to the east and enters the sixth gate and it rises
+and sets in the sixth gate (during) 31 days according to its (the gate's) characteristics
+(for the season). 14 And during these days the day increases over the night (until)
+the day is twice (as long as) the night, such that the day amounts to twelve parts
+
+40:10
+
+7
+
+and the night decreases and amounts to s ix parts. 'Then the sun sets out to
+shorten the day and to lengthen the night.
+d. And when the sun returns to the east it enters the sixth gate and it rises
+
+from it and it sets (in it during) 30 days. 16• And when the 30 days are completed
+the day has decreased exactly one part and the day is eleven parts and the night
+is seven parts. 17 And then the sun leaves this sixth gate in the west and
+e. travels toward east to rise in the fifth gate (during) 30 days and it sets also
+in the west in the fifth gate. ' And on this day the day has decreased two parts
+
+and the day is ten parts and the night is eight parts. 19. And the sun rises from the
+fifth gate and it sets in the fifth gate in the west.
+f. (And then) it rises in the fourth (during) 31 days (according to) its (the
+gate's) characteristics (for the season), and it sets in the west. 20 , On this day the
+day equals the night and they are the same and the night is nine parts and the
+day is nine parts. 21 .And the sun rises from this (fourth) gate and it sets in the west.
+g. And (then) it returns to the east and it rises from the third gate (during)
+30 days and it sets in the west in the third gate. 'And on these days the night
+increases over the day and the night increases over the (preceding) night and the
+day decreases from the (preceding) day until 30 days and the night is exactly
+23. And the sun rises from this third gate and it
+ten parts and the day eight parts.
+sets in the west in the third gate.
+h. And (then) it returns toward the east and the sun rises (during) 30 days in
+the second gate in the east and it sets also in the second gate in the western sky.
+24• And on this day the night is eleven parts and the day seven parts. 25 •And in
+these days the sun rises from this second gate and sets in the west (also) in the
+second gate.
+i. And (then) it returns to the east to the first gate (during) 31 days and it
+26
+(also) sets in the first gate in the western sky. •And on this day the night has
+increased to become twice (the length of) the day and the night is exactly 12 parts
+and the day is 6 parts.
+k. 27• [And the sun has (thus) completed its appearances (in all gates) and
+then returns to these (same) appearances and it rises (again) in all its gates (during)
+30 days and it sets opposite to them in the west.]
+1. 28. And (during) these days the night has decreased by a ninth part (of its
+mean length), that is by one part; and the night consists of eleven parts and the
+day of seven parts.
+m. 29• And the sun returns and enters the second gate in the east [and it returns
+to these appearances] during 30 days, rising and setting (in the second gate).
+30• And in these days the night decreases in its length and the night is ten parts
+and the day eight parts. 31 'And in these days the sun rises from the second gate
+and sets in the west.
+
+co
+
+TABLE 1*
+
+Q rises and sets in G, for 30"; d increases, n decreases. Finally d = n } 2, thus d = 10, n = 8. Sunrise and sunset in G4.
+I' Q returns to E, in G ; for 30'; d increases by 2 to d = 1 1, n decreases to n = 7.
+
+` (Q) returns to E, enters G 6 ; rises and sets in G s for 31", as appropriate: ci increases to d = 2n, thus d = 12, n = 6.
+0 begins to shorten d and lengthen n:
+d
+
+Q returns to E, enters G 6 ; rises and sets in it for 30". After completion of these 30", d has decreased by 1, thus d = 11, n = 7.
+Q leaves GR in the W and
+
+c
+
+travels to E, to rise and to set in G 5 for 30". Finally d has decreased by 2, thus d = 10, n = 8. Sunrise and sunset in G,.
+
+f0
+
+rises in G4 for 31°, as appropriate, sets in W. (Finally) d = n, thus n = 9, d = 9. Sunrise and sunset in G4.
+
+Q returns to E,
+
+rises and sets in G 3 for 30". Now n increases over d; n increases, d decreases, until (after) 30" n = 10, d = 8.
+
+Sunrise and sunset in the W in G3.
+1 ' Q returns to E,
+
+rises in G2 for 30", sets in the W in G 2 . Finally n = 11, d = 7. Sunrise and sunset in the W in G2.
+
+Q returns to E,
+k
+'
+
+[rises and] sets in the NV in G, for 31". Finall y n lias increased to n = 2d, thus n = 12, d = 6.
+
+{Q completed its appearances (in all gates), now returns to these appearances, rising in all gates for 30" and sets in the W.}
+
+[0
+
+rises in Gi for 30"
+
+Finally] n has decreased by 1, thus n = 11, d = 7.
+
+1 °Q returns to E, [rising] in G 2 returns to appearances, rising and setting for 30°; n decreases, thus (finally) n = 10, d = 8. Sunrise and sunset
+in the W in G2.
+"Q returns to E, rising in G 3 for 31°, setting in the W; n decreases to 9, thus d = 9 and n = d. {The year is 364° long.}
+*Q... sun, G.
+
+gate (its number as subscript), E/W1' ... East ; West, d ... day, n ... night { } ... intrusion
+
+9
+
+40:10
+
+n. And (then) it returns to the east and it rises in the third gate (during)
+
+31 days and it sets in the western sky. 32• And in these days the night decreases
+and it is 9 parts and the day is 9 parts and the night equals the day. [And the year
+is exactly 364 days (long)].
+33. And the length of the day and the night and the shorteness of day and
+night vary with the circuit of the sun,
+34. because its course becomes longer day after day or shorter night after
+night.
+35. And this is the rule for the circuit of the sun, when it returns (to the east)
+and rises (again). This great luminary is called "sun" for all eternity.
+36. And what rises is the great luminary and it is named according to its
+appearance as the Lord has commanded.
+37. And it rises and similarly it sets and it does not diminish (in brightness)
+and it does not rest, but travels day and night. And its light is seven times as
+bright as the (light of the full) moon but with respect to their size the two are
+equal.
+
+Notes to Chapter 72. Sun and Moon
+The composition of this chapter is very simple: its core is formed by twelve
+strictly parallel verses that describe the variation of the length of daylight and
+night during the year. To this tabulation is added a general introduction (2 to 7)
+about the six "gates" on the eastern and western horizon where the sun rises and
+sets. Similarly the tabulation is followed by some general remarks (33 to 37)
+about the sun and its role in the universe.
+This structure of the chapter has been obscured by dividing the text into
+twenty-five verses unrelated to the original tabulation. I have therefore compiled
+a table (opposite) which shows the original pattern. Needless to say, there are many
+small variations from sentence to sentence. A serious disturbance occurred in
+verse 28 where a gloss (27) intruded into the text (with a repercussion still visible
+in 29). But Table I makes it easy to restore the basic scheme for each month:
+"The sun returns (from the preceding gate) to the east and enters the next
+gate in which it rises — and sets in the west — for 30 (or 31) days. During that
+time the days increase/decrease and the nights decrease/increase such that
+the day becomes ... (parts), the night ... (parts). Sunrise — and sunset in the
+west — takes place in this gate".
+Twelve such sentences are the exact equivalent of our Table II or of the graph
+Fig. 1. Similar verbal presentations of tabular material are not only found
+frequently in Ethiopic computus texts but also in Aramaic fragments (Milik,
+
+40:10
+
+10
+TABLE II
+month 1 in gate 4 during 30 days, ending in 10 r of daylight, 8 9 of night
+2
+
+5
+
+30
+
+11
+
+7
+
+3
+
+6
+
+31
+
+12
+
+6
+
+4
+
+6
+
+30
+
+11
+
+7
+
+5
+
+5
+
+30
+
+10
+
+8
+
+6
+
+4
+
+31
+
+9
+
+9
+10
+
+7
+
+3
+
+30
+
+8
+
+8
+
+2
+
+30
+
+7
+
+11
+
+9
+
+1
+
+31
+
+6
+
+12
+
+10
+
+1
+
+30
+
+7
+
+11
+
+11
+
+2
+
+30
+
+8
+
+10
+
+12
+
+3
+
+31
+
+9
+
+9
+
+Enoch, pp. 278-281). I have no doubt that the same genesis underlies also the
+next chapter.
+72.1. Preamble, giving a summary of topics concerning the celestial luminaries. The expression hezabihomu, literally "their tribes, populations", obviously
+refers to the hierarchical grouping of the stars. Similarly Seltanomu means "their
+powers", exercised by the stars over the division of the year, the seasons and the
+epagomenal days. Cf. for all these influences 75,1-7 and 82,4-20.
+72,2,3. In the course of the year sun and moon rise and set in six "gates" on
+the eastern, respectively western, horizon. To the right and to the left of these
+gates are "windows", presumably for the stars (whereas in 36,2,3 "small gates"
+are assigned' to them). It should be noted that "right" and "left" are not the same
+as "south" and "north" since these associations are reversed with the change of
+direction of the observer.
+Verse 3. "Arranged in sequence" probably refers to the numbering of the
+gates from one to six or from south to north.
+72,4. The "roundness" (kebabu) of the sun corresponds to the roundness of
+the heavenly cupola. Neither "Umkreis" (Dillmann) nor "disc" (Knibb) are
+suitable descriptions of the sky.
+72,5. Here we are told that the chariot of the sun (and of the moon, cf. 72,2)
+is blown by winds, and that the sun, after setting in the west, returns via the north
+to the east. Independent of this motion of the luminaries is the (daily) rotation of
+the heaven, i.e. of the stars, which is also caused by winds (18,4). A slightly different picture is found in 41,5 where sun and moon are said to come out from, and
+return to, "chambers" (mazdgebt). Similar differences are recognizable for the
+stars: "windows" in 72,2,3, "gates" in 36,2,3.
+
+40:10
+
+11
+
+Fig. 1.
+
+intursommorenom
+Nrodrourhomm
+Amium, tanumini
+N Elmillisommord
+
+insurausumummormuu
+caluuumusrasuraus
+72,6 to 32. The essential content of these verses is summarized in Table II
+and in the graph of Fig. 1. Note that the linear pattern for the length of daylight
+and night ignores the epagomenal days (as is admitted in 75,1).
+The variation of the length of daylight and night during the solar year is here
+described by a numerical sequence that alternates, with constant difference,
+between a maximum M and a minimum m. If one chooses the simplest increment,
+i.e. if one makes the monthly difference "1 part" (p), then one has M= m+6. If
+one furthermore assumes that M = 2m, then one finds finally m = 6 P , M = 12P
+(and always daylight + night = 18 P ). This is exactly what we have in our text.
+The use of such an alternating sequence (known as "linear zigzag function")
+suggests a Babylonian origin, since functions of this type play a fundamental role
+in Babylonian astronomy. For the length of daylight we find in cuneiform texts
+two ratios: one M:m = 3:2, the other (in earlier texts, e.g. in the series "MulApin") M:m = 2:1. In the first case the units of time are "large hours" (i.e. 4 of
+our hours), in the second case we deal with "manas", i.e. weights of water, outflowing from a cylindrical water clock.'
+In our texts the "parts" are never connected with any meteorological unit,
+neither hours, nor weights or volumes. Hence borrowing from Mesopotamia
+4: Cf. Neugebauer, The Water Clock in Babylonian Astronomy, Is is 37 (1947), pp. 37-43.
+
+40:10
+
+12
+
+remains only a possibility, though supported by another (slightly conjectural)
+feature, an 18-division of the day (counted in manas) in Mul-Apin.5
+Of course a borrowing from comparatively early Babylonian material cannot
+be used as a chronological criterion for the time of composition of the astronomical
+section of the Book of Enoch. Methods of this kind have a life-span of many
+centuries and easily survive the development of more advanced methods.
+72,6 to 11. In month 1 the sun emerges from gate 4 and the length of daylight
+increases during this month from 9 P to lO p . Note that this implies that the year
+begins at the vernal equinox (as in Babylonia) whereas the Ethiopic calendar
+follows the Alexandrian year that begins with the month Thoth, roughly September.
+Why is gate 4 called "large"? Dillmann 6 thinks of a comparison with the 12
+windows which eject flames (72,7). Are other gates not provided with such
+windows?
+Verse 11. After 30 days the sun returns (yegabe') from gate 4 in the west (via
+the north) to gate 5 in the east.
+72,13 and 19. The translation of te'emerta zi'ahå as "its sign" is misleading
+since it could be taken as a reference to zodiacal signs' (which do not exist in
+Enoch's astronomy). The purpose of this remark, however, is to explain that 31
+days of the sun's risings in the same gate is indicative for the position of the equinoxes and solstices. The Greek equivalent of te'emert is O>lpCiOv used in a technical sense,' in particular in relation to meteorological and calendaric dates
+*nlonpaivctv). 9 Hence we may say that the rising of the sun in a specific gate is
+"indicative" or "characteristic" for the seasons. Cf. also 75,6 and 82,16 and 19.
+Verse 19. As Fig. 1 (p. 11) shows, the autumnal equinox occurs when the sun
+rises at the beginning of gate 3 in month 7.
+72,27. Dillmann rendered 'ar'estihu by "Bahnabschnitte" (hence Knibb:
+"division of journey" — instead of "orbital segments"). It seems to me, however,
+that no reference to the sun's "orbit" 10 — at any rate a much too modern concept
+— is intended. In my opinion what is meant is simply the appearances (literally
+the "heads", the "beginnings") in the consecutive gates. This interpretation is
+supported by a variant in 'rand 9: 'ar'ayåhu, indicating something like "appearances". Cf. also next section.
+5: This connection between Mul-Apin and the Book of Enoch was suggested many years ago by
+A.J. Sachs (cf. Neugebauer, I.c note 4, p. 40).
+6: Dillmann, Henoch, p. 222.
+7: So expressly by Charles.
+8: Cf. e.g., also Matth. 16,3 arl icia TWV KatpCJV "the signs of the time".
+9: Cf. e.g., Ptolemy's work måaelç åriNavtw daTépwv Kai auvaywyrl rnarlpaaiWV (Opera
+minora, pp. 2-67). Cf. also RE Suppl. 7 col. 176-198 [Rehm].
+10: Not to ask: the daily orbit? the yearly orbit? what are `Bahnabschnitte"?
+
+13
+
+40:10
+
+72,33 to 35. The variability of the length of daylight and night is caused by the
+variability of the sun's positions in the gates (cf. verse 27), i.e. by the changing
+rising amplitude, as is indeed the case.
+A number "60" (of risings and settings?) in verse 35 is omitted in several
+manuscripts (among them Tånå 9). This seems to be the better version.
+72,37. The sun's brightness never changes (in contrast to the moon) and it is
+sevenfold the moon's greatest brightness" (cf. 73,3 and 78,4). Their apparent
+sizes, however, are equal (cf. 78,3). 12
+
+Ch apter 73
+1. And after the rule (concerning the sun) I saw another rule about the smaller
+luminary, called Moon.
+2. And its roundness is as the roundness of heaven and the chariot on which
+it travels is driven by winds; and light is given to it in measure.
+3. And each month its place of rising and of setting varies (through all gates)
+but its days are as the days of the sun. And when its light is evenly spread (over
+its disc) then it amounts to one seventh of the light of the sun.
+4. And thus (the lunar month) begins, when (the moon) itself moves away
+(from the sun) toward east on the 30th day, and (when) on this day it becomes
+visible it is for you the beginning of the (lunar) month on the thirtieth day, (when
+the moon is setting) together with the sun in the gate from which the sun rises,' (but)
+at a distance (from the sun) of half of a seventh part.
+And its whole disc is empty (i.e.) without light, excepting its seventh part of
+a fourteenth part (i.e. 1/98) of the light (of the sun).
+6. And on (this) day (the moon) takes on a seventh part of one half (i.e. 1/14)
+of its light, and (thus) its light is the seventh of a seventh part and one half of it
+(i.e. 1/98 of the light of the sun).
+7. (The moon) sets with the sun and when the sun rises, the moon rises with
+it and it takes on one half part (of 1/7) of its light. And in this night, at the beginning
+of the (lunar) day, which is the first day of the month, the moon sets with the sun,
+and it is dark in this night. — A seventh of a seventh part and one half.
+8. And the moon rises and comes out on this day with exactly the seventh part
+(of its total light) and recedes from the rising of the sun and it (the moon) is
+II : Dillmann (Henoch p. 226) suggests a derivation of this ratio from Isaiah 30.26. This passage
+(and similarly Enoch 91,16), however, does not compare the sun with the moon but deals
+with some future events in the universe.
+12: This is very nearly correct, as is common knowlege in ancient astronomy (based on evidence
+from solar eclipses).
+
+40:10
+
+14
+
+illuminated during the remaining (part) of its day a sixth (?) and a seventh part
+(of the light of the sun).
+
+,Notes to Chapter 73. The Moon's Variable Illumination
+The original arrangement in this chapter was probably similar to the arrangement
+in the preceding chapter: a central tabulation preceded (and perhaps also followed)
+by general remarks. In the extant version, however, only the introduction is
+preserved (verses 1 to 3) while the tabulation breaks off after day 2. No doubt
+originally all days until full moon (day 14) had been listed. Instead we find now
+a disorganized chapter (74) which obviously does not belong to the original
+composition.
+73,1 to 3. The moon's chariot is driven by winds (cf.72,5) and the roundness
+of the moon is as the roundness of the heavens. 13 Light is given to the moon (from
+the sun) and produces at full moon one-seventh of the sun's brightness (cf. 72,37
+and 78,4). The rising and setting points of the moon change rapidly, but the
+number of "days" in a lunar calendar is the same as the corresponding number
+of solar days (73,3); for example, day 14 has the same distance from day 1 in a
+lunar u alcndar as a solar day 14 from solar day 1, in spite of the variability of the
+moments of moon-rise and moon-set in relation to sun-set. — For 73,2 cf. also 78,4.
+73,4 to 8. In these verses we have a fragmentary description of a linear scheme
+for the increasing illumination of the moon during the first half of the lunar
+month. This increase is expressed in two scales: first, in absolute terms from 1°
+to 14" (hence proportional to the illuminated area), 14 and, secondly, in terms of
+solar brightness, hence increasing from 1/141/7 = 1/98 on the first day to 1/7
+at full moon (cf. 73,3). Our text represents only a fragment of this scheme, which
+concerns the first two days. But the whole scheme is preserved in several computus
+texts (cf. EAC, p 196) the only difference being that a "full month", i.e. a 15-day
+increase, is contemplated.
+Some trouble has been caused by an unfortunate terminology used in this
+section: the term sebåh "morning" here stands for "day" (as we sometimes count
+"summers" as "years", or winters" (keramt) in Ethiopic). To retain in astronomical
+context the literal meaning of an idiom of this type leads to senseless translations;
+e.g., "on that night at the beginning of its morning, at the beginning of the moon's
+
+13: Knibb's MS has "sun" instead of "heaven". The parallel with 72,4 shows that "heaven" is the
+better version.
+14: The "parts" ('eda) here have nothing to do with the "parts" (kefla) in 72,6 to 32.
+
+40:10
+
+15
+
+day",15 instead of "on that night, at the beginning of the (lunar) day, which is
+the first day of the month".
+73,4. To say that a lunar month begins on "day 30" characterizes its predecessor
+as a hollow month." At the beginning of the new month the moon has obtained
+enough (easterly) elongation from the sun to be visible at sunset. At conjunction,
+however, the moon is still nearer to the sun and thus rises and sets (invisibly) in
+the same gate as the sun. (Of course, all this is only that simple in the schematic
+lunar calendar which ignores, of necessity, all complexities of the actual lunar
+motion) .
+The conclusion of this verse is incorrectly assigned in part to the next verse.
+It contains the statement that the elongation of the moon from the sun at the
+evening of first visibility is 1/14 of the total elongation (reached at full moon).
+The use of reheqa in the technical sense of "elongation" is well attested in computus treatises. We read, e.g., in BM Add 24995 (28 g 1I,1): "On the second day
+(the moon) recedes (yerheq) from the sun and becomes visible at 8 kekros and
+illuminates 2 parts of 15 (of its greatest) light (at full moon) and 1 part of 98
+(parts) of the light of the sun". Incidentally, this close parallelism supports our
+conclusion that verses 73,4 to 8 are only a fragment of a complete table for the
+moon's illumination, both absolute and in relation to the sun.
+73,5. The numerical data for day 1 are: darkness of the moon's disc excepting
+1/2 . 1/7 of its area that shines with the brightness of 1/7 • 1/14 ( .---1/98) of the
+sun's light.
+73,6 to 8. The numbers in these verses are obviously corrupt as the many
+variants show, in part probably caused by the usual confusion of sixes and sevens.
+Both translation and notes are therefore only tentative and show not much more
+than that we are dealing with the description of the moon's increasing illumination. The text ends abruptly after verse 8.
+73,6. The daily increment of the moon's illuminated area is 1/14. Its brightness
+on the first day of the lunar month amounts to 1/7 . 1/7 . 1/2 (=1/98) of the sun's
+light.
+73,7 and 8. On day 1 the moon is still near conjunction and therefore (nearly)
+rises and sets at the same time as the sun (cf. 73,4). The number 1/7 . 1/7 . 1/2 at
+the end of verse 7 is perhaps a meaningless duplication from verse 6.
+Turning to day 2 (in verse 8) the moon's illuminated area is 2/14 = 1/7. It
+follows again a remark about the increasing elongation, but one should expect a
+
+15: Knibb, p. 172 (73,7). Cf. also Gen. 50,3 and Num. 13, 25 in the Ethiopic Bible (E. Isaac). "Mornings" for "days" is also well attested in computus texts.
+16: This is standard terminology in Babylonian astronomy, cf. F. X. Kugler, Die Babylonische Mondrechnung, Freiburg 1900, p. 36.
+
+40:10
+
+16
+
+motion "away from the sun toward east" (as in verse 4) instead of a "receding from
+the rising sun". Perhaps this is simply a scribal error. Why the "remaining part
+of the day" is mentioned in the present context I do not know. For the brightness
+of the crescent on day 2 one should expect 1/7 . 1/7 (of the sun's brightness) and,
+indeed, some variants contain these numbers.
+
+Chapter 74
+1. And I saw another circuit and (another) rule for it (the moon), whereby
+according to that rule it produces the cycle of the months.
+2. All this showed to me Uriel, the holy angel, who is the leader of all of them.
+And I wrote down their positions as he showed them to me and I wrote down
+their respective months and the phases of their illumination until full moon on
+the fifteenth day.
+3. And in steps (of fractions) of sevenths (lit. single seventh parts) the full
+moon is completed in the east and in steps (of fractions) of sevenths complete
+darkness is reached in the west.
+4. In certain months (the moan) changes (the location of) its settings (with
+the sun, but) in certain months it goes its own individual way.
+5. In two months (the moon) sets with the sun in these two middle gates, that
+is in the third and fourth gate.
+6. (The moon) comes out (from the same gate) during seven days and it
+turns and moves back to the gate from which the sun rises, and it completes its
+light. And (the moon) recedes from the sun and enters for eight days the sixth
+gate from which the sun rises.
+7. And when the sun rises from the fourth gate (the moon) comes out (from
+the sixth gate) during seven days until it rises from the fifth (gate) and it returns
+again during seven days to the fourth gate and it completes its light and it recedes
+(from the sun) and it enters the first gate (during) eight days.
+8. And again it returns (after) seven days to the fourth gate from which the sun
+rises.
+9. Thus I saw their positions when the months begin at sunset. — It seems
+pointless to attempt to give an accurate translation of the confused nonsense
+which some scribes produced from some trivial arithmetical relations (for which
+cf. the notes on p. 19). Readers who wish to see some rendering of these scrambled
+verses may look up Charles Enoch pp. 149-161 or Knibb Enoch pp. 173-4.
+10. We are dealing with five ("solar") years of 364 days each.
+11. Five lunar years fall short of five solar or sidereal years by (50 days,
+similarly three lunar years by) 30 days.
+
+17
+
+40:10
+
+12. In this way the length of the lunar years is not too long and not too short
+by a single day in all eternity in relation to the years of 364 days each.
+13. Three years are 1092 days long, five years 1820 days, thus eight years
+1912 days.
+14. to 16. Three lunar years are 1062 days long, thus 30 days shorter than
+three solar years. Similarly for five and eight years.
+17. And the year is correctly completed in relation to its position within (the
+era of) the World and to the positions of the sun that rises and sets in its gates for
+30 days (each).
+
+Notes to Chapter 74. The Lunar Year
+This chapter contains a fragmentary description of the shift from gate to gate
+of sun and moon, based on a simple arithmetical scheme that is well known from
+computus treatises." The present text, however, covers only the discussion for
+the first month. The remaining tabulation is replaced by a badly bungled attempt
+to describe an octaeteris that would relate a lunar year to the Enoch-year. It is
+quite evident that these verses (10 to 17) are a later addition.
+74,1 and 2. A reference to the angel Uriel supports our impression that this
+chapter was originally not connected with the preceding or following chapter.
+Also full moon is here associated with day 15, not with day 14, as in chapter 73
+(but cf. 78,6,7).
+74,2 to 4. The text as it stands is not very clear. What was intended to be
+expressed may be formulated as follows: Enoch writes down the pattern for the
+gates traversed by sun and moon during the lunar year. In each month the moon
+is waxing and waning: first its light increases until 1/7 of the sun's brightness is
+reached at full moon, visible in the east when the sun sets in the west; then the
+moon returns to darkness at conjunction which normally takes place in the same
+gate with the sun, though occasionally the moon may appear in an adjacent gate
+(as can actually be the case).
+74,5. The gates 3 and 4 correspond to the equinoxes (cf. Fig. 1, p. 11).
+74,6. We have here a general description of the relationship between the days
+of a lunar month and the gates: the moon comes out through one of the outermost
+gates during seven (or eight) days; there it turns and moves back to the gate from
+which the sun rises during this month, and its light becomes full (at sunset) ;
+then the moon recedes again from this gate.
+At the end of this verse the words "enters for eight days the sixth gate" do not
+belong here and should be deleted.
+74,7 to 9. The tabulation begins with month 1 at the vernal equinox. Con-
+
+18
+
+40:10
+
+TABLE III
+Months
+
+1
+
+4
+
+3
+
+2
+
+5
+
+7
+
+6
+
+8
+
+9
+
+10
+
+11
+
+1
+
+12
+
+Gates
+
+Months
+I Gates
+
+4
+
+2
+
+4
+
+5
+
+2
+
+2
+
+6
+
+8
+
+8
+
+5
+4
+
+4
+
+6
+
+5
+
+2
+
+2
+
+2
+
+2
+
+2
+
+4
+
+1
+
+1
+
+2
+
+2
+
+1
+
+2
+
+3
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+1
+
+8
+
+7
+
+8
+
+7
+
+8
+
+7
+
+8
+
+7
+
+4
+
+4
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+3
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+2
+
+2
+
+1
+
+2
+
+4
+
+1
+
+1
+
+2
+
+2
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+5
+
+4
+
+4
+
+8
+
+8
+
+8
+
+8
+
+8
+
+7
+
+8
+
+8
+
+8
+
+6
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+5
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+4
+
+1
+
+2
+
+2
+
+2
+
+1
+
+1
+
+1
+
+3
+2
+
+5
+
+2
+
+6
+5
+
+5
+
+4
+
+4
+
+3
+
+3
+2
+
+1
+
+2
+1
+
+1
+2
+
+2
+3
+2
+
+2
+
+2
+
+2
+
+2
+
+2
+
+4
+
+4
+
+8
+
+7
+
+8
+
+1
+
+2
+
+2
+
+2
+
+2
+
+1
+
+1
+
+3
+
+1
+
+4
+
+30
+
+Days
+
+2
+3
+4
+Days
+
+30
+
+29
+
+30
+
+29
+
+30
+
+29
+
+29
+
+30
+
+4
+
+30
+
+29
+
+30
+
+29
+
+junction takes place in gate 4, then the moon's rising and setting moves on to
+gate 6 for a period of seven days. Moving back18 to gate 4 we have full moon,
+followed by another delay (of 8 days) in gate 1. Thus the complete scheme for
+this month would look about as follows (cf. also Table III) :
+gates: 4
+
+5
+
+6
+
+sun
+during days: [2]
+
+5
+
+4
+
+3
+
+2
+
+1
+
+sun
+[2]
+
+7
+
+[2] [1] [1] [2]
+
+2
+
+3
+
+4
+sun
+
+8
+
+[2] [1] [1] total: 29
+
+The continuation of this tabulation is omitted just as in the preceding chapters.
+74,10 to 17. These verses constitute an abortive attempt to describe an
+octaeteris. The scribe had obviously only a very vague idea of the working of
+such a cycle, remembering only a separation of 8 years into two groups, one of 5
+
+40:10
+
+19
+
+years (with 2 intercalary full months — hence his 30 days in 74,11) and one of 3
+years (with 1 intercalary month), 19 However instead of operating with Alexandrian
+years he assumes Enoch years; and because this does not lead to any reasonable
+relationship, he ends up with some correct but irrelevant numerical identities,
+based on the comparison of 5+3 Enoch years with 5+3 lunar years:
+5 . 364 = 1820 days
+
+5 . 354' = 1770 = 1820 — 50 days
+
+8 364 = 2912 days
+
+8 . 354' = 2832 = 2912 — 80 days
+
+3 . 364 = 1092 days
+
+3 . 354 d = 1062 = 1092 — 30 days
+
+I surmise that this whole group of verses is a late addition, written under the
+influence of some computus treatise, where a mix-up of Alexandrian and Enoch
+years is quite common.
+
+Ch apter 75
+1. And their leaders, at the head of (each) thousand (stars), who are appointed
+(to rule) over the whole creation and over all stars (have to do also), with the
+four additional (days), without deviating from their positions, corresponding to
+the computus of the year. And they render service (also) on these four days
+which are not counted in the computus of the year.
+2. And with respect to these (four days) people err since these luminaries do
+true service (also) in the (following) positions of the cosmos: once in the first
+gate and once in the third gate and once in the fourth gate and once in the sixth
+gate, so that the accuracy (of return) of the world is achieved after 364 (days)
+(with respect to the) positions of the cosmos.
+3. Thus the signs, the times, the years, and the days were shown to me by the
+angel Uriel whom the eternal Lord of glory has appointed (to rule) over all the
+heavenly luminaries in heaven and in the world, such that they rule on the face
+of the sky and are seen from the earth and are made the guides of day and night,
+(namely) the sun and the moon and the stars and all the servants who return on
+all chariots of heaven.
+4. Likewise Uriel showed me twelve openings, openings in the disc of the
+
+1 7 : Cf. Table III (p. 181, taken from EAC, p. 160. The positions of the numbers are not rigidly the
+sauce in all manuscripts; 7 and 8 as well as 1 and 2 can interchange places, as long as the proper
+totals 29 or 30 are preserved.
+18: 'fhe assignment of seven days to the return to gate 4 (instead oft days) is a scribal error, perhaps
+caused by a similar passage in verse 8.
+19: Cf. EAC, p. 83 fT.
+
+40:10
+
+20
+
+chariots of the sun in the sky, from which come forth over the earth the rays of
+the sun and its heat when they are opened at the proper time.
+5. And (there are openings) for the winds and for the wind (that brings) dew,
+when the openings of heaven are opened at the boundaries (of the earth).
+6. I have seen twelve gates in the heaven at the boundaries of the earth from
+which come out sun and moon and stars, and all the works of heaven from the
+east and from the west.
+7. And (I saw) many window openings to the right and to the left and (each)
+one window emits heat at its time according to the gates from which the stars
+rise, as they are ordered, and in which they set according to their (the gates')
+numbers.
+8. And I saw chariots in the heaven travelling in the world above the gates,
+where the stars revolve which never set.
+9. And one of these (circuits) is larger than all of them and it is one which
+circles the whole world.
+
+Notes to Chapter 75. The Stars
+75,1,2. The stars convey cosmic order to the calendar by their organization,
+which agrees exactly with the divisions of the Enoch year (hasäba åmat), including the epagomenal days at the end of each season. Some people commit an error
+by ignoring these epagomenal days; this could refer to the lunar calendar of the
+Jews (which has no intercalary days), or to the Egyptian calendar (with five
+epagomenal days at the end of the year), or even to the schematic year of "MulApin", which contains only twelve 30-day months.
+In fact, however, the epagomenal days are "not counted in the computus of
+the year" since it would disturb the linearity of the scheme for the variation of
+the length of daylight (cf. note to 72,6 to 32, p. 11). This admission of a contradiction between theory and practice is obviously due to a gloss that intruded into
+the text.
+The divisions between the seasons are marked by the rising of the sun in one
+of the following gates: winter solstice in gate 1, the equinoxes in gates 3 and 4
+(autumnal and vernal equinox respectively, as is seen from the trend in the
+variation of the length of daylight — cf. 72,6 to 32, p. 11, Fig. 1), the summer
+solstice in gate 6. Cf. also 82,6 and 74,5. At these points the cosmos returns accurately to its previous position, 364 days earlier. Hence the (assumed) symmetry
+of the seasons of the solar year is taken as the ultimate basis for the calendar, and
+the stars reflect the same order.
+75,3. The angel Urid. shows to Enoch all the things "about the signs and about
+
+40:10
+
+21
+
+the times" (late'emert wala'azmån) ; this could refer to the role of the stars as
+indicators of the climatic changes from season to season (cf. above, 72,13 p. 12).
+Sun, moon, and stars move "on the face of heaven" and thus are visible from
+the earth. The "servants20 who return (ya`awdu — not, in this case, "revolve") on
+all chariots of heaven" are perhaps responsible for the return of the celestial
+bodies from their settings in the west to the eastern gates via the north (cf. 72,5;
+78,5)
+75,4. Once more Uriel explains the purpose of the gates and of the chariots:
+"twelve openings in the disc of the chariot of the sun ... from which the rays of
+the sun ... and heat ... come out". This picture has no parallel in the rest of the
+text and I suspect some confusion with the gates traversed by the sun (cf. also
+verse 7) or with the twelve windows from which flames are ejected (72,7).
+75,5. Probably an intrusion, 21 in part duplicating verse 6.
+75,6,7. Again 12 gates, east and west, but now not only for sun and moon but
+also for the stars. This makes little sense since the stars rise in all points of the
+eastern horizon. Then there are "windows" to the right and to the left (cf. 72,3,7)
+from which heat comes out — a moment before (in 75,4) the openings in the solar
+chariot performed this function — and also stars.
+In verse 6 the "works of heaven" (gebrata samly) probably means the meteorological phenomena connected with the seasons. The "numbers" in verse 7
+probably refer to the numbering of the gates, thus guaranteeing the proper positions of risings and settings.
+75,8,9. There are chariots (obviously for stars) "above 22 the gates" for those
+stars which never set, i.e. circumpolar stars. One of their circuits is the greatest,
+encircling the whole (always visible) world.23
+
+Chapter 76
+1. And I saw at the boundaries of the earth twelve gates, open to all winds,
+from where the winds come out and blow over the earth.
+2. Three of them are open at the front of heaven (i.e. in the east) and three in
+20: Dillmann's "dienstbare Geschöpfe" (in his time an idiom reminiscent of household help) became
+"serving creatures" in Knibb's translation.
+21: Cf. Dillmann, Henoch, p. 233/4.
+22: Some manuscripts add here "and below them", which makes no sense. Unfortunately Knibb
+accepted this version (following Dillmann but not Flemming).
+23: Dillmann's "durchkreutzt die ganze Welt" (hence Knibb's "goes round through the whole
+world") is senseless. Obviously Dillmann was not familiar with the concept "greatest always
+visible circle". In his notes (p. 234) he even considers the "Morgenstern" or the Great Bear. In
+Greek astronomy this circle is known as the `arctic circle.'
+
+40:10
+
+22
+the west, and three at the right side of heaven, and three on the left side.
+
+3. And the three first ones are in the direction of east, and (then) three are in
+the direction of north, and then those on the left, in the direction of south, and
+three in the west.
+4. From four of them winds of blessing and prosperity come out, (but) through
+eight of them come winds (causing) calamities; when they are sent out they bring
+devastation over the whole earth and the water on it, and to all that inhabit it,
+to all that is in the water or on d ry land.
+5. And the first wind that comes out from these gates is called easterly. From
+the first gate in the direction of east, inclined toward south, devastation, drought,
+and heat and destruction come out.
+6. And in the second gate, the middle one, (the wind) comes out straight; and
+from it rain and fruitfulness and prosperity and dew come out. And from the third
+gate, in the direction toward north, cold and drought come out.
+7. And then the winds in the direction from south come out from three gates.
+First, from the first gate, that is inclined toward east, a hot wind comes out.
+8. And from the middle gate, next to it, beautiful fragrance and dew and rain
+and prosperity and health come out.
+9. And from the third gate, in the direction toward west, dew and rain and
+locusts and devastation come out.
+10. And then the winds in the direction from north, (also) called bahr (Sea),...
+From the seventh gate, (inclined) toward east, dew and rain, locusts and devastation come out.24
+11. And from the middle gate, in a straight direction, health and rain and
+dew and prosperity come out. And from the third gate, (inclined) toward west,
+mist and hoar-frost and snow and rain and dew and locusts come out.
+12. And then the fourth (group of) winds, in the direction toward west: from
+the first gate, in the direction of north, dew and rain and hoar-frost and cold and
+snow and frost come out.
+13. And from the middle gate dew and rain, prosperity and blessing come out.
+And from the next gate, in the direction toward south, drought and devastation,
+burning and destruction come out from it.
+14. And thus (the description of) the twelve gates in the four (quarters) of
+heaven is completed; and I have shown to you, my son Methusaleh, all their
+laws, (and all their) calamities and benefactions.
+24: The text of this verse is corrupt but there is no doubt about the essential points, the order of the
+gates and the quality of the winds. A remark "inclined toward south" (and similarly "... toward
+north" in the next verse) makes no sense. The cause of all this trouble is probably the replacement of the eight-point rose of winds by twelve points, i.e. the duplication of the intermediate
+directions. Cf. the commentary (p. 24).
+
+23
+
+40:10
+Fig. 2.
+
+dew
+rain
+1'
+prosperity
+blessing
+
+2
+
+dew
+rain
+prosperity
+fruitfulness
+
+drought
+burning
+devastation
+destruction
+
+fL
+
+S
+dew
+rain
+prosperity
+health
+fragrance
+
+Notes to Chapter 76. The Winds
+The Ethiopian rose of winds consists of a sequence of twelve openings, again
+called "gates", which encircle the whole horizon. The winds from the four cardinal
+directions are supposed to be beneficial, in contrast to the winds from the remaining eight gates that bring discomfort and devastation (cf. Fig. 2). 25 Lists of this
+type are also found in many Ethiopic "computus" treatises. An abridged version is
+preserved in 34,2 to 36,1 of the Book of Enoch.
+
+25: The accuracy of the 12-division of the horizon as shown in Fig. 2 should not be taken seriously.
+No numerical data are ever associated in our texts with these "gates".
+
+40:10
+
+24
+
+One might think that long experience with climatic conditions would be
+condensed in such lists. In fact, however, we have here again only a scheiriatic
+pattern, as far removed from empirical data as the arithmetical schemes for the
+length of daylight or the shadow tables. In all these cases scribal tradition has
+wiped out any connection with reality, if one ever existed.
+The purely schematic character of qualities enumerated in the present section
+is easily recognizable in spite of some omissions or additions. 26 This is quite
+obvious in the case of winds from the cardinal directions. All of them bring "dew,
+rain, prosperity" to which is added one more gift:
+E: fruitfulness
+
+S and N: health
+
+W: blessing.
+
+Only the southern wind has a fifth quality ("fragrance").
+This list for the principal wind-directions strongly suggests that each wind
+should be associated with exactly four qualities. This is indeed confirmed for the
+destructive winds, listed here in the order of the text:
+E 1 drought, heat, devastation, destruction
+3 drought, cold
+S 4 hot wind
+6 dew, rain, locusts, devastation
+N 7 dew, rain, locusts, devastation
+9 dew, rain, hoar-frost, snow (mist, locusts)
+W 10 dew, rain, hoar-frost, snow (frost, cold)
+12 drought, burning, devastation, destruction.
+Excepting E 3 and S 4 and the rather senseless additions (shown in parentheses)
+in N 9 and W10, we always have exactly four qualities mentioned. But this list
+reveals one more structural pattern. The third wind in one group has the same
+qualities as the first wind in the next: S 6 = N 7, N 9 = W10, W12 = E 1, thus
+closing the cycle. Only E 3 and S 4 are exceptions, which is not surprising since
+both entries are obviously defective.
+Summarizing these regularities we can now say that the twelve-wind arrangement contains four beneficial gates and only four qualities for the remaining eight
+gates. This suggests an historical evolution from an 8-point rose of winds to a
+12-point arrangement, the latter probably recommending itself by the formal
+similarity to the 6 + 6 "gates" for the risings and settings of sun and moon. Both
+eight-division and twelve-division are well known in hellenistic and Roman
+schemes, e.g., in geographical or architectural context.27
+26: The order of the qualities listed in Fig. 2 for each individual wind can culler from the order (or
+rather disorder, which tends to obscure parallelisms) in the text.
+27: Cf. (with caution) RE 8A, 2 cols. 2351C and 2378 for the 12-division and col. 2364 for 8-division
+[Bökerl.
+
+40:10
+
+25
+
+Fig. 3.
+
+W
+
+34 to 36
+
+Finally, a remark should be made about the order in the text of enumerating
+the gates for the winds. Since little consistency is found in computus texts in
+matters of orientation, it is not surprising to meet the same situation in the present
+treatise. Fig. 3 illustrates two instances from the "astronomical" book (Ch. 76
+and 77) and compares them to the short version in Ch. 34 to 36. In 76 and 77 the
+speaker faces east, the "front of heaven" (gasa samay), thus north is "left" and
+south is "right". In 34 to 36, however, the enumeration starts with north and
+proceeds counter-clockwise. In the astronomical sections the enumeration is
+either clockwise or E-S-N-W, as shown in Fig. 3, revealing one of the differences
+between the two versions to which 76 and 77, respectively, belong.
+On the other hand the existence of an overall common background is visible
+in the fact that the only qualities associated with a wind-direction in 34 to 36 are
+"dew, rain, hoar-frost, snow (hail)", ascribed in 34,2 to the north (in general)
+and in our chapter to N 9 = W 10 (cf. above).
+Concluding words to Methuselah (76,14) mark the end of the first version of
+the "astronomical" book, similar to 79,1 for the second version.
+Verse 7 is corrupt, as is evident from the restriction to only one quality (heat
+= moq, in some MSS misread to mot = death). Several computus treatises have
+here nafas meweq zasemu netug (or natig 2s ), "hot wind called netug/natig". A
+similar gloss disturbed verse 10 by giving the north wind a special name, bahr =
+sea or ocean. With bahr is commonly associated as its counterpart the wind liba,
+i.e. Xitp, a southerly wind. Perhaps netug is a substitution for Xkp and is derived
+from vOTOS, the south wind.
+In 77,2 netug is assigned to the west and derived from the meaning "diminish?'
+I suspect, however, that the transformation of this wind from the SE to the W is
+caused by this etymology, rather than explaining it. The shift from the eight-point
+rose of winds (still reflected in the restriction to only eight names — cf. EAC,
+28: CE Littmann, Zeitschr. L Assyriol. 16 (1902), p. 384.
+
+40:10
+
+26
+
+p. 199, Fig. 4) to the twelve-point scheme (above Fig. 2) could only augment the
+confusion of directional terminology.
+In fact the name båhr, "north," being unrelated to any great sea, may also
+be the result of a learned scribal interpretation of (3bp€as. All these explanations
+are glosses, introduced by zasemu "which is called ...", based on the same principle of assimilation of foreign words to semitic roots, exemplified by the change
+of TC v ØE v to tentyon and explained by the scribes as meaning "at the beginning".
+
+Chapter 77
+1. The first quarter is called east because it is the chief (quarter) ; and the
+second is called south because there the Most High descends {and there in particular descends the one blessed in eternity)29
+2. And the quarter in the west is called netug (diminished) because all
+celestial luminaries decrease there and go down.
+3. And the fourth quarter which is called north is divided into three parts.
+The first of them is the habitat for man, the second (contains) the oceans and
+gorges and forests and rivers, darkness and mist. The third part (contains) the
+Garden of Justice.
+4. I saw seven high mountains, higher than all mountains on the earth, and
+hoar-frost comes from them. {And days and seasons and years traverse them.)29
+5. I saw seven rivers on the earth, greater than all other rivers; one of them,
+coming from the west, sheds its waters into the Great Sea.
+6. And two (of them) come from the north to the sea and shed their waters
+into the Erythrean Sea in the east.
+7. And the remaining four (rivers) come from the northern side toward the
+sea, two to the Erythrean Sea, and two empty into the Great Sea — and (some)
+say: into the desert.
+8. I (also) saw seven large islands in the sea and on land; two on land and five
+in the Great Sea.
+
+Notes to Chapter 77. Mystical Geography
+77,1 to 3. The cardinal directions are here enumerated in the order E-S-W-N,
+in contrast to 76 and 33 to 36 (cf. Fig. 3, p. 25). As in 76,2 we are facing east. For
+the wind netug, cf. the note to 76,7 (p. 25).
+29: Probably a gloss.
+
+40:10
+
+27
+
+The description in verse 1 of the south as "where the Most High descends" is
+explained in an Amharic (unpublished) commentary as a reference to Mt. Sinai
+(communication by Prof. Ephraim Isaac). In verse 3 one might expect the human
+habitat to be located between ocean and paradise, not to the west of the ocean.
+77,4 to 8. In verse 4 the traditional translation of yahalf 3° as "schwinden dahin"
+(Dillmann, Flemming), "pass away and vanish" (Charles), makes no sense in
+the present context. I therefore suggest a translation "days and seasons and years
+traverse (them)", meaning that the sun, the cause of days, seasons, and years,
+traverses the space above the mountains.
+The tendency of this geography is too mythological to allow accurate identifications. It seems plausible, however, to take the Erythrean Sea for the Persian
+Gulf into which the Euphrates and Tigris empty their waters. The two islands
+"on land" (verse 8) could be land between rivers, as Dillmann suggested (p. 238),
+Mesopotamia and Meroe. Milik assumed 31 a Greek version meaning "near (bTi)
+land."
+
+Chapter 78
+1. The names for the sun are as follows: the first 'Oryaris and the second
+Tomas.
+2. The moon has four names: the first name is 'Asonya, the second 'Ebla, the
+third Benåsë, and the fourth 'Erå`e.
+3. These are the two great luminaries. Their roundness is as the roundness of
+the heavens and the amount of the roundness of the two is the same.
+4. In the disc of the sun is combined seven times what is of light in the moon,
+and according to measure (light) is injected (from the sun into the moon) until
+the seventh part (of the light of the sun) has been transmitted.
+5. And they set and they enter the gates in the west, and they return via the
+north to the eastern gates and (thus) come out (again) at the front of the sky
+(i.e. in the east) .
+6. And when the moon rises it becomes (first) visible on the sky when it contains
+the light of one-half of one-seventh part (of its total) and in fourteen (steps) it
+completes its full light.
+7. And fifteen (parts of) light are put into it until in fifteen (days) its light is
+completed according to the character of the year and it makes fifteen parts while
+the moon is at its fourteenth part.
+8. And when (the moon) is waning it decreases on the first day (to) fourteen
+30: Some MSS (but not 'fana 9) have here wayahawer: "and proceed," "go", etc.
+31: Milik, Chronique d'Égypte 46 (1971), p. 333.
+
+40:10
+
+28
+
+parts of its light, on the second day it decreases to thirteen parts, on the third it
+decreases to twelve parts and on the fourth it decreases to eleven parts, and on the
+fifth it decreases to ten parts and on the sixth it decreases to nine parts, and on
+the seventh it decreases to eight parts, and on the eighth it decreases to seven
+parts, and on the ninth it decreases to six parts, and on the tenth it decreases to
+five parts, and on the eleventh it decreases to four parts, and on the twelfth it
+decreases to three parts, and on the thirteenth it decreases to two (parts), and on
+the fourteenth it decreases to half of one-seventh of its total light, and on the fifteenth is consumed what remains of the total.
+9. And in certain months the moon (is visible) for each one of twenty-nine days
+and at times for twenty-eight days.
+10. Then Uriel showed me another rule how light is put into the moon and
+where it is put into it from the sun.
+11. The whole time in which (the illumination of) the moon progresses, light
+is transmitted to it, facing the sun, until the fourteenth day when its light is
+complete. And when the (lunar disc) is completely aflame (then) its light in the
+sky is complete.
+12. On the first day it is called New Moon because on the day light appears
+on it (for the first time).
+13. And (the light) becomes exactly complete on the day when the sun sets
+in the west and when in the east (the moon) rises at (the beginning of) night.
+And the moon is illuminated all night until the sun rises opposite it and the moon
+is seen opposite the sun.
+14. And where the light for the moon entered it, there again it wanes until
+all its light is consumed and the days of the (lunar) month are used up and the
+moon's disc remains empty without light.
+15. And in three months their duration amounts to thirty days and in three
+months it amounts to twenty-nine days each, in which it makes its recession, in the
+first time and in the first gate, in 177 days.
+16. And in the time of its waxing it becomes visible in three months for thirty
+days each, and it becomes visible in three (other) months for twenty-nine days
+each.
+17. At night it is visible for twenty(nine) (days) each like a man and at daytime (it is) like the sky because without its light there is nothing else in it.
+79,1. And now, my son, I have shown you everything and completed is (the
+story about) the law of all the stars in the sky.
+
+Notes to Chapter 78. Lunar Phases
+Much in this chapter duplicates the preceding versions.
+
+40:10
+
+29
+
+78,1. A two-division of the year in reflected in the attribution of two names
+to the sun. For the etymology, cf. Charles, Enoch, p. 166, notes; also Milik
+Chronique d'Égypte 46 [1971] p. 338, commentary to line 7.
+78,2. Corresponding to its four major phases the moon is given four names;
+cf. Charles, Enoch, p. 166/7, notes.
+78,3 to 5. Equality of the apparent diameters of sun and moon (cf. 72,37) and
+brightness 7:1 (cf. 72,37 and 73,3). Setting of the luminaries in the western gates
+and return via the north (cf. 72,5 and 75,3) to the east.
+78,4. The transfer of light "according to measure" (here and in 73,2) probably
+means the steady increase of illumination, proportional to time.
+78,6 to 9. Verses 6 and 7 deal in a general fashion with the waxing moon,
+allowing either day 14 or day 15 as full moon date. What the character of the
+"year" has to do in this context (verse 7) I do not understand. Error for "month"
+(hollow/full) ?
+Verse 8 concerns the waning moon, describing the day-by-day decrease of the
+moon's illuminated area in terms of "parts", from 14 on the first day to invisibility
+on the 15th day. For a fragment of a Greek version cf. Milik, Chronique d'Égypte
+46 (1971), p. 339.
+Verse 9 offers the possibility that a "month" may contain 29 or 28 days (of
+visibility), being either full or hollow.
+78,10 to 14. Once more a general description of the lunar phases, introduced
+by Uriel. In verse 11 one should not say that the moon is "opposite" the sun
+during the whole time of waxing in order to avoid misinterpretation as "opposition" (which is the proper term in verse 13). Prof. E. Isaac suggests, therefore,
+translating baqedma dahay as "facing the sun".
+Verse 14 states correctly darkness of the waning moon begins on the same side
+(the western rim) on which the illumination of the waxing moon begins.
+78,15,16. The lunar year is schematically divided into two halves, each containing three full and three hollow months, thus a total of 177 days. Apparently
+in analogy to the two halves of a lunar month these two halves of the lunar year
+are denoted as "waning" and "waxing" (why in that order?). Cf. also 79,3,4.
+78,17. During 2[9] nights, 32 when the moon is visible, "it looks like a man".
+At daytime, however, the moon is invisible, apparently because it has no corporality, being only a receptacle of the solar light. Cf. also the Aramaic version33
+79,1. Final words of Methuselah, similar to the end of the first version (76,14).
+
+32: The reading 20 in the MSS is obviously a scribal error, unfortunately not emended by Dillmann
+and thus retained ever since. The Aramaic version has no number.
+33: Milik, Enoch, p. 295/5. Cf. also Claire Préaux, La lune dans la pensée grecque, Ch. III. (Académie Royale de Belgique, Mémoires de la Classe des Lettres, 2" sér. t. 61, fasc. 4 [19731).
+
+40:10
+
+30
+
+Chapter 79
+2. And he (Uriel) showed me every one of their rules for every day and for
+every season with its power, and for every year, and about the places of exit (i.e.
+the gates), and concerning the rules for every month and for every week;
+3. and the decrement of the moon that accumulated in the sixth gate, because
+in the sixth gate its (the moon's)light is completed. The beginning of the decrement
+4. that accumulates (is) in the first gate (and it is counted) at its (proper)
+time, (i.e.) when 177 days are completed — or, after the reckoning with weeks,
+25 (weeks) and two days.
+5. And how it (the moon) falls behind in relation to the sun — or, after the
+reckoning with the stars, exactly five days in one single (period of) time, (i.e.
+half a lunar year) and when this position which you see has been traversed (by
+the stars) .
+6. Such is the appearance and the picture for each luminary shown to me by
+the great angel Uriel who is their leader.
+80,1. And in these days the angel Uriel spoke to me and said to me: see, I
+have shown to you, O Enoch, everything and I have revealed to you everything
+to be seen about the sun, the moon, and everything about those who guide the
+stars in heaven and all who turn (back) their works, (and about) their times, and
+their places of exit (i.e. the gates).
+
+Notes to Chapter 79. The Lunar Year
+79,2. "He showed me" refers, of course, to the angel Uriel, not to Methuselah,
+who was addressed in 79,1. Cf. also 79,6— 80,1.
+The "power" of each season (lit. "time") refers to the stars which during
+stretches of 91 days represent the seasons, as we are told in 82,15 to 20.
+79,3,4. The verses 3 to 5 assume a two-division of the lunar year, similar to
+78,15,16. Details remain obscure since the text is obviously corrupt.
+In the present context "sixth gate" and "first gate" do not refer to the
+numbering of the gates from south to north but probably mean here "a sixth
+gate" and "a first gate", thus describing an interval of six gates traversed by the
+sun, i.e. the time of half a lunar year (cf. 78,15).
+During this time the lunar months develop a "decrement" (tåhsåsita) with
+respect to the calendar months. How the changing illumination of the moon got
+involved with this problem I do not know. Actually this whole chapter is only
+an expanded (and therefore more obscure) version of 78,15.
+79,5. One half lunar year is now compared to one half of the Enoch-year. The
+
+40:10
+
+31
+
+latter is considered to be a "sidereal" year. Indeed, "the law of stars" is identical
+with the order of the Enoch-year (cf. 75,1,2 and 82). The difference in question
+is, of course, 5 days; cf. also 74,10 to 17.
+The "position traversed" (by the stars) marks the completion of the two
+seasons; cf. 82,9 and 10.
+79,6; 80,1. Concluding speech of the angel Uriel, referring to his teaching
+about sun, moon, and stars (cf. also 82,7,8), i.e. the topics which constitute the
+core of the "astronomical" Book of Enoch. The remaining topics (including the
+winds?) appear to be later accretions.
+The "turning back" probably refers to the return of the celestial bodies to the
+east after their setting; cf. for parallels 75,3 (p. 19).
+80,2 to 82,3 is an intrusion of non-astronomical material: apocalyptic and
+again concluding words to Methuselah.
+
+Chapter 82
+4. Blessed are all the righteous ones, blessed are those who walk in the path
+of righteousness and do not err, like the sinners, in counting all their days in which
+the sun travels in the sky, entering in and coming out from the doors for thirty
+days, together with the leaders of the thousands of the orders of the stars, together
+with the four (days) that are added in order to separate the intervals (of the year,
+i.e.) the four intervals, the parts of the year, which lead them and with which
+they make their entry on four days.
+5. There are people who err concerning them (the epagomenal days) by not
+counting them in the reckoning of the year, for such people err and do not know
+them correctly,
+6. although they belong to the computus of the year and are truly recorded
+forever: one in the first gate and one in the third and one in the fourth and one
+in the sixth (gate) and the year is completed in 364 days.
+7. For (this) account is true and the computation exact as (here) recorded,
+since (everything) concerning the luminaries, the months and the festivals and
+the (years) and the days Uriel has shown to me and revealed it as he was ordered
+by the Lord of the whole creation of the world and about the host of heaven.
+8. And he has power in heaven over night and day, so as to make light visible
+to men, sun and moon and stars and all the powers of heaven which revolve in
+their circuits.
+9. And this is the law of the stars which set in their (proper) places, and at
+their times and their festivals and at their months.
+
+40:10
+
+32
+
+10. And these are the names of their leaders, who watch them that they enter
+at their times, who guide them in their positions and their order, in their times
+and their months and their powers and their positions.
+11. Their four leaders who separate the four parts of the year enter first; after
+them (enter) the twelve leaders of the orders who separate the months; and the
+360 heads over thousands (of stars) are the ones who separate the days; and for
+the four epagomenal days those are the leaders who separate the four parts of
+the year.
+12. And concerning these heads over thousands: always one (of the four main
+leaders) is placed at the position between the leaders (of thousands) and their
+followers; but these (single) leaders separate (the seasons).
+13. And these are the names of the leaders who separate the four fixed parts
+of the year: Melk -el, Hel'ememélêk, Mel'eyal, Nårél.
+14. And the names of those whom they lead are Ådnår él, 'Iyasusa'él, and
+'Iyelum é'é l. These three follow the leaders of the orders (of thousands) ; (then
+again) one (of the four main leaders) follows the three leaders of the orders which
+(in turn) follows after those (main) leaders (who are placed) at the positions
+which separate the four seasons of the year.
+15. At the beginning of the year Melk TI rises first and rules — to whom is
+(also) given the name "Southern Sun". And the total of days during which he
+exercises his power is 91 days.
+16. And these are the signs of the clays which are to be seen on earth in the
+da ys of his period of rulership: sweat, heat, and dryness (?). And all trees bear
+fruit, and leaves appear on all trees (and there will be) good harvest, and roseflowers and all the flowers which blossom in the fields; but the trees of winter are
+withered.
+17. And these are the names of the leaders who are the subordinates: Berke'él,
+Zëlebsd'él, and another one who is added, (as) head of thousands, called Heloyåsëf;
+and completed are the days of rulership (over this season) with this one.
+18. And the second leader after him is Hel'ememélék whom they (also) call
+"Luminous Sun"; and the total of the days of his light are 91 days.
+19. And these are the signs of these days on earth: heat and drought; and the
+trees bring their fruit to ripeness and maturity and make their fruit dry; and the
+sheep mate and become pregnant; and men gather all the fruits of the earth,
+and everything which is in the fields, and the vats of wine. (And this) will take
+place in the days of his rulership.
+20. And these are the names, and the orders and the subordinates, the leaders
+of thousands: Géda'éyål, K — el, and Hé
+
+1 and the name of one who is added to
+
+them as a head of thousands called Asfä'él, and completed are the days of rulership with this one.
+
+33
+
+40:10
+
+Notes to Chapter 82. The Hierarchy of the Stars
+As before, e.g. in 75,1 and 2, the arrangement of the stars follows exactly the
+pattern of the Enoch-year.
+82,4,5. There are "leaders of thousand (stars) ", responsible for each month
+of 30 days and four leaders of higher rank who are associated with the four
+epagomenal days. Again people are mentioned who do not deal correctly with
+these days (cf. 75,2).
+In verse 4 'angas "door" (also "division," "chapter" and "cycle") probably
+means here not the gates but the divisions between the seasons.
+82,6. The epagomenal days are associated with gates 1, 3, 4, 6, i.e. with the
+solstices and equinoxes (cf. 75,2).
+82,7,8. All this is handed down on the authority of the angel Uriel, who is
+set over the luminaries, sun, moon, and stars. Cf. the similar epilogue in 80,1.
+What follows in the remaining verses of Chapter 82 is obviously an addition
+taken from a different source. 34 It contains one of those lists of freely invented
+names which enhance the authority of cosmologic revelations. The text as we
+have it is slightly in disorder, which is not surprising for a meaningless list of
+(angel-) names. Nevertheless it seems to be clear that the original structure was
+simple enough: first are listed the leaders of the four seasons, then the twelve
+subordinate commanders for the single months. The text is incomplete only in
+the case of the last season, perhaps owing to an early mutilation of the manuscript.
+82,9,10. Introductory remarks to the following (but not "headings" as Dillmann, p. 249, says).
+82,11. Different ranks are given to the "leaders" (marähyan) of the stars.
+There are four leaders of the seasons, associated with the four epagomenal days,
+each one on duty for 91 days; then follow four groups of three leaders of the "orders"
+( g er`atät) corresponding to the twelve months of 30 days each; finally, the "leaders
+of the thousand (stars) ", concerned with the 360 single days. These leaders are
+presumably angels. Dillmann expressed their ranks by hellenistic titles: 4 toparchs,
+12 taxiarchs, 360 chiliarchs.3s
+82,12,13. The names of the leaders of the seasons, represented by the epagomenal days, are:
+Melkiel
+
+Helemmemelek
+
+Meleyal
+
+Narel
+
+82,14,15. The first season, spring, is ruled over by Melkiel. The subordinate
+leaders are:
+Adnarel
+
+Iyasusael
+
+Iylumiel.
+
+34: Also Dillmann, Henoch, p. 239 (and p. 248) assumes the "Unächtheit" of 82,9 to 20.
+35: Dillmann, p. 52, notes; p. 248, n. 1.
+
+40:10
+
+34
+
+It is the function of the fixed stars to signal by their (heliacal) rising the beginnings
+of months and seasons. The cyclic order of these phenomena is expressed in the
+text by indicating that the season-stars can be considered either as preceding or
+following the three subordinate stars which initiate the three months of each
+season. The second half of verse 14 seems to express in a clumsy fashion the fact
+that it is immaterial in a circular sequence of stars to distinguish between leading
+and following positions.
+82.15 and 18. The names "Southern Sun" and "Luminous Sun", associated
+with seasonal leaders, do not fit very well, respectively, spring and summer, where
+they are mentioned.
+82,16,19. The "signs" are here clearly referring to climatic and agricultural
+characteristics (cf. 72,13).
+82,17,18. The second season has the following subordinate rulers:
+Berkeel
+
+Zelebsael
+
+Heloyasef.
+
+82,20. The subordinate rulers of the third season are:
+Gedaeyal
+
+Keel
+
+Heel.
+
+Only the name Asfael is preserved for the last season. 36 Here the text ends
+abruptly.
+Although the text of this verse, as we have it, is in disorder, the preserved
+words nevertheless suffice to show that the original version was an exact parallel
+to 82,17: the names of two subordinate leaders are given, followed by a third one
+who brings the three months of the season to a conclusion.
+
+Additional Notes on the Aramaic Fragments
+by Matthew Black
+72.1 v With seltd..nomu cf. en 82.10, Enastr b 28.2, Milik, Enoch, p. 295
+
+(1ifl
+
+('2s7]?).
+
+72.27 Milik, Enoch, p. 282, equates `ar'estihu with 7 7 i1 l `its sections' at
+Enastrbiii.2.
+72.4-8 This linear scheme is found in the Aramaic fragments (Milik, Enoch,
+p. 278 f.; EA C, p. 195f.). That the Ethiopic texts go back ultimately to this
+Aramaic Enoch is amply demonstrated by the surviving fragment of En 78.6-8,
+9-12 etc. (Milik, Enoch, p. 292 f.). The terminology of these texts has given rise
+
+36: Charles, Enoch, p. 178, n. 20, considers the name Asfael as "merely an inversion" of Heloyaseph
+(of the second season). There is, of course, no reason visible for such a reduction of the number
+of leaden (not to mention the inept execution of the "inversion").
+
+40:10
+
+35
+
+to a certain amount of confusion in the Ethiopic, e.g. the fractions 1/2 of 1/7th
+(1/14th) or 6/7 the and 1/2 (13/ 14ths) (see note on 73.6) . For the general pattern
+of the Aramaic texts, consult Milik, Enoch, p. 274f. and EAC, p. 196, n. 6.37
+73.6 The correct translation of 1/14 is found at 78.6, manfaqa såb`eta'eda, lit.
+
+`half of a seventh part': so Enastr b 6.8, ill y v D7i 1'1) (Milik, Enoch, p. 284).
+76.3-10 are preserved (fragmentarily) at Enastr° 1.ii.1-10(Milik, Enoch, p.
+284 f.) .
+76.3 Enastr° l.ii.1 (Milik, Enoch, p. 285) has `and the three (gates) which are
+after them are on the north (lit. the left)': (' 1 nv '77 j 171 v 1111 ;1/"07r11
+This corresponds to the clause in Ethiopic, `and then those on the left'. Charles
+bracketed this clause (Charles, Enoch, p. 163) as `nonsense'. It is undoubtedly
+original: the preceding clause `and (then) three are in the direction of the north'
+seems to be a doublet. In this verse the Ethiopic text follows the order ENSW
+which does not correspond to the order E S NW in verses 5-14; 38 for a discussion
+of this problem and possible explanations, see Charles Enoch, p. 163, Martin
+Le Livre d'Hénoch, p. 176, Knibb, Enoch, p. 176. (Milik claims (p. 286) that it
+is the order [ S] N [W] which is found in the Aramaic, but there is no evidence
+in the fragment for this — only the north is mentioned.)
+76.4-5 Cf. Enastr° l .ii.2, Milik, Enoch, p. 285. The Aramaic has a fuller form
+of text. For these destructive winds, see above, p. 23.
+76.6 relates to the favourable East wind (above, p. 23). Enastr' 1. ii.5: '... by
+the second gate comes forth the east wind, the chief (of winds) 1111 Kin])
+K ' n ] 17 I: 7 17 '. Milik reconstructs (p. 285)
+
+K0' 17 0 1 17 1111, 'the
+
+east-east wind', comparing line 6 71312 0' 17 rill, 'the east-north wind'
+which comes from the third eastern gate. But 'east-east' is a meaningless tautology.
+At 77.1 Eth. the wind is called 'east' because it is q a d å m å w i, 'chief, first': here
+Enastr e l.ii.15 reads K , v77 and the line is restored by Milik: '[And they call
+
+the east (quarter) East] because it is the first (K 7 1D1;7 x171 7 11) (Eth. has
+translated 'quarter' as 'wind': see below, note on 76.13, 77.1.) This east wind is
+said to be 'in the middle', i.e. between the two destructive winds of gates 1 and 3,
+and according to Eth. it 'comes forth in a straight line', i.e. blowing due E — W,
+
+37: The expression rendered in EAC 'keeping (in darkness) a remainder of 2/7 (= 4/14)' is a
+curious one in the original. It occurs twice in this passage Enastr°7.iii.4 and 8: thus line 4
+
+pin j,v']ty fi
+
+K? ' 1/C177 0'7/71 . . . 7J] rendered by
+. . . 3'7E1
+Milik 'it (the moon) emerges ... and it keeps during the rest of this day two sevenths (parts of
+its light) and a half'. Milik explains 01'7/1 282), 'lit. 'and it reigns (over such and such a
+fraction of its light)'. May we not rather have here the lost root &7' behind Heb. C  77, 'a
+
+shield', and meaning 'to cover' velare? (cf. Th WNT s.v. ÉOUOiG Bd. II.. p. 570 (Foertcr).)
+We should then translate: 'it emerges and covers during the rest of this day 5/14'.
+38: See EAC p. 198 for Ethiopic directional terminology.
+
+40:10
+
+36
+
+unlike the two other east winds which are deflected to the south or the north.
+(See Flemming-Radermacher, p. 99.)
+76.13 Enastr° l .iî.14, Enastr b 23.1
+23.1 (cf. Milik, Enoch, pp. 228, 289, 290)
+
+pi n i [
+
+. ] n 7 • 1 113[K] `devastation, death, [heat?] and de-
+
+struction'. Cf. 76.5 where several manuscripts read mot (`death') for moq (`heat');
+mot may have fallen out of Eth. by haplography. (The reading
+
+n173 seems
+
+reasonably certain.)
+76.14 Enastr°l.ii.14, Enastr b 23.2 `And (the description of) the twelve gates
+of the four quarters of heaven (K
+
+7 nØ rl 11) is completed; their full number
+
+and explanation I have shown to you, my son Methuselah'. Eth.'s `four gates'
+(hewåhewe) is a scribal error for nafåsåt = f71
+Henoch, p. 103). (Milik reads
+
+1171711E 1
+
+rill `quarters' (Flemming
+
+Ïi1TY72 as a hendiadys `their
+
+complete explanation'.)
+77.1 Cf. Enastr°l.ii.13-20, Enastr b 23, Milik, Enoch, p. 287 f. The first quarter
+is called east. That nafds translated `region, quarter' is clear from Enastrb23.4
+`And the great quarter X.311
+
+1l 11) (they call) the west quarter K31771 nil ...
+
+because it is the chief (quarter). Enastr e 1.ii.14 (`The east they call East) because it
+
+(tornrr K171 /13 ). For the word-play on 017,
+('T
+K n17 can mean both `first, ahieL' or `in front' —
+The East is `in front'. the Most High descends. Enastr b 23.2` 1K1 1n115 },`n
+
+is the chief (quarter)
+
+Dillmann, Henoch, p. 236:
+
+K31 `because there the Great One dwells'. The Aram. assumes an etymology
+from Heb. 01 11; the translator reads the text as K31 11 P KaTaßaivCL Ô
+JWLOTOS. Cf. Dillmann, Henoch, p. 236, Knibb, Enoch, p. 179.
+
+77.2 because all celestial luminaries decrease there .
+
+Enastr b 23.5 is defective in
+
+i1 39.
+1 '? (celestial) bodies' is corrected three times at Enastr l .ii.17,18:
+the first correction / 1 1 Kb gives the true reading (the word occurs again at
+line 17 K I ?YE' 7 ] K n [(written KK K )] : (celestial) bodies setting and bodies
+entering'. (Milik reads interrogative
+1 1 (K) `whence' but translates `there'.)
+this clause: I suggest with Eth. K' '
+The reading
+
+1n2 110h 1 r111 17)
+
+The whole verse then reads: `And the West is called the great quarter, because
+there the heavenly luminaries wane, (celestial) bodies setting and (celestial)
+bodies entering, and all the stars; and on this account it is called West (lit.
+`setting').' Presumably `great' because it has to accommodate all the heavenly
+host after they set.
+77.3a Enastr° 1.ii.18 —19, Enastr b 23.6-9 has a much longer text, relatively fully
+preserved; for the text see Milik, Enoch, pp. 288, 289. I read Enastrel.ii.18
+
+1 11 K 7
+
+13 `because (celestial) bodies arise' as above at Enastrb23.7.
+' 1113
+`And the north (they call) North because in it all the celestial bodies (lit. vessels)
+39: Syt
+
+,13 Sm col 13411 luna decrescens.
+
+37
+
+40:10
+
+hide and assemble and revolve and proceed to the East of heaven. And the east
+(they call) East because from there the celestial bodies (K 7
+
+1]v't?)
+
+arise; and also (they call it) mizrah because (there celestial) bodies arise .1
+
+/r1'1-r), moons ... to appear ...' (For Milik's conjectural supplement, see p.288.)
+
+77.3b For the second part of the verse, cf. Enastr'l.ii.19, Enastr b 23.9; on
+7
+y l 11 1 ] `And I saw
+the analogy of v.4 perhaps supplement
+
+[n
+
+n}n n
+
+three divisions of the earth, one of them for the traffic of men, and one of them for
+[all seas and rivers], and one of them for the deserts [and the ...] and the Paradise
+of Justice.' Milik supplies (after `for the deserts') v1775 1 `and for the Seven
+(ultra-terrestrial regions)', a fascinating but unsupported guess (p. 291).
+77.4 A aew letters only are preserved in the first part of the verse (Milik, p.
+289), but K7,
+them'.
+
+}n 1 1;7 "}v nn [ 1 ] is certain • and snow comes down upon
+
+78.1 Milik's observation (Chronique d'Egypte, 46 (1971), p. 338) that the
+two names for the sun correspond to the two seasons of the year seems correct,
+but the order is not the `dry' season followed by the `wet' season, but probably the
+other way round (cf. Charles, Enoch, p. 167), winter and spring (early summer),
+the `wet' season' Oryåres
+
+0111 /11X followed by summer, the `dry' or `hot'
+
+season (Tomas Inn?). Asonya ('Asenyå) for the moon may be connected with
+Accadian sin, se n, `moon' (cf. sivan, month of the moon-god, Sinai, etc.). 'Ebla
+can only be 171'7 `the white one', 'Era'
+
+nn/ `moon', and Benåsé is probably
+
+corrupt in the first syllable (Dillmann) unless it stands for 722X — 11, `man' (cf.
+78.17).
+78.6-8 cf. Enastr e 1.iii.3-9 (Milik, Enoch, p. 292). In line 1 K
+
+Ø (corre-
+
+sponding to b as a m a y) is barely identifiable in the photograph and nothing else is
+
+/ n[ }7719... J
+1v ? t] 1' 1 oi l '7 1D 1
+
+now recoverable from the traces of other letters visible. At line 2 1
+
+11 j /73 17 ]'ån1 1mv nvn1X q 1 7
+[11 111 is all that can be recovered with certainty, but the Aram. text is evidently
+
+`717
+
+fuller than Eth.: the meaning seems to be that `they (the added fractions) fill up
+(the light) each day and complete in it (the 14th day) all its light'. The last few
+words cad be confidently restored from verse 7 where Enastr I .iii.5 has preserved
+a text: 171;12 ■1
+
+''n}mn1 1ß7v minor: L71 7 17 `Until the 15th day
+
+and they (the fractions) complete in it its light.'
+
+/1'n
+
+78.7 cf. Enastr° l .iii.6, read and translated by Milik: /1'nn K 7 n1 7
+
+1111
+1 1 7171 `And it (the moon) accomplishes (lit. guides) (its) phases by halves of
+sevenths.' The reading 111 is certain (cf. Knibb) : the word occurs again at
+78.5 as a noun (Enastr b 26.3, Milik, p. 294) ; cf. Tg K111 Jud. 5.21. If we assume
+that
+
+ill / 'month' can mean `phase of the moon' (Milik), an alternative construc-
+
+tion would be to take 111 as a noun and render `and the course of the moon's
+phases is by halves of sevenths'.
+
+40:10
+
+38
+78.8 Enastr° l .iii.8 reads [ K 71 y ] 77 Ÿ
+
+in I n in y 7[n1 K n 1 711 ]
+
+`and on the fourth day (the moon decreases) by one part from eleven parts', i.e.
+to ten parts (not as Milik `eleven parts'). This firm text enables us to restore the
+earlier sequence which should be correctly rendered: `And on the first day (the
+moon decreases) by one part from fourteen parts', i.e. to thirteen parts (not as
+Milik fourteen parts).
+78.10 Then Uriel showed me another rule. Milik equates the fragment Enastrb25.1-4
+with this verse but the identification is doubtful. All that is now visible in the photo-
+
+}TK 'i 1 5 11'Tnu linK 11777[11...1
+`Another calculation I was shown with regard to it (the moon?).' 1137n 'cal-
+
+graph are the words: f. .]
+
+culation' is certainly right (cf. 79.1 Enastr b 26.7) and J7' If nK is to be construed
+as an inner passive of the Ophal (cf. Milik, Enoch, p. 202). (Milik supplements
+
+['And Uriel demonstrated to me] a further calculation by having shown it unto
+me that ...', but this is forcing the syntax to support the identification.) In line I
+
+K' 27 `years' is visible but there is nothing corresponding in Eth. There are
+several other passages where similar words are found, e.g. 73.1 `... I saw another
+law', 74.1 `I saw another course, a law ...' . (The verb } T K is probably auxiliary,
+but the main verb is lost.)
+78.17 At night it is visible ... nothing else in it. This verse is fragmentarily preserved
+at Enastr b 26.4--6 but in a longer form of text. (Enastr b 26.3 is reproduced in Eth.
+
+at 79.3, but Enastr b 26.4-6 go together and belong to the text behind 78.17 Eth.
+
+[. . j
+Enastr`'26.4--5 reads: 1n 1`1115 'Z] /73-1 , in 111n`17
+72K 111n1D 11 K1111 'n1 1/[Y7 In K"7 1' ]K1 ... in it (?)
+it resembles the likeness of a mirror when the light shines on it. On some nights
+
+(f1Y 7 'in) this appearance resembles the image of a man'. There is a play on
+the noun
+
+'i n , K' 7 n `mirror' (Heb. ram ?L' T n Tg. Ex. 38.8) and VII n
+
+`vision, appearance, (Milik's `like an image of vision' makes little sense). I take
+
+K1 as a Haphel of 11K (cf. the use of Kf111K for `moon-light'; 1K Hoftijzer,
+p. 23). Has this line 4 fallen out of the original behind Eth. by h m t or a similar
+form of scribal error (note the common phraseology of lines 4 and 5).
+
+11Y 7 /n=
+
+partim (Dan 2.42) must refer in this context to the appearance of `the man in the
+moon' for only a part of the full times of the moon's waxing or waning. There is
+nothing in the Aram. text about `twenty (nine) days', which could have arisen
+in the Eth. text from the Greek KQTell(64EI = 'VI read as KQT' etKOQI ,
+
+baba `e s r å. All that remains of the rest of the verse in Aram. is 1n K nn' 1 1
+' 11 in}n 71( • . . ]. The second phrase is read as a repeated 11Y? /n
+by Milik. The last phrase looks like '11iin'77 ï f111u `light by itself'; perhaps the original read `and in the day-time, for part (of the time, it resembles
+
+”3-1 ?Up ] n Knn' 1 1
+7
+The meaning would be that
+1?
+727
+.
+'i
+K
+[111]
+71Z
+11'
+'1Inln'n 1
+the sky for there is no light in it by itself: n173-0
+
+39
+
+40:10
+
+the moon `resembles the sky' in the sense that its now invisible disc is blue `like the
+sky'. (There is no evidence to support Milik's `like the sun in the sky'.)
+79.1 Enastr b 26.6 "111 -11?
+
+7121( K T f?3 1 y
+
+D 1 `And now I am showing
+
+to you, my son ...'
+
+79.3 —4 Fragments of the original of these verses have been preserved at
+ni i o 1177 lt vinl `in the sixth gate ...' 1'ni [' 1 . . ]
+ItTlYl 121 1 lonrD1 j 111 a (twenty five weeks) and two days. 5 And it
+Enastr b 26.2--4:
+
+n'
+
+(the moon) falls behind the course of the sun ...' (For the rest of this fragment
+
+see on 78.17.)
+82.9 Fragments of verses 9--13 are preserved at Enastr b 28.1-5 (Milik, Enoch,
+p. 295). It is pointless to try to reconstruct an original text on the basis of the few
+words and phrases preserved: the most we can do is to identify the terminology
+and its Eth. equivalent. Thus lines 1 and 2 preserve five nouns two of which occur
+
+17 "71 T' 11'Ø1n`? 11n' 1 ? '7
+1nnio?^ '7D'7 ' 1n 2 C7'7 [ W11 j . The first two words correspond to Eth's
+
+in Eth. verse 9, two in verse 10:. . . 1
+
+`their festivals and at their months'. (There is no astronomical justification for
+taking 1 7-Tyr) as `signs of the Zodiac', Milik, p. 295,187 f.) Eth.'s `months' should
+as `their new moons', closely asbe understood, in the light of Aram. /
+7
+
+in Øn
+
+sociated with `festivals'. The last term 117' t?11 probably corresponds to
+s e r `a t å t i h o mu of verses 10, 11 in the sense of TQypc1TQ `order, classes; especially
+in a military sense `battalions'. See Milik, Enoch, p. 147, Knibb, Enoch, p. 188f.
+The two terms in line 10 correspond to s el t å n å t i h o m u `their powers' and
+either to meqwä ma ti ho mu or makanåtihomu, `their positions' or `their
+places'. See Milik, p. 187 for
+
+'j 1171r1 1 [ • .
+
+mon . At lines 3 and 4 the fragment has
+Z 1 .1 7`1 [ v3] corresponding
+
+and [ . . . ] ,
+
+to Eth. maråhyan zaser'atåt `leaders of the orders' ([ 11}11 ]1 1
+W"
+probably translated first as TQtåpXQt) ; the remaining fragment corresponds to
+'ella yeléleyewomu la'awerah,`who separate the months' 1 I i7
+K n, 7
+
+i[
+
+7`1]
+
+1 7 3. Line 5 corresponds to verse 13 nnT W 1 [K 1 ] 'and these are
+
+the names .. .
+
+82.16ff. A description of spring, summer and winter occurs at Enastr d 1.1
+(Milik, Enoch, p. 296) with expressions recalling En 2.1--5 and En 3 (En'l.ii.3ff.)
+and En 82.16ff. Milik detects in this piece the missing original of the description
+of autumn and winter which should have followed 82.20. Certainly some original
+Aramaic description of the seasons, preserved more fully at En a l .ii.3 ff., has
+served to provide the foundation of the poetic account of the seasons at En 2 and 3.
+
+En d i
+
+[
+
+• 1']1]7`T1 Ky-1K }v 1'nnn ,br i[ . . . ]
+
+line 2 `... and rain descend upon the earth, and plants (?) ...' Cf. Eth. En 2.3
+`... and clouds and dew and rain rest upon it (the earth)'. (Has
+
+ptc. nn] been read as 1 , n'1n Aph. ptc. n13 = 'a`raf?)
+
+1
+
+'Jinn , Aph.
+
+40:10
+
+40
+[ . . . ']'7Y'1
+
+7iß] 1 Kv 7 Kv1K ]W77[ . . . ] line 3
+
+... the herbage of the earth sprouts, comes forth and blossoms.' Cf. 82.16.
+1 7 ^^3 1
+
+'7D^ 'nY1 717
+'^n
+'^n] K 13`77x
+
+?n x5 'Z 1 7 3`1 7 K
+1'n'7nn j[17?]v [ . . . 7-ft-lyne?
+/x'7vnx^^
+
+7
+
+N11171 lines4 - - 640
+
+[77a`1K 1n K`11
+
+'But winter comes and the leaves of all the trees [wither and fall except for four] teen
+trees from whom it is unseemly [to be stripped bare ...] their leaves abide ...
+Cf. Eth. En 3 `... the trees appear withered ... with the exception of fourteen
+trees which are not stripped bare (but) which abide with the old (foliage) till the
+new appears after two or three years.' (cf. En a 1.ii. 5--6)
+
+40: Restored from En 2.2, En 3.
+
+41
+
+40:10
+
+Subject Index
+arctic circlep. 21 n. 23
+'are'aya
+'are'est
+
+72, 27; p. 34
+72, 27; p. 34
+
+Asfael
+Babylonian astronomy
+
+p. 34 n. 36
+
+bähr (= G36peaq?)
+
+p. 26
+
+Biblical influences
+brightness of sun and moon
+
+p. 4
+72, 37; 73, 3; 73, 4-8; 73, 6; 78, 4
+
+p. 4; 72, 6-32 ; p. 15 n. 16
+
+calendar
+
+p. 4; 72, 6-11 • 75, 1, 2
+
+chambers (mazågebta)
+
+72, 5
+
+chariots
+Charles
+
+72, 5; 73, 2; 75, 4; 75, 8, 9
+
+circumpolar stars
+
+75, 8, 9
+
+p. l 2 n. 7 ; p. 34 n. 36
+
+classes
+
+72, 1
+
+computus texts
+
+p. 3; p. 5; p. 14; p. 15; p. 17; p. 19; p. 23; p. 25
+
+conjunction (of sun and moon)
+
+73, 4
+
+constellations
+
+p. 4
+
+Dillmann
+
+p. 4; p. 5; p. 20
+
+epagomenal days
+
+p. 4; 72, 6-32; 75, 1, 2; 82, 5; 82, 11
+
+érnarlpaivEiv
+equinoxes
+
+72, 12-26
+72, 6-11; 72, 19; 74, 5-9; 75, 1, 2
+
+Erythrean Sea
+full moon (day 14 or 15)
+
+77,4-8
+73, 4-8; 74, 1-4; 78, 6-9; 79, 4
+
+gates
+
+p. 4; p. 5
+
+gates (for sun and moon)
+gates (for winds)
+geography
+
+72; p. 18; 79, 3, 4
+76
+77
+
+indicative for climatic conditions
+
+72, 12-26
+
+Isaiah 30,26
+length of daylight
+
+p. 13 n. 11
+
+linear zigzag function
+
+p. 3; 72, 6-32
+72, 6-32
+
+Nita
+lunar months
+
+73; 78, 15
+
+lunar year
+
+74, 11-16; 79
+
+p. 25
+
+mana (weight)
+
+72, 6-32
+
+mazågebt
+
+72, 5
+
+meteorological conditions ("signs")
+Methuselah
+moon, illumination, phases
+
+72, 12-26; 75, 6; 82, 16, 19
+76, 14; 79, 1; p. 31
+73; 74, 1-4; 78
+
+Mul-Apin
+
+72, 6-32; 75, 1, 2
+
+netug (= vOTOc?)
+octaeteris
+
+p. 25; 77, 2
+74, 10-17
+
+orbits
+
+72, 27
+p. 25
+
+orientation
+parts (of day)
+planets
+
+72, 6-32; p. 14 n. 14
+p. 4
+
+40:10
+
+42
+power ( g eltån)
+
+72, I ; 34
+
+rehega
+
+p. 15
+
+returns from west to east
+
+72, 5; 75, 3; 78, 3-5
+
+rose of winds
+
+76; 77, 1-3
+
+Sachs
+
+p. 12 n. 5
+
+seasons
+
+p. 3; 82, 9-20
+p. 14
+
+sebåh
+§eltånomu
+
+72, 1; 34
+
+signs
+
+see meteorological conditions
+
+size (apparent diameter) of sun and moon
+
+72, 37; 78, 3
+p. 3
+
+solar year
+
+74, 5-9; 75, 1, 2
+p. 4; 75; 82
+72, 13; 78; p. 34
+
+solstices
+stars
+
+sun
+ta'emert
+
+p. 12
+
+ånå 9
+'rand
+tentyon (= TC.Jv BC v)
+
+72, 27; 72, 33-35
+
+Uriel, angel
+
+year (see also lunar year; solar year)
+
+72, 1; 74, 2; 75, 3; 75, 4; 78, 10; 79, 2; 80, 1; 82, 7, 8
+72, 6-32
+72, 6-11; 75, 4; 75, 6, 7
+72, 2, 3; 72, 5
+75, 5; 76; p. 31
+72, 5; 73, 2
+75, 6
+72, 11
+77, 4-8
+p. 19; 74, 10, 11; 79
+
+zodiac
+
+p. 4; p. 5; p. 12
+
+p. 26
+
+water clock
+windows (for flames or heat)
+windows (for stars)
+winds (their qualities)
+winds as moving power
+works of heaven (gebråta samåy)
+ya`årb
+yahalf
+
+Indleveret til Selskabet januar 1981.
+Færdig fra trykkeriet november 1981.
+
+

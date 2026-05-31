@@ -1,0 +1,25 @@
+id,sirkel,sted,land,kontinent,lat,lon,alder_aar,type,kilde_url,merknad
+EKV-01,Ekvator,Catequilla,Ecuador,Sør-Amerika,0.00000,-78.42869,1226,arkeologisk_observatorium,https://en.wikipedia.org/wiki/Catequilla,Pre-columbiansk Quitu-Cara observatorium ca. 800 e.Kr. Wikipedia oppgir eksakt 0.00000°N.
+EKV-02,Ekvator,Pyramid of Oyambaro,Ecuador,Sør-Amerika,-0.16,-78.32,290,vitenskapelig_markor,http://rodama1789.blogspot.com/2019/10/the-pyramids-of-yaruqui.html,French Geodesic Mission 1736 baseline-endepunkt. Original møllesteiner gjenfunnet av Humboldt 1802. Gjenoppbygget 1836 og 1936. Koordinater omtrentlige.
+EKV-03,Ekvator,Pyramid of Caraburo,Ecuador,Sør-Amerika,-0.13,-78.36,290,vitenskapelig_markor,http://rodama1789.blogspot.com/2019/10/the-pyramids-of-yaruqui.html,French Geodesic Mission 1736 andre baseline-endepunkt. Koordinater omtrentlige.
+EKV-04,Ekvator,Mitad del Mundo monument,Ecuador,Sør-Amerika,-0.00222,-78.45583,90,vitenskapelig_markor,https://en.wikipedia.org/wiki/Ciudad_Mitad_del_Mundo,Bygget 1936 basert på 1736-måling. Plassert 247m sør for moderne ekvator.
+EKV-05,Ekvator,Pontianak Equator Monument,Indonesia,Asia,0.001056,109.322222,98,vitenskapelig_markor,https://en.wikipedia.org/wiki/Equator_Monument,Nederlandsk kolonitid 1928. 117m nord for moderne ekvator.
+CAN-01,Cancer,Modhera Sun Temple,India,Asia,23.583806,72.132686,1000,arkeologisk_tempel,https://en.wikipedia.org/wiki/Sun_Temple%2C_Modhera,Solanki-dynastiet 1026 e.Kr. UNESCO. Astronomisk alignet til soloppgang ved jevndøgn.
+CAN-02,Cancer,Dholavira,India,Asia,23.888606,70.213636,4900,arkeologisk_by,https://en.wikipedia.org/wiki/Dholavira,Harappan Indus Valley-by ca. 2650-1900 f.Kr. UNESCO.
+CAN-03,Cancer,Chiayi Tropic of Cancer Monument,Taiwan,Asia,23.453917,120.416722,118,vitenskapelig_markor,https://en.wikipedia.org/wiki/Tropic_of_Cancer_Monument,Japansk kolonitid 1908. Pre-WGS84.
+CAN-04,Cancer,Aswan/Syene (Eratosthenes),Egypt,Afrika,24.0880,32.8990,2265,arkeologisk_observasjon,http://kiwihellenist.blogspot.com/2015/11/eratosthenes-and-well.html,Eratosthenes brukte 240 f.Kr. som nordlig referansepunkt. Brønn der solen ikke kastet skygge på sommersolverv.
+CAN-05,Cancer,Ujjain Jantar Mantar,India,Asia,23.1824,75.7764,300,vitenskapelig_observatorium,https://en.wikipedia.org/wiki/Jantar_Mantar%2C_Ujjain,Sawai Jai Singh II 1719/1725. Surya Siddhanta-tradisjon plasserte Cancer her.
+CAN-06,Cancer,Mazatlán havn,Mexico,Nord-Amerika,23.217,-106.42,300,historisk_havn,,Spansk koloni-havn. Manila-galleon-rute. Skipslogger fra 1700-tallet.
+CAN-07,Cancer,Havana havn,Cuba,Karibia,23.114,-82.37,500,historisk_havn,,Spansk hovedstad i Vest-India fra 1500-tallet.
+CAN-08,Cancer,Muscat havn,Oman,Asia,23.61,58.59,1500,historisk_havn,,Eldgammel arabisk handelshavn.
+CAN-09,Cancer,Kandla havn,India,Asia,23.03,70.22,200,historisk_havn,,Gammel handelshavn på vestkysten av Gujarat.
+CAN-10,Cancer,Guangzhou havn,Kina,Asia,23.13,113.26,1000,historisk_havn,,Eneste Vest-tilgang til Kina i Qing-tiden. Eldgammel.
+CAN-11,Cancer,Macao,Kina,Asia,22.171,113.55,469,historisk_havn,,Portugisisk koloni fra 1557. 38 skipslogger 1787-1851 (CLIWOC).
+CAN-12,Cancer,Nassau Bahamas,Bahamas,Karibia,25.06,-77.34,378,historisk_havn,,Britisk koloni fra 1648.
+CAP-01,Capricorn,Tropic of Capricorn Sign Namibia C14,Namibia,Afrika,-23.43694,15.50,56,vitenskapelig_markor,https://en.wikipedia.org/wiki/Tropic_of_Capricorn,Skilt ved C14 Gaub Pass. Alder usikker - dokumentert ca. 1969-70.
+CAP-02,Capricorn,Tropic of Capricorn Botswana,Botswana,Afrika,-23.433,20.00,56,vitenskapelig_markor,https://en.wikipedia.org/wiki/Tropic_of_Capricorn,Mellom Serowe og Letlhakeng.
+CAP-03,Capricorn,Tropic of Capricorn Limpopo,Sør-Afrika,Afrika,-23.433,27.30,56,vitenskapelig_markor,https://en.wikipedia.org/wiki/Tropic_of_Capricorn,Limpopo-provinsen langs N1.
+CAP-04,Capricorn,Tropic of Capricorn Mozambique,Mosambik,Afrika,-23.433,31.55,56,vitenskapelig_markor,https://en.wikipedia.org/wiki/Tropic_of_Capricorn,Gaza/Inhambane-provinsen.
+CAP-05,Capricorn,Tropic of Capricorn Madagaskar,Madagaskar,Afrika,-23.433,43.75,56,vitenskapelig_markor,https://en.wikipedia.org/wiki/Tropic_of_Capricorn,Toliara/Fianarantsoa.
+CAP-06,Capricorn,Rio de Janeiro havn,Brasil,Sør-Amerika,-23.043,-43.17,461,historisk_havn,,Portugisisk koloni fra 1565. 32 skipslogger 1765-1852 (CLIWOC). 44 km nord for Capricorn.
+CAP-07,Capricorn,Sao Paulo,Brasil,Sør-Amerika,-23.55,-46.63,472,historisk_by,,Portugisisk koloni-by fra 1554.

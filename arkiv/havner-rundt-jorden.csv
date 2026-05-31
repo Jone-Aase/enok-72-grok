@@ -1,0 +1,55 @@
+id,havne_navn,land,kontinent,lat,lon,sirkel,kontinent_kant,kommentar
+HRT,Hartswell,Bahamas,Nord-Amerika,23.4500,-75.66786,cancer,øst-kant Great Exuma,1.6 km nord for Cancer 2026 - praktisk på linjen
+GTW,George Town,Bahamas,Nord-Amerika,23.5002,-75.76710,cancer,øst-kant Great Exuma,7.1 km nord for Cancer
+HAV,Havana,Cuba,Nord-Amerika,23.1378,-82.36780,cancer,nord-kant Cuba,33 km sør for Cancer
+CSL,Cabo San Lucas,Mexico,Nord-Amerika,23.4479,-109.70310,cancer,syd-kant Baja California,1.3 km nord for Cancer
+HAH,Hay AL HASSANI,Vest-Sahara,Afrika,23.7147,-15.93030,cancer,vest-kant Afrika,31 km nord for Cancer
+ALG,Algerie-punkt,Algerie,Afrika,23.5001,2.67290,cancer,nord-Sahara,7 km nord
+ALK,AlKufra,Libya,Afrika,24.1810,23.31530,cancer,øst-Sahara,83 km nord
+NAB,Nabta Playa,Egypt,Afrika,22.5079,30.72570,cancer,vest-Egypt,103 km sør - pre-historisk arkeologi
+RDH,Rødehavet øy,Egypt,Afrika,23.6074,36.19610,cancer,vest-kant Rødehavet,19 km nord
+ALQ,Al Qou',UAE,Asia,23.4501,55.41130,cancer,Persiagulfen,1.6 km nord - presist
+FMU,Fortress Murri,Oman,Asia,23.4500,56.21960,cancer,Oman-kysten,1.6 km nord
+DAB,Playground Dabah,Oman,Asia,23.4595,57.03740,cancer,Oman,2.6 km nord
+ALH,Alhail Mosque,Oman,Asia,23.4504,57.11390,cancer,Oman,1.6 km nord
+WAM,Wadi Al Maawil,Oman,Asia,23.4509,57.31780,cancer,Oman,1.7 km nord
+SIF,Sifah,Oman,Asia,23.4501,57.81410,cancer,øst-kant Oman/Arabia,1.6 km nord
+ASH,Ashapura Camp,India,Asia,23.4354,58.78130,cancer,vest-kant India,61 m sør - mest presist
+HAR,Haripar,India,Asia,23.4506,70.77520,cancer,vest-India,1.6 km nord
+MOJ,Mojiang,Kina,Asia,23.4813,101.72840,cancer,sør-Kina,5 km nord
+RUI,Ruisui,Taiwan,Asia,23.4655,121.35790,cancer,øst-kant Taiwan,3.3 km nord - 1933 japansk
+TER,Tern Island,USA,Oceania,23.8687,-166.27500,cancer,Stillehavet vest,48 km nord
+LAP,La Perouse Pinnacle,USA,Oceania,23.7500,-166.16667,cancer,Stillehavet,Lapérouse 1786 sextant
+LAY,Laysan,USA,Oceania,25.7645,-171.73330,cancer,Stillehavet,Nantucket whaling 1825
+PEC,Catequilla,Ecuador,Sør-Amerika,0.0000,-78.42861,ekvator,vest-kant Sør-Amerika,KJERNE - pre-Inka gnomon ~800 e.Kr.
+MDM,Mitad del Mundo,Ecuador,Sør-Amerika,-0.0019,-78.45574,ekvator,vest-kant Sør-Amerika,FEILMON - 240 m sør
+QUI,Quitsato Sundial,Ecuador,Sør-Amerika,0.0000,-78.17500,ekvator,vest-kant Sør-Amerika,TEKNISK REF - 2006 moderne
+MCZ,Marco Zero Macapá,Brasil,Sør-Amerika,0.0000,-51.06639,ekvator,Amazonas-munning,Sol langs Avenida Equatorial ved jevndøgn
+ILH,Ilhéu das Rolas,São Tomé,Afrika,-0.0039,6.52250,ekvator,Guineabukta,Marco do Equador-monument
+KAY,Kayabwe,Uganda,Afrika,0.0002,32.03992,ekvator,Viktoriasjøen-vest,KJERNE-nivå monument 20 m sør
+NAN,Nanyuki,Kenya,Afrika,0.0000,37.06667,ekvator,Mount Kenya-områet,A2-veien skilt
+PON,Pontianak Tugu,Indonesia,Asia,0.0000,109.32167,ekvator,vest-Borneo,KJERNE - solar culmination 21-23. mars/sept dokumentert
+TUG,Tugu Kal-Tim,Indonesia,Asia,-0.0001,117.36330,ekvator,øst-Borneo,Indonesisk moderne monument
+SIN,Singapore,Singapore,Asia,1.3500,103.81980,nær-ekvator,Malayhalvøya,Zenit-passering 23. mars 2024
+TIN,Tugu Tinombo,Indonesia,Asia,0.0000,120.09500,ekvator,Sulawesi-nord,Moderne GPS
+HAL,Lalubi,Indonesia,Asia,0.0000,127.88780,ekvator,Halmahera,1.8 m fra ekvator
+KAW,Tugu Kawei,Indonesia,Asia,-0.0003,130.12480,ekvator,Raja Ampat,GPS-tid monument
+ANI,Anibare,Nauru,Oceania,-0.5318,166.92950,nær-ekvator,Nauru,58.8 km sør - vest-Stillehavet
+ARA,Aranuka,Kiribati,Oceania,0.1479,173.61410,ekvator,Stillehavet,Buariki atoll-sentrum
+BAN,Banana,Kiritimati,Oceania,1.9840,-157.35280,nær-ekvator,Stillehavet,Cook 1777 publisert kart
+UER,Ueru,Pohnpei,Oceania,1.0627,154.77310,nær-ekvator,Mikronesia,117.5 km nord
+BKR,Baker Island,USA,Oceania,0.1914,-176.48050,ekvator,Stillehavet midt,Folger 1818 + US Guano Act 1857
+PAR,Paramaribo,Suriname,Sør-Amerika,5.8700,-55.06000,nord-tropisk,Guyana-kysten,Cliwoc 130 obs 1757-1853
+BAH,Bahia (Salvador),Brasil,Sør-Amerika,-12.9600,-38.51000,sør-tropisk,øst-kant Brasil,Cliwoc 11 obs 1833 perfekt match
+RIO,Rio de Janeiro,Brasil,Sør-Amerika,-23.0400,-43.07000,nær-capricorn,øst-kant Brasil,Cliwoc 32 obs 1765-1852
+BUE,Buenos Aires,Argentina,Sør-Amerika,-34.6300,-58.33000,sør-tempererte,Río de la Plata,Cliwoc 8 obs 1794-1845
+MVD,Montevideo,Uruguay,Sør-Amerika,-34.8900,-56.20000,sør-tempererte,Río de la Plata,Cliwoc 92 obs 1768-1850
+VAL,Valparaíso,Chile,Sør-Amerika,-33.0800,-71.67000,sør-tempererte,vest-kant Sør-Amerika,Cliwoc 6 obs 1824-1827
+TAL,Talcahuano,Chile,Sør-Amerika,-36.7500,-73.17000,sør-tempererte,vest-kant Sør-Amerika,Cliwoc 23 obs 1786
+PE1,Port Egmont Falklands,Falklands,Sør-Amerika,-51.6800,-57.98000,sør-polare,Falklands,Cliwoc 86 obs 1767-1786 anomali +2.12°
+CT,Cape Town (Tafelbaai),Sør-Afrika,Afrika,-34.2400,18.20000,sør-tempererte,sør-kant Afrika,Cliwoc 12 obs 1786-1852
+FDA,Fort Dauphin,Madagaskar,Afrika,-25.0300,47.00000,nær-capricorn,sør-Madagaskar,Cliwoc 17 obs 1751
+STH,St Helena,St Helena,Atlanterhavet,-16.6700,-2.83000,sør-tropisk,midt-Atlanterhavet,Cliwoc 47 obs - Tenerife-meridian-hypotese
+ASC,Ascension,Atlanterhavet,Atlanterhavet,-8.0500,-14.11000,sør-tropisk,midt-Atlanterhavet,Cliwoc 9 obs 1752-1850
+BAT,Batavia (Jakarta),Indonesia,Asia,-6.1000,106.86000,sør-tropisk,nord-Java,Cliwoc 434 obs 1663-1854 - MEST DATA
+HKG,Hong Kong havn,Kina,Asia,22.3000,114.17000,nær-cancer,sør-Kina-kysten,USS Vicksburg mai 1902 = GPS 2026 (0.00° avvik)

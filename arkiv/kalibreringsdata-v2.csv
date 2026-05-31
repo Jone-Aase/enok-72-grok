@@ -1,0 +1,6 @@
+rang,navn,type,offisiell_km,haversine_km,diff_km,diff_pct,lat1,lon1,lat2,lon2,kilde,modell_uavh
+1,Pontchartrain Causeway (original 1956),Bro over vann,38.4,39.053,-0.653,-1.7,30.025,-90.154167,30.370833,-90.083333,ASCE + Wikipedia (sum av 2200 spann × 56 ft),JA - sum av fysiske betongseksjoner
+2,Eyre Highway 90 Mile Straight,Asfaltvei,146.6,153.963,-7.363,-5.022,-32.458056,123.866111,-32.268889,125.49,Tourism Australia + Travelling Family,Ja (veiens fysiske lengde mellom milepælskilt)
+3,Suezkanalen,Vannflate,193.3,146.52,46.78,24.201,31.25,32.3,29.95,32.55,Suez Canal Authority (suezcanal.gov.eg),Ja (vannflate er naturlig flat)
+4,Highway 10 Saudi-Arabia,Asfaltvei,240.0,252.456,-12.456,-5.19,24.135369,49.081712,24.13842,51.56965,Guinness 2020 + Saudipedia,Delvis (lengden er ingeniørmålt)
+5,Trans-Australian Railway (rett seksjon),Jernbane,478.193,525.662,-47.469,-9.927,-30.45,131.833333,-31.666667,126.5,Guinness + Wikipedia (Trans-Australian Railway),Delvis (sportlengde fra bygging 1909-1917)

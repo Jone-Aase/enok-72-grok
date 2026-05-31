@@ -1,0 +1,208 @@
+{
+  "description": "Forskningsstasjoner og havner langs Antarktis-isringen. 20 originale + 9 GE-presise koordinater fra Jone-Aase. Plottes som markor pa AE-disken via lat/lon transformasjon.",
+  "bases": [
+    {
+      "name": "Amundsen-Scott (USA)",
+      "lat": -90.0,
+      "lon": 0.0,
+      "country": "USA",
+      "note": "Sorpolen - alle lengdegrader moetes"
+    },
+    {
+      "name": "McMurdo (USA)",
+      "lat": -77.85,
+      "lon": 166.67,
+      "country": "USA",
+      "note": "Ross-oya, storste forskningsstasjon"
+    },
+    {
+      "name": "Vostok (Russland)",
+      "lat": -78.46,
+      "lon": 106.84,
+      "country": "RU",
+      "note": "Russisk innlandsstasjon, kuldepol"
+    },
+    {
+      "name": "Esperanza (Argentina)",
+      "lat": -63.4,
+      "lon": -56.99,
+      "country": "AR",
+      "note": "Antarktis-halvoya"
+    },
+    {
+      "name": "Mawson (Australia)",
+      "lat": -67.6,
+      "lon": 62.87,
+      "country": "AU",
+      "note": "Dronning Maud Land, sors-iden av Indiahavet"
+    },
+    {
+      "name": "Davis (Australia)",
+      "lat": -68.58,
+      "lon": 77.97,
+      "country": "AU",
+      "note": "Vestfold Hills"
+    },
+    {
+      "name": "Halley VI (UK)",
+      "lat": -75.58,
+      "lon": -26.5,
+      "country": "GB",
+      "note": "Brunt-isheelv"
+    },
+    {
+      "name": "Rothera (UK)",
+      "lat": -67.57,
+      "lon": -68.13,
+      "country": "GB",
+      "note": "Antarktis-halvoya"
+    },
+    {
+      "name": "Casey (Australia)",
+      "lat": -66.28,
+      "lon": 110.53,
+      "country": "AU",
+      "note": "Wilkes Land"
+    },
+    {
+      "name": "Concordia (FR/IT)",
+      "lat": -75.1,
+      "lon": 123.33,
+      "country": "FR/IT",
+      "note": "Dome C innlandsstasjon"
+    },
+    {
+      "name": "Syowa (Japan)",
+      "lat": -69.0,
+      "lon": 39.58,
+      "country": "JP",
+      "note": "Dronning Maud Land kyst"
+    },
+    {
+      "name": "Troll (Norge)",
+      "lat": -72.01,
+      "lon": 2.53,
+      "country": "NO",
+      "note": "Jutulsessen, Dronning Maud Land"
+    },
+    {
+      "name": "Maitri (India)",
+      "lat": -70.77,
+      "lon": 11.74,
+      "country": "IN",
+      "note": "Schirmacher-oasen"
+    },
+    {
+      "name": "King Sejong (Sor-Korea)",
+      "lat": -62.22,
+      "lon": -58.78,
+      "country": "KR",
+      "note": "King George Island"
+    },
+    {
+      "name": "Bellingshausen (Russland)",
+      "lat": -62.2,
+      "lon": -58.96,
+      "country": "RU",
+      "note": "King George Island"
+    },
+    {
+      "name": "Palmer (USA)",
+      "lat": -64.77,
+      "lon": -64.05,
+      "country": "USA",
+      "note": "Anvers Island"
+    },
+    {
+      "name": "Zhongshan (Kina)",
+      "lat": -69.37,
+      "lon": 76.37,
+      "country": "CN",
+      "note": "Larsemann Hills"
+    },
+    {
+      "name": "Kunlun (Kina)",
+      "lat": -80.42,
+      "lon": 77.12,
+      "country": "CN",
+      "note": "Dome A innlandsstasjon"
+    },
+    {
+      "name": "Princess Elisabeth (Belgia)",
+      "lat": -71.95,
+      "lon": 23.35,
+      "country": "BE",
+      "note": "Sor-pol-luftstasjon"
+    },
+    {
+      "name": "Neumayer III (Tyskland)",
+      "lat": -70.67,
+      "lon": -8.27,
+      "country": "DE",
+      "note": "Ekstrom-isheelva"
+    },
+    {
+      "name": "Mendel Polar Station (Tsjekkia)",
+      "lat": -63.799997,
+      "lon": -57.882528,
+      "country": "CZ",
+      "note": "James Ross Island, Antarktis-halvoya — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Belgrano II (Argentina)",
+      "lat": -77.873858,
+      "lon": -34.624172,
+      "country": "AR",
+      "note": "Coats Land, Weddellhavet — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "San Martin (Argentina)",
+      "lat": -68.129831,
+      "lon": -67.100731,
+      "country": "AR",
+      "note": "Barry Island, Antarktis-halvoya — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Teniente Luis Carvajal Villaroel (Chile)",
+      "lat": -67.760658,
+      "lon": -68.915558,
+      "country": "CL",
+      "note": "Adelaide Island, Antarktis-halvoya — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Zucchelli (Italia)",
+      "lat": -74.695056,
+      "lon": 164.115008,
+      "country": "IT",
+      "note": "Terra Nova Bay — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Jang Bogo (Sor-Korea)",
+      "lat": -74.624433,
+      "lon": 164.228931,
+      "country": "KR",
+      "note": "Terra Nova Bay — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Commonwealth Bay Cape Denison (Australia)",
+      "lat": -67.008511,
+      "lon": 142.659117,
+      "country": "AU",
+      "note": "Adelie Land — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Dumont d'Urville (Frankrike)",
+      "lat": -66.663825,
+      "lon": 140.000808,
+      "country": "FR",
+      "note": "Adelie Land — Jone-Aase GE-koordinat"
+    },
+    {
+      "name": "Mirny (Russland)",
+      "lat": -66.526114,
+      "lon": 92.993797,
+      "country": "RU",
+      "note": "Davis-havet — Jone-Aase GE-koordinat"
+    }
+  ]
+}

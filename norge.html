@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enok 72 — Norge-test v0.1</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #161616;
+      --gold: #d4af37;
+      --gold-dim: #8a7220;
+      --text: #e6e6e6;
+      --border: #333;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #app { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
+    #panel {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    h1 { color: var(--gold); font-size: 18px; margin-bottom: 4px; }
+    .subtitle { color: #888; font-size: 12px; margin-bottom: 16px; }
+    .section { margin-bottom: 20px; }
+    .section-title {
+      color: var(--gold);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--gold-dim);
+      padding-bottom: 4px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    label input[type="checkbox"] { cursor: pointer; }
+    label input[type="radio"] { cursor: pointer; }
+    .city-list { font-size: 12px; line-height: 1.6; }
+    .city-list .coord { color: var(--gold); font-family: monospace; font-size: 11px; }
+    .measure-box {
+      background: #1f1f1f;
+      border: 1px solid var(--gold-dim);
+      padding: 10px;
+      font-size: 12px;
+      font-family: monospace;
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
+    button {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 2px;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+    button:hover { background: #e6c34a; }
+    #map { width: 100%; height: 100vh; background: #1a1a1a; }
+    a { color: var(--gold); }
+    .leaflet-control-attribution { font-size: 10px; }
+    .info-row { display: flex; justify-content: space-between; font-size: 11px; margin: 2px 0; }
+    .info-row span:first-child { color: #888; }
+    .info-row span:last-child { color: var(--text); font-family: monospace; }
+    .home-link { display: inline-block; margin-bottom: 12px; color: var(--gold); text-decoration: none; font-size: 12px; }
+    .home-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="panel">
+      <a href="index.html" class="home-link">← Tilbake til verdensinstrumentet</a>
+      <h1>Enok 72 — Norge-test v0.1</h1>
+      <div class="subtitle">Kartverket-data + offisielle bypunkter</div>
+
+      <div class="section">
+        <div class="section-title">Bakgrunnskart</div>
+        <label><input type="radio" name="base" value="topograatone" checked> Topografisk gråtone (Kartverket)</label>
+        <label><input type="radio" name="base" value="topo"> Topografisk farge (Kartverket)</label>
+        <label><input type="radio" name="base" value="toporaster"> Turkart-raster (N50/N5)</label>
+        <label><input type="radio" name="base" value="osm"> OpenStreetMap (sammenligning)</label>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Overlay-lag</div>
+        <label><input type="checkbox" id="layer-sjokart"> Sjøkartraster (Kartverket)</label>
+        <label><input type="checkbox" id="layer-nib"> Flyfoto Norge i bilder</label>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Rutenett</div>
+        <label><input type="checkbox" id="layer-geo-grid" checked> Geografisk grid (lengde/bredde)</label>
+        <label><input type="checkbox" id="layer-square-grid"> Square grid (110.593 km/°)</label>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Markører</div>
+        <label><input type="checkbox" id="layer-cities" checked> 8 norske byer (Kartverket SSR)</label>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Avstandsmåler</div>
+        <button id="btn-measure">Start måling</button>
+        <button id="btn-clear">Tøm</button>
+        <div class="measure-box" id="measure-output">Klikk «Start måling»<br>og deretter to punkter på kartet</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Markørposisjon</div>
+        <div class="info-row"><span>Lat:</span><span id="info-lat">—</span></div>
+        <div class="info-row"><span>Lon:</span><span id="info-lon">—</span></div>
+        <div class="info-row"><span>Zoom:</span><span id="info-zoom">—</span></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Test-byer (Kartverket SSR)</div>
+        <div class="city-list" id="city-list">Laster…</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Kilder</div>
+        <div style="font-size: 11px; line-height: 1.5; color: #aaa;">
+          Kartverket WMTS cache (åpne data CC BY 4.0)<br>
+          Sjøkartraster, Norge i bilder<br>
+          OpenStreetMap (sammenligning)
+        </div>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Kartverket WMTS cache (Web Mercator, EPSG:3857)
+    const KV_BASE = "https://cache.kartverket.no/v1/wmts/1.0.0";
+    function kvLayer(layerName, opts = {}) {
+      return L.tileLayer(
+        `${KV_BASE}/${layerName}/default/webmercator/{z}/{y}/{x}.png`,
+        Object.assign({
+          attribution: '© <a href="https://kartverket.no">Kartverket</a> CC BY 4.0',
+          maxZoom: 20,
+          tileSize: 256
+        }, opts)
+      );
+    }
+
+    // Bakgrunnslag
+    const baseLayers = {
+      topograatone: kvLayer("topograatone"),
+      topo: kvLayer("topo"),
+      toporaster: kvLayer("toporaster"),
+      osm: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap-bidragsytere',
+        maxZoom: 19
+      })
+    };
+
+    // Overlay-lag
+    const sjokartLayer = kvLayer("sjokartraster", { opacity: 0.85 });
+    const nibLayer = L.tileLayer.wms("https://wms.geonorge.no/skwms1/wms.nib", {
+      layers: "ortofoto",
+      format: "image/jpeg",
+      transparent: false,
+      attribution: '© Norge i bilder / Kartverket',
+      opacity: 0.85,
+      maxZoom: 20
+    });
+
+    // Kart-init: Norge senter, zoom som viser hele landet
+    const map = L.map("map", {
+      center: [65.0, 15.0],
+      zoom: 5,
+      minZoom: 3,
+      maxZoom: 19,
+      worldCopyJump: false,
+      layers: [baseLayers.topograatone]
+    });
+
+    // Base layer-bytte
+    document.querySelectorAll('input[name="base"]').forEach(radio => {
+      radio.addEventListener("change", e => {
+        Object.values(baseLayers).forEach(l => map.removeLayer(l));
+        baseLayers[e.target.value].addTo(map);
+        // re-legg overlays oppå
+        if (document.getElementById("layer-sjokart").checked) sjokartLayer.bringToFront();
+        if (document.getElementById("layer-nib").checked) nibLayer.bringToFront();
+      });
+    });
+
+    // Overlay-togglinger
+    document.getElementById("layer-sjokart").addEventListener("change", e => {
+      if (e.target.checked) sjokartLayer.addTo(map); else map.removeLayer(sjokartLayer);
+    });
+    document.getElementById("layer-nib").addEventListener("change", e => {
+      if (e.target.checked) nibLayer.addTo(map); else map.removeLayer(nibLayer);
+    });
+
+    // ====== RUTENETT ======
+    // Geografisk grid (lat/lon linjer hver 5°)
+    const geoGridLayer = L.layerGroup();
+    function buildGeoGrid() {
+      geoGridLayer.clearLayers();
+      const style = { color: "#d4af37", weight: 0.6, opacity: 0.5, interactive: false };
+      const axisStyle = { color: "#ffd76b", weight: 1.2, opacity: 0.85, interactive: false };
+      // Breddegrader (horisontale)
+      for (let lat = -85; lat <= 85; lat += 5) {
+        const pts = [];
+        for (let lon = -180; lon <= 180; lon += 2) pts.push([lat, lon]);
+        const s = (lat === 0) ? axisStyle : style;
+        L.polyline(pts, s).addTo(geoGridLayer);
+      }
+      // Lengdegrader (vertikale)
+      for (let lon = -180; lon <= 180; lon += 5) {
+        const pts = [];
+        for (let lat = -85; lat <= 85; lat += 2) pts.push([lat, lon]);
+        const s = (lon === 0) ? axisStyle : style;
+        L.polyline(pts, s).addTo(geoGridLayer);
+      }
+    }
+    buildGeoGrid();
+    geoGridLayer.addTo(map);
+    document.getElementById("layer-geo-grid").addEventListener("change", e => {
+      if (e.target.checked) geoGridLayer.addTo(map); else map.removeLayer(geoGridLayer);
+    });
+
+    // Square grid - 110.593 km / grad, samme som v16.77 instrumentet
+    // Pa Web Mercator-kartet betyr dette: linjer hver 1° lat
+    // Lengdegrad konvergerer mot nord - tegnes som rette linjer i Mercator-rom
+    const squareGridLayer = L.layerGroup();
+    function buildSquareGrid() {
+      squareGridLayer.clearLayers();
+      const step = 1; // 1° = 110.593 km (GE-skala)
+      const style = { color: "#888", weight: 0.4, opacity: 0.4, interactive: false, dashArray: "2,4" };
+      for (let lat = -85; lat <= 85; lat += step) {
+        const pts = [];
+        for (let lon = -180; lon <= 180; lon += 5) pts.push([lat, lon]);
+        L.polyline(pts, style).addTo(squareGridLayer);
+      }
+      for (let lon = -180; lon <= 180; lon += step) {
+        const pts = [];
+        for (let lat = -85; lat <= 85; lat += 5) pts.push([lat, lon]);
+        L.polyline(pts, style).addTo(squareGridLayer);
+      }
+    }
+    buildSquareGrid();
+    document.getElementById("layer-square-grid").addEventListener("change", e => {
+      if (e.target.checked) { buildSquareGrid(); squareGridLayer.addTo(map); }
+      else map.removeLayer(squareGridLayer);
+    });
+
+    // ====== BYER ======
+    const cityLayer = L.layerGroup();
+    let cityData = null;
+    fetch("norge-byer.json")
+      .then(r => r.json())
+      .then(data => {
+        cityData = data;
+        const listEl = document.getElementById("city-list");
+        listEl.innerHTML = "";
+        data.byer.forEach(by => {
+          // Marker
+          const marker = L.circleMarker([by.lat, by.lon], {
+            radius: 7,
+            color: "#d4af37",
+            weight: 2,
+            fillColor: "#ffd76b",
+            fillOpacity: 0.9
+          });
+          marker.bindPopup(`<b>${by.navn}</b><br>
+            ${by.lat.toFixed(4)}° N, ${by.lon.toFixed(4)}° E<br>
+            <i>${by.beskrivelse}</i>`);
+          marker.bindTooltip(by.navn, { permanent: true, direction: "right", offset: [10, 0], className: "city-label" });
+          cityLayer.addLayer(marker);
+
+          // List-element
+          const li = document.createElement("div");
+          li.style.padding = "4px 0";
+          li.style.borderBottom = "1px solid #2a2a2a";
+          li.innerHTML = `<b>${by.navn}</b><br>
+            <span class="coord">${by.lat.toFixed(4)}° N, ${by.lon.toFixed(4)}° E</span>`;
+          li.style.cursor = "pointer";
+          li.addEventListener("click", () => {
+            map.setView([by.lat, by.lon], 12);
+            marker.openPopup();
+          });
+          listEl.appendChild(li);
+        });
+        cityLayer.addTo(map);
+      })
+      .catch(err => {
+        document.getElementById("city-list").innerHTML = `<span style="color:#f66">Feil ved lasting: ${err}</span>`;
+      });
+
+    document.getElementById("layer-cities").addEventListener("change", e => {
+      if (e.target.checked) cityLayer.addTo(map); else map.removeLayer(cityLayer);
+    });
+
+    // ====== AVSTANDSMÅLER ======
+    let measureMode = false;
+    let measurePoints = [];
+    let measureLine = null;
+    let measureMarkers = [];
+
+    function clearMeasure() {
+      measurePoints = [];
+      if (measureLine) { map.removeLayer(measureLine); measureLine = null; }
+      measureMarkers.forEach(m => map.removeLayer(m));
+      measureMarkers = [];
+      document.getElementById("measure-output").innerHTML = "Klikk «Start måling»<br>og deretter to punkter på kartet";
+    }
+
+    // Storsirkel-avstand (Haversine, sfærisk antagelse R=6371 km)
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+                Math.sin(dLon/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    // Flat avstand basert pa 110.593 km/° (GE-skala, antar lik avstand mellom breddegrader)
+    function flatKm(lat1, lon1, lat2, lon2) {
+      const dLat = (lat2 - lat1) * 110.593;
+      const meanLat = (lat1 + lat2) / 2;
+      const dLon = (lon2 - lon1) * 110.593 * Math.cos(meanLat * Math.PI / 180);
+      return Math.sqrt(dLat*dLat + dLon*dLon);
+    }
+
+    document.getElementById("btn-measure").addEventListener("click", () => {
+      clearMeasure();
+      measureMode = true;
+      document.getElementById("measure-output").innerHTML = "Klikk PUNKT 1 på kartet";
+    });
+    document.getElementById("btn-clear").addEventListener("click", clearMeasure);
+
+    map.on("click", e => {
+      if (!measureMode) return;
+      measurePoints.push([e.latlng.lat, e.latlng.lng]);
+      const marker = L.circleMarker(e.latlng, {
+        radius: 5, color: "#ff6b6b", fillColor: "#ff6b6b", fillOpacity: 1, weight: 2
+      }).addTo(map);
+      measureMarkers.push(marker);
+
+      if (measurePoints.length === 1) {
+        document.getElementById("measure-output").innerHTML = "Klikk PUNKT 2 på kartet";
+      } else if (measurePoints.length === 2) {
+        measureLine = L.polyline(measurePoints, { color: "#ff6b6b", weight: 2 }).addTo(map);
+        const [p1, p2] = measurePoints;
+        const kmSphere = haversineKm(p1[0], p1[1], p2[0], p2[1]);
+        const kmFlat = flatKm(p1[0], p1[1], p2[0], p2[1]);
+        const diff = Math.abs(kmSphere - kmFlat);
+        const pct = (diff / kmSphere * 100).toFixed(2);
+        document.getElementById("measure-output").innerHTML =
+          `PUNKT 1: ${p1[0].toFixed(4)}, ${p1[1].toFixed(4)}\n` +
+          `PUNKT 2: ${p2[0].toFixed(4)}, ${p2[1].toFixed(4)}\n` +
+          `\n` +
+          `Sfærisk (Haversine R=6371): ${kmSphere.toFixed(2)} km\n` +
+          `Flat (110.593 km/° GE):     ${kmFlat.toFixed(2)} km\n` +
+          `Differanse:                  ${diff.toFixed(2)} km (${pct} %)`;
+        measureMode = false;
+      }
+    });
+
+    // ====== MARKØR-POSISJON ======
+    map.on("mousemove", e => {
+      document.getElementById("info-lat").textContent = e.latlng.lat.toFixed(4) + "°";
+      document.getElementById("info-lon").textContent = e.latlng.lng.toFixed(4) + "°";
+    });
+    map.on("zoomend", () => {
+      document.getElementById("info-zoom").textContent = map.getZoom();
+    });
+    document.getElementById("info-zoom").textContent = map.getZoom();
+  </script>
+</body>
+</html>

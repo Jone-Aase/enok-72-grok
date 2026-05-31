@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Enoch 72 Truth Instrument</title>
+  <meta name="description" content="Contact Jone-Aase regarding the Enoch 72 research project. Research, collaboration, citations.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #0a0908;
+      color: #d8d6d1;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #c9a247; text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #e6bc5a; }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
+    .header { border-bottom: 1px solid #2a2520; padding-bottom: 32px; margin-bottom: 48px; }
+    .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #8a7a52; margin: 0 0 12px; }
+    h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 56px; font-weight: 400; line-height: 1.05;
+      margin: 0 0 16px; color: #f0e9d8; letter-spacing: -0.01em;
+    }
+    .lead { font-size: 18px; color: #a8a29a; max-width: 56ch; margin: 0; }
+
+    .nav-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; color: #8a7a52; margin-bottom: 32px;
+    }
+    .nav-back:hover { color: #c9a247; }
+
+    h2 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 28px; font-weight: 400; color: #e6dcc5;
+      margin: 48px 0 16px; letter-spacing: -0.005em;
+    }
+
+    .invite {
+      background: #14110d; border: 1px solid #2a2520; border-left: 3px solid #c9a247;
+      padding: 20px 24px; margin: 24px 0 40px;
+      font-size: 15px; line-height: 1.7; color: #c5beb0;
+    }
+
+    .channels {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px; margin: 24px 0 48px;
+    }
+    .channel {
+      display: flex; flex-direction: column; padding: 18px 20px;
+      background: #14110d; border: 1px solid #2a2520; border-radius: 6px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .channel:hover { border-color: #c9a247; background: #1a1610; }
+    .channel-label {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #8a7a52; margin-bottom: 6px;
+    }
+    .channel-value { font-size: 16px; color: #e6dcc5; font-weight: 500; word-break: break-all; }
+
+    form { display: grid; gap: 16px; margin: 24px 0 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label {
+      font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #8a7a52; font-weight: 600;
+    }
+    .field input, .field textarea, .field select {
+      background: #14110d; border: 1px solid #2a2520; border-radius: 4px;
+      padding: 12px 14px; color: #e6dcc5;
+      font-family: inherit; font-size: 15px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus {
+      outline: none; border-color: #c9a247; background: #1a1610;
+    }
+    .field textarea { min-height: 140px; resize: vertical; font-family: inherit; }
+
+    button[type="submit"] {
+      background: #c9a247; color: #0a0908; border: none; border-radius: 4px;
+      padding: 14px 28px; font-family: inherit; font-size: 15px; font-weight: 600;
+      letter-spacing: 0.02em; cursor: pointer;
+      transition: background 0.2s, transform 0.1s; align-self: start;
+    }
+    button[type="submit"]:hover { background: #e6bc5a; }
+    button[type="submit"]:active { transform: translateY(1px); }
+
+    .note { font-size: 13px; color: #8a7a52; margin: 8px 0 0; line-height: 1.6; }
+
+    .status { padding: 14px 18px; border-radius: 4px; margin-top: 16px; font-size: 14px; display: none; }
+    .status.ok { background: #142013; border: 1px solid #2a4225; color: #8fc070; }
+    .status.err { background: #201515; border: 1px solid #422525; color: #c08070; }
+
+    footer {
+      margin-top: 80px; padding-top: 32px; border-top: 1px solid #2a2520;
+      font-size: 13px; color: #6e6356;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    footer a { color: #8a7a52; }
+    footer a:hover { color: #c9a247; }
+
+    @media (max-width: 600px) {
+      .container { padding: 40px 20px 64px; }
+      h1 { font-size: 40px; }
+      .lead { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <a class="nav-back" href="index.html">← Back to the instrument</a>
+
+    <header class="header">
+      <p class="eyebrow">Research and collaboration</p>
+      <h1>Contact</h1>
+      <p class="lead">The Enoch 72 Truth Instrument is an interdisciplinary research project on the Book of Enoch chapter 72, the 364-day solar calendar, and the azimuthal equidistant geometry of the earth. Academic inquiries are welcome.</p>
+    </header>
+
+    <div class="invite">
+      <strong style="color:#c9a247">Inquiries welcomed:</strong> Research collaboration, academic questions, citations and publications, primary-source confirmations, scholarly critique, and sharing of historical observations. The prize is the truth — every contribution that helps verify the model against reality is valued.
+    </div>
+
+    <h2>Direct channels</h2>
+
+    <div class="channels">
+      <a class="channel" href="mailto:JoneAase@proton.me">
+        <span class="channel-label">Email</span>
+        <span class="channel-value">JoneAase@proton.me</span>
+      </a>
+      <a class="channel" href="https://github.com/Jone-Aase" target="_blank" rel="noopener">
+        <span class="channel-label">GitHub</span>
+        <span class="channel-value">@Jone-Aase</span>
+      </a>
+      <a class="channel" href="https://github.com/Jone-Aase/enok-72-truth-instrument/issues" target="_blank" rel="noopener">
+        <span class="channel-label">Issues and discussion</span>
+        <span class="channel-value">Repository issues</span>
+      </a>
+    </div>
+
+    <h2>Send a message</h2>
+
+    <p style="color:#a8a29a;margin:0 0 8px">Use the form below to send a message directly. You will receive a confirmation reply once I have read your message.</p>
+
+    <form id="contact-form" action="https://formspree.io/f/YOUR_FORMSPREE_ID" method="POST">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label for="affiliation">Affiliation (optional)</label>
+        <input type="text" id="affiliation" name="affiliation" placeholder="University, institution, organisation" autocomplete="organization">
+      </div>
+
+      <div class="field">
+        <label for="topic">Topic</label>
+        <select id="topic" name="topic" required>
+          <option value="">Select a topic</option>
+          <option value="research-collaboration">Research collaboration</option>
+          <option value="academic-question">Academic question</option>
+          <option value="citation-publication">Citation or publication</option>
+          <option value="primary-source">Primary-source confirmation</option>
+          <option value="critique-correction">Scholarly critique or correction</option>
+          <option value="historical-observation">Historical observation to share</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" required placeholder="Briefly describe the nature of your inquiry. Specific verses, days, coordinates, sources, or observations are particularly useful."></textarea>
+      </div>
+
+      <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+
+      <button type="submit">Send message</button>
+
+      <p class="note">This form uses Formspree. Submitted information is used solely to respond to your inquiry and is not stored beyond that purpose.</p>
+
+      <div class="status ok" id="status-ok">Thank you — your message has been sent. You will receive a reply by email.</div>
+      <div class="status err" id="status-err">Something went wrong. Please use the email link above instead.</div>
+    </form>
+
+    <footer>
+      <span>Enoch 72 Truth Instrument — Jone-Aase, 2026</span>
+      <span><a href="index.html">Instrument</a> · <a href="https://github.com/Jone-Aase/enok-72-truth-instrument" target="_blank" rel="noopener">GitHub</a></span>
+    </footer>
+
+  </div>
+
+  <script>
+    const form = document.getElementById('contact-form');
+    const statusOk = document.getElementById('status-ok');
+    const statusErr = document.getElementById('status-err');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusOk.style.display = 'none';
+      statusErr.style.display = 'none';
+      const data = new FormData(form);
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: data,
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) { form.reset(); statusOk.style.display = 'block'; }
+        else { statusErr.style.display = 'block'; }
+      } catch (err) { statusErr.style.display = 'block'; }
+    });
+  </script>
+
+</body>
+</html>

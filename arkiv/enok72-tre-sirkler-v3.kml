@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Enok 72 - Tre sirkler v3 (renset)</name>
+  <description><![CDATA[
+    <h3>Enok 72 - Tre sirkler i Enoks modell</h3>
+    <p><b>19 ekte gamle markører</b> - alle moderne kule-baserte fjernet.</p>
+    <p><b>Stjerne-ikon</b> = astronomisk motivert (bygget for solens passering)</p>
+    <p><b>Sirkel-ikon</b> = støttedata (havn/by tilfeldig nær sirkelen)</p>
+    <p><b>Farger:</b> Grønn = Ekvator | Rød = Cancer | Blå = Capricorn</p>
+    <p><b>Merk:</b> Capricorn har kun 2 markører fordi i Enoks geometri er denne sirkelen
+    matematisk låst av Ekvator og Cancer (lik avstand på begge sider av Ekvator).</p>
+  ]]></description>
+
+  <Style id="ekv-astro">
+    <IconStyle><color>ff00ff00</color><scale>1.2</scale>
+      <Icon><href>http://maps.google.com/mapfiles/kml/shapes/star.png</href></Icon>
+    </IconStyle>
+    <LabelStyle><color>ff00ff00</color><scale>0.9</scale></LabelStyle>
+  </Style>
+  <Style id="ekv-stotte">
+    <IconStyle><color>8000ff00</color><scale>0.9</scale>
+      <Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon>
+    </IconStyle>
+    <LabelStyle><color>8000ff00</color><scale>0.7</scale></LabelStyle>
+  </Style>
+  <Style id="can-astro">
+    <IconStyle><color>ff0000ff</color><scale>1.2</scale>
+      <Icon><href>http://maps.google.com/mapfiles/kml/shapes/star.png</href></Icon>
+    </IconStyle>
+    <LabelStyle><color>ff0000ff</color><scale>0.9</scale></LabelStyle>
+  </Style>
+  <Style id="can-stotte">
+    <IconStyle><color>800000ff</color><scale>0.9</scale>
+      <Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon>
+    </IconStyle>
+    <LabelStyle><color>800000ff</color><scale>0.7</scale></LabelStyle>
+  </Style>
+  <Style id="cap-astro">
+    <IconStyle><color>ffff0000</color><scale>1.2</scale>
+      <Icon><href>http://maps.google.com/mapfiles/kml/shapes/star.png</href></Icon>
+    </IconStyle>
+    <LabelStyle><color>ffff0000</color><scale>0.9</scale></LabelStyle>
+  </Style>
+  <Style id="cap-stotte">
+    <IconStyle><color>80ff0000</color><scale>0.9</scale>
+      <Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon>
+    </IconStyle>
+    <LabelStyle><color>80ff0000</color><scale>0.7</scale></LabelStyle>
+  </Style>
+
+  <Style id="line-ekv"><LineStyle><color>ff00ff00</color><width>2</width></LineStyle></Style>
+  <Style id="line-can"><LineStyle><color>ff0000ff</color><width>2</width></LineStyle></Style>
+  <Style id="line-cap"><LineStyle><color>ffff0000</color><width>2</width></LineStyle></Style>
+  <Folder>
+    <name>Ekvator</name>
+    <open>1</open>
+    <Placemark>
+      <name>Ekvator referanselinje (0.0°)</name>
+      <description>Moderne ekvator-breddegrad som visuell referanse. IKKE en del av Enok-data.</description>
+      <styleUrl>#line-ekv</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>-180.0,0.0,0 -179.0,0.0,0 -178.0,0.0,0 -177.0,0.0,0 -176.0,0.0,0 -175.0,0.0,0 -174.0,0.0,0 -173.0,0.0,0 -172.0,0.0,0 -171.0,0.0,0 -170.0,0.0,0 -169.0,0.0,0 -168.0,0.0,0 -167.0,0.0,0 -166.0,0.0,0 -165.0,0.0,0 -164.0,0.0,0 -163.0,0.0,0 -162.0,0.0,0 -161.0,0.0,0 -160.0,0.0,0 -159.0,0.0,0 -158.0,0.0,0 -157.0,0.0,0 -156.0,0.0,0 -155.0,0.0,0 -154.0,0.0,0 -153.0,0.0,0 -152.0,0.0,0 -151.0,0.0,0 -150.0,0.0,0 -149.0,0.0,0 -148.0,0.0,0 -147.0,0.0,0 -146.0,0.0,0 -145.0,0.0,0 -144.0,0.0,0 -143.0,0.0,0 -142.0,0.0,0 -141.0,0.0,0 -140.0,0.0,0 -139.0,0.0,0 -138.0,0.0,0 -137.0,0.0,0 -136.0,0.0,0 -135.0,0.0,0 -134.0,0.0,0 -133.0,0.0,0 -132.0,0.0,0 -131.0,0.0,0 -130.0,0.0,0 -129.0,0.0,0 -128.0,0.0,0 -127.0,0.0,0 -126.0,0.0,0 -125.0,0.0,0 -124.0,0.0,0 -123.0,0.0,0 -122.0,0.0,0 -121.0,0.0,0 -120.0,0.0,0 -119.0,0.0,0 -118.0,0.0,0 -117.0,0.0,0 -116.0,0.0,0 -115.0,0.0,0 -114.0,0.0,0 -113.0,0.0,0 -112.0,0.0,0 -111.0,0.0,0 -110.0,0.0,0 -109.0,0.0,0 -108.0,0.0,0 -107.0,0.0,0 -106.0,0.0,0 -105.0,0.0,0 -104.0,0.0,0 -103.0,0.0,0 -102.0,0.0,0 -101.0,0.0,0 -100.0,0.0,0 -99.0,0.0,0 -98.0,0.0,0 -97.0,0.0,0 -96.0,0.0,0 -95.0,0.0,0 -94.0,0.0,0 -93.0,0.0,0 -92.0,0.0,0 -91.0,0.0,0 -90.0,0.0,0 -89.0,0.0,0 -88.0,0.0,0 -87.0,0.0,0 -86.0,0.0,0 -85.0,0.0,0 -84.0,0.0,0 -83.0,0.0,0 -82.0,0.0,0 -81.0,0.0,0 -80.0,0.0,0 -79.0,0.0,0 -78.0,0.0,0 -77.0,0.0,0 -76.0,0.0,0 -75.0,0.0,0 -74.0,0.0,0 -73.0,0.0,0 -72.0,0.0,0 -71.0,0.0,0 -70.0,0.0,0 -69.0,0.0,0 -68.0,0.0,0 -67.0,0.0,0 -66.0,0.0,0 -65.0,0.0,0 -64.0,0.0,0 -63.0,0.0,0 -62.0,0.0,0 -61.0,0.0,0 -60.0,0.0,0 -59.0,0.0,0 -58.0,0.0,0 -57.0,0.0,0 -56.0,0.0,0 -55.0,0.0,0 -54.0,0.0,0 -53.0,0.0,0 -52.0,0.0,0 -51.0,0.0,0 -50.0,0.0,0 -49.0,0.0,0 -48.0,0.0,0 -47.0,0.0,0 -46.0,0.0,0 -45.0,0.0,0 -44.0,0.0,0 -43.0,0.0,0 -42.0,0.0,0 -41.0,0.0,0 -40.0,0.0,0 -39.0,0.0,0 -38.0,0.0,0 -37.0,0.0,0 -36.0,0.0,0 -35.0,0.0,0 -34.0,0.0,0 -33.0,0.0,0 -32.0,0.0,0 -31.0,0.0,0 -30.0,0.0,0 -29.0,0.0,0 -28.0,0.0,0 -27.0,0.0,0 -26.0,0.0,0 -25.0,0.0,0 -24.0,0.0,0 -23.0,0.0,0 -22.0,0.0,0 -21.0,0.0,0 -20.0,0.0,0 -19.0,0.0,0 -18.0,0.0,0 -17.0,0.0,0 -16.0,0.0,0 -15.0,0.0,0 -14.0,0.0,0 -13.0,0.0,0 -12.0,0.0,0 -11.0,0.0,0 -10.0,0.0,0 -9.0,0.0,0 -8.0,0.0,0 -7.0,0.0,0 -6.0,0.0,0 -5.0,0.0,0 -4.0,0.0,0 -3.0,0.0,0 -2.0,0.0,0 -1.0,0.0,0 0.0,0.0,0 1.0,0.0,0 2.0,0.0,0 3.0,0.0,0 4.0,0.0,0 5.0,0.0,0 6.0,0.0,0 7.0,0.0,0 8.0,0.0,0 9.0,0.0,0 10.0,0.0,0 11.0,0.0,0 12.0,0.0,0 13.0,0.0,0 14.0,0.0,0 15.0,0.0,0 16.0,0.0,0 17.0,0.0,0 18.0,0.0,0 19.0,0.0,0 20.0,0.0,0 21.0,0.0,0 22.0,0.0,0 23.0,0.0,0 24.0,0.0,0 25.0,0.0,0 26.0,0.0,0 27.0,0.0,0 28.0,0.0,0 29.0,0.0,0 30.0,0.0,0 31.0,0.0,0 32.0,0.0,0 33.0,0.0,0 34.0,0.0,0 35.0,0.0,0 36.0,0.0,0 37.0,0.0,0 38.0,0.0,0 39.0,0.0,0 40.0,0.0,0 41.0,0.0,0 42.0,0.0,0 43.0,0.0,0 44.0,0.0,0 45.0,0.0,0 46.0,0.0,0 47.0,0.0,0 48.0,0.0,0 49.0,0.0,0 50.0,0.0,0 51.0,0.0,0 52.0,0.0,0 53.0,0.0,0 54.0,0.0,0 55.0,0.0,0 56.0,0.0,0 57.0,0.0,0 58.0,0.0,0 59.0,0.0,0 60.0,0.0,0 61.0,0.0,0 62.0,0.0,0 63.0,0.0,0 64.0,0.0,0 65.0,0.0,0 66.0,0.0,0 67.0,0.0,0 68.0,0.0,0 69.0,0.0,0 70.0,0.0,0 71.0,0.0,0 72.0,0.0,0 73.0,0.0,0 74.0,0.0,0 75.0,0.0,0 76.0,0.0,0 77.0,0.0,0 78.0,0.0,0 79.0,0.0,0 80.0,0.0,0 81.0,0.0,0 82.0,0.0,0 83.0,0.0,0 84.0,0.0,0 85.0,0.0,0 86.0,0.0,0 87.0,0.0,0 88.0,0.0,0 89.0,0.0,0 90.0,0.0,0 91.0,0.0,0 92.0,0.0,0 93.0,0.0,0 94.0,0.0,0 95.0,0.0,0 96.0,0.0,0 97.0,0.0,0 98.0,0.0,0 99.0,0.0,0 100.0,0.0,0 101.0,0.0,0 102.0,0.0,0 103.0,0.0,0 104.0,0.0,0 105.0,0.0,0 106.0,0.0,0 107.0,0.0,0 108.0,0.0,0 109.0,0.0,0 110.0,0.0,0 111.0,0.0,0 112.0,0.0,0 113.0,0.0,0 114.0,0.0,0 115.0,0.0,0 116.0,0.0,0 117.0,0.0,0 118.0,0.0,0 119.0,0.0,0 120.0,0.0,0 121.0,0.0,0 122.0,0.0,0 123.0,0.0,0 124.0,0.0,0 125.0,0.0,0 126.0,0.0,0 127.0,0.0,0 128.0,0.0,0 129.0,0.0,0 130.0,0.0,0 131.0,0.0,0 132.0,0.0,0 133.0,0.0,0 134.0,0.0,0 135.0,0.0,0 136.0,0.0,0 137.0,0.0,0 138.0,0.0,0 139.0,0.0,0 140.0,0.0,0 141.0,0.0,0 142.0,0.0,0 143.0,0.0,0 144.0,0.0,0 145.0,0.0,0 146.0,0.0,0 147.0,0.0,0 148.0,0.0,0 149.0,0.0,0 150.0,0.0,0 151.0,0.0,0 152.0,0.0,0 153.0,0.0,0 154.0,0.0,0 155.0,0.0,0 156.0,0.0,0 157.0,0.0,0 158.0,0.0,0 159.0,0.0,0 160.0,0.0,0 161.0,0.0,0 162.0,0.0,0 163.0,0.0,0 164.0,0.0,0 165.0,0.0,0 166.0,0.0,0 167.0,0.0,0 168.0,0.0,0 169.0,0.0,0 170.0,0.0,0 171.0,0.0,0 172.0,0.0,0 173.0,0.0,0 174.0,0.0,0 175.0,0.0,0 176.0,0.0,0 177.0,0.0,0 178.0,0.0,0 179.0,0.0,0 180.0,0.0,0</coordinates>
+      </LineString>
+    </Placemark>
+    <Folder>
+      <name>Astronomisk motiverte (5)</name>
+      <Placemark>
+        <name>EKV-01: Catequilla</name>
+        <description><![CDATA[
+          <p><b>Type:</b> arkeologisk_observatorium (astronomisk motivert)</p>
+          <p><b>Land:</b> Ecuador | <b>Kontinent:</b> Sør-Amerika</p>
+          <p><b>Alder:</b> ~1226 år</p>
+          <p><b>Koordinater:</b> 0.00000, -78.42869</p>
+          <p><b>Merknad:</b> Pre-columbiansk Quitu-Cara observatorium ca. 800 e.Kr. Wikipedia oppgir eksakt 0.00000°N.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Catequilla">https://en.wikipedia.org/wiki/Catequilla</a></p>
+        ]]></description>
+        <styleUrl>#ekv-astro</styleUrl>
+        <Point><coordinates>-78.42869,0.00000,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>EKV-02: Pyramid of Oyambaro</name>
+        <description><![CDATA[
+          <p><b>Type:</b> vitenskapelig_markor (astronomisk motivert)</p>
+          <p><b>Land:</b> Ecuador | <b>Kontinent:</b> Sør-Amerika</p>
+          <p><b>Alder:</b> ~290 år</p>
+          <p><b>Koordinater:</b> -0.16, -78.32</p>
+          <p><b>Merknad:</b> French Geodesic Mission 1736 baseline-endepunkt. Original møllesteiner gjenfunnet av Humboldt 1802. Gjenoppbygget 1836 og 1936. Koordinater omtrentlige.</p>
+          <p><b>Kilde:</b> <a href="http://rodama1789.blogspot.com/2019/10/the-pyramids-of-yaruqui.html">http://rodama1789.blogspot.com/2019/10/the-pyramids-of-yaruqui.html</a></p>
+        ]]></description>
+        <styleUrl>#ekv-astro</styleUrl>
+        <Point><coordinates>-78.32,-0.16,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>EKV-03: Pyramid of Caraburo</name>
+        <description><![CDATA[
+          <p><b>Type:</b> vitenskapelig_markor (astronomisk motivert)</p>
+          <p><b>Land:</b> Ecuador | <b>Kontinent:</b> Sør-Amerika</p>
+          <p><b>Alder:</b> ~290 år</p>
+          <p><b>Koordinater:</b> -0.13, -78.36</p>
+          <p><b>Merknad:</b> French Geodesic Mission 1736 andre baseline-endepunkt. Koordinater omtrentlige.</p>
+          <p><b>Kilde:</b> <a href="http://rodama1789.blogspot.com/2019/10/the-pyramids-of-yaruqui.html">http://rodama1789.blogspot.com/2019/10/the-pyramids-of-yaruqui.html</a></p>
+        ]]></description>
+        <styleUrl>#ekv-astro</styleUrl>
+        <Point><coordinates>-78.36,-0.13,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>EKV-04: Mitad del Mundo monument</name>
+        <description><![CDATA[
+          <p><b>Type:</b> vitenskapelig_markor (astronomisk motivert)</p>
+          <p><b>Land:</b> Ecuador | <b>Kontinent:</b> Sør-Amerika</p>
+          <p><b>Alder:</b> ~90 år</p>
+          <p><b>Koordinater:</b> -0.00222, -78.45583</p>
+          <p><b>Merknad:</b> Bygget 1936 basert på 1736-måling. Plassert 247m sør for moderne ekvator.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Ciudad_Mitad_del_Mundo">https://en.wikipedia.org/wiki/Ciudad_Mitad_del_Mundo</a></p>
+        ]]></description>
+        <styleUrl>#ekv-astro</styleUrl>
+        <Point><coordinates>-78.45583,-0.00222,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>EKV-05: Pontianak Equator Monument</name>
+        <description><![CDATA[
+          <p><b>Type:</b> vitenskapelig_markor (astronomisk motivert)</p>
+          <p><b>Land:</b> Indonesia | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~98 år</p>
+          <p><b>Koordinater:</b> 0.001056, 109.322222</p>
+          <p><b>Merknad:</b> Nederlandsk kolonitid 1928. 117m nord for moderne ekvator.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Equator_Monument">https://en.wikipedia.org/wiki/Equator_Monument</a></p>
+        ]]></description>
+        <styleUrl>#ekv-astro</styleUrl>
+        <Point><coordinates>109.322222,0.001056,0</coordinates></Point>
+      </Placemark>
+    </Folder>
+  </Folder>
+  <Folder>
+    <name>Cancer</name>
+    <open>1</open>
+    <Placemark>
+      <name>Cancer referanselinje (23.4393°)</name>
+      <description>Moderne cancer-breddegrad som visuell referanse. IKKE en del av Enok-data.</description>
+      <styleUrl>#line-can</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>-180.0,23.4393,0 -179.0,23.4393,0 -178.0,23.4393,0 -177.0,23.4393,0 -176.0,23.4393,0 -175.0,23.4393,0 -174.0,23.4393,0 -173.0,23.4393,0 -172.0,23.4393,0 -171.0,23.4393,0 -170.0,23.4393,0 -169.0,23.4393,0 -168.0,23.4393,0 -167.0,23.4393,0 -166.0,23.4393,0 -165.0,23.4393,0 -164.0,23.4393,0 -163.0,23.4393,0 -162.0,23.4393,0 -161.0,23.4393,0 -160.0,23.4393,0 -159.0,23.4393,0 -158.0,23.4393,0 -157.0,23.4393,0 -156.0,23.4393,0 -155.0,23.4393,0 -154.0,23.4393,0 -153.0,23.4393,0 -152.0,23.4393,0 -151.0,23.4393,0 -150.0,23.4393,0 -149.0,23.4393,0 -148.0,23.4393,0 -147.0,23.4393,0 -146.0,23.4393,0 -145.0,23.4393,0 -144.0,23.4393,0 -143.0,23.4393,0 -142.0,23.4393,0 -141.0,23.4393,0 -140.0,23.4393,0 -139.0,23.4393,0 -138.0,23.4393,0 -137.0,23.4393,0 -136.0,23.4393,0 -135.0,23.4393,0 -134.0,23.4393,0 -133.0,23.4393,0 -132.0,23.4393,0 -131.0,23.4393,0 -130.0,23.4393,0 -129.0,23.4393,0 -128.0,23.4393,0 -127.0,23.4393,0 -126.0,23.4393,0 -125.0,23.4393,0 -124.0,23.4393,0 -123.0,23.4393,0 -122.0,23.4393,0 -121.0,23.4393,0 -120.0,23.4393,0 -119.0,23.4393,0 -118.0,23.4393,0 -117.0,23.4393,0 -116.0,23.4393,0 -115.0,23.4393,0 -114.0,23.4393,0 -113.0,23.4393,0 -112.0,23.4393,0 -111.0,23.4393,0 -110.0,23.4393,0 -109.0,23.4393,0 -108.0,23.4393,0 -107.0,23.4393,0 -106.0,23.4393,0 -105.0,23.4393,0 -104.0,23.4393,0 -103.0,23.4393,0 -102.0,23.4393,0 -101.0,23.4393,0 -100.0,23.4393,0 -99.0,23.4393,0 -98.0,23.4393,0 -97.0,23.4393,0 -96.0,23.4393,0 -95.0,23.4393,0 -94.0,23.4393,0 -93.0,23.4393,0 -92.0,23.4393,0 -91.0,23.4393,0 -90.0,23.4393,0 -89.0,23.4393,0 -88.0,23.4393,0 -87.0,23.4393,0 -86.0,23.4393,0 -85.0,23.4393,0 -84.0,23.4393,0 -83.0,23.4393,0 -82.0,23.4393,0 -81.0,23.4393,0 -80.0,23.4393,0 -79.0,23.4393,0 -78.0,23.4393,0 -77.0,23.4393,0 -76.0,23.4393,0 -75.0,23.4393,0 -74.0,23.4393,0 -73.0,23.4393,0 -72.0,23.4393,0 -71.0,23.4393,0 -70.0,23.4393,0 -69.0,23.4393,0 -68.0,23.4393,0 -67.0,23.4393,0 -66.0,23.4393,0 -65.0,23.4393,0 -64.0,23.4393,0 -63.0,23.4393,0 -62.0,23.4393,0 -61.0,23.4393,0 -60.0,23.4393,0 -59.0,23.4393,0 -58.0,23.4393,0 -57.0,23.4393,0 -56.0,23.4393,0 -55.0,23.4393,0 -54.0,23.4393,0 -53.0,23.4393,0 -52.0,23.4393,0 -51.0,23.4393,0 -50.0,23.4393,0 -49.0,23.4393,0 -48.0,23.4393,0 -47.0,23.4393,0 -46.0,23.4393,0 -45.0,23.4393,0 -44.0,23.4393,0 -43.0,23.4393,0 -42.0,23.4393,0 -41.0,23.4393,0 -40.0,23.4393,0 -39.0,23.4393,0 -38.0,23.4393,0 -37.0,23.4393,0 -36.0,23.4393,0 -35.0,23.4393,0 -34.0,23.4393,0 -33.0,23.4393,0 -32.0,23.4393,0 -31.0,23.4393,0 -30.0,23.4393,0 -29.0,23.4393,0 -28.0,23.4393,0 -27.0,23.4393,0 -26.0,23.4393,0 -25.0,23.4393,0 -24.0,23.4393,0 -23.0,23.4393,0 -22.0,23.4393,0 -21.0,23.4393,0 -20.0,23.4393,0 -19.0,23.4393,0 -18.0,23.4393,0 -17.0,23.4393,0 -16.0,23.4393,0 -15.0,23.4393,0 -14.0,23.4393,0 -13.0,23.4393,0 -12.0,23.4393,0 -11.0,23.4393,0 -10.0,23.4393,0 -9.0,23.4393,0 -8.0,23.4393,0 -7.0,23.4393,0 -6.0,23.4393,0 -5.0,23.4393,0 -4.0,23.4393,0 -3.0,23.4393,0 -2.0,23.4393,0 -1.0,23.4393,0 0.0,23.4393,0 1.0,23.4393,0 2.0,23.4393,0 3.0,23.4393,0 4.0,23.4393,0 5.0,23.4393,0 6.0,23.4393,0 7.0,23.4393,0 8.0,23.4393,0 9.0,23.4393,0 10.0,23.4393,0 11.0,23.4393,0 12.0,23.4393,0 13.0,23.4393,0 14.0,23.4393,0 15.0,23.4393,0 16.0,23.4393,0 17.0,23.4393,0 18.0,23.4393,0 19.0,23.4393,0 20.0,23.4393,0 21.0,23.4393,0 22.0,23.4393,0 23.0,23.4393,0 24.0,23.4393,0 25.0,23.4393,0 26.0,23.4393,0 27.0,23.4393,0 28.0,23.4393,0 29.0,23.4393,0 30.0,23.4393,0 31.0,23.4393,0 32.0,23.4393,0 33.0,23.4393,0 34.0,23.4393,0 35.0,23.4393,0 36.0,23.4393,0 37.0,23.4393,0 38.0,23.4393,0 39.0,23.4393,0 40.0,23.4393,0 41.0,23.4393,0 42.0,23.4393,0 43.0,23.4393,0 44.0,23.4393,0 45.0,23.4393,0 46.0,23.4393,0 47.0,23.4393,0 48.0,23.4393,0 49.0,23.4393,0 50.0,23.4393,0 51.0,23.4393,0 52.0,23.4393,0 53.0,23.4393,0 54.0,23.4393,0 55.0,23.4393,0 56.0,23.4393,0 57.0,23.4393,0 58.0,23.4393,0 59.0,23.4393,0 60.0,23.4393,0 61.0,23.4393,0 62.0,23.4393,0 63.0,23.4393,0 64.0,23.4393,0 65.0,23.4393,0 66.0,23.4393,0 67.0,23.4393,0 68.0,23.4393,0 69.0,23.4393,0 70.0,23.4393,0 71.0,23.4393,0 72.0,23.4393,0 73.0,23.4393,0 74.0,23.4393,0 75.0,23.4393,0 76.0,23.4393,0 77.0,23.4393,0 78.0,23.4393,0 79.0,23.4393,0 80.0,23.4393,0 81.0,23.4393,0 82.0,23.4393,0 83.0,23.4393,0 84.0,23.4393,0 85.0,23.4393,0 86.0,23.4393,0 87.0,23.4393,0 88.0,23.4393,0 89.0,23.4393,0 90.0,23.4393,0 91.0,23.4393,0 92.0,23.4393,0 93.0,23.4393,0 94.0,23.4393,0 95.0,23.4393,0 96.0,23.4393,0 97.0,23.4393,0 98.0,23.4393,0 99.0,23.4393,0 100.0,23.4393,0 101.0,23.4393,0 102.0,23.4393,0 103.0,23.4393,0 104.0,23.4393,0 105.0,23.4393,0 106.0,23.4393,0 107.0,23.4393,0 108.0,23.4393,0 109.0,23.4393,0 110.0,23.4393,0 111.0,23.4393,0 112.0,23.4393,0 113.0,23.4393,0 114.0,23.4393,0 115.0,23.4393,0 116.0,23.4393,0 117.0,23.4393,0 118.0,23.4393,0 119.0,23.4393,0 120.0,23.4393,0 121.0,23.4393,0 122.0,23.4393,0 123.0,23.4393,0 124.0,23.4393,0 125.0,23.4393,0 126.0,23.4393,0 127.0,23.4393,0 128.0,23.4393,0 129.0,23.4393,0 130.0,23.4393,0 131.0,23.4393,0 132.0,23.4393,0 133.0,23.4393,0 134.0,23.4393,0 135.0,23.4393,0 136.0,23.4393,0 137.0,23.4393,0 138.0,23.4393,0 139.0,23.4393,0 140.0,23.4393,0 141.0,23.4393,0 142.0,23.4393,0 143.0,23.4393,0 144.0,23.4393,0 145.0,23.4393,0 146.0,23.4393,0 147.0,23.4393,0 148.0,23.4393,0 149.0,23.4393,0 150.0,23.4393,0 151.0,23.4393,0 152.0,23.4393,0 153.0,23.4393,0 154.0,23.4393,0 155.0,23.4393,0 156.0,23.4393,0 157.0,23.4393,0 158.0,23.4393,0 159.0,23.4393,0 160.0,23.4393,0 161.0,23.4393,0 162.0,23.4393,0 163.0,23.4393,0 164.0,23.4393,0 165.0,23.4393,0 166.0,23.4393,0 167.0,23.4393,0 168.0,23.4393,0 169.0,23.4393,0 170.0,23.4393,0 171.0,23.4393,0 172.0,23.4393,0 173.0,23.4393,0 174.0,23.4393,0 175.0,23.4393,0 176.0,23.4393,0 177.0,23.4393,0 178.0,23.4393,0 179.0,23.4393,0 180.0,23.4393,0</coordinates>
+      </LineString>
+    </Placemark>
+    <Folder>
+      <name>Astronomisk motiverte (5)</name>
+      <Placemark>
+        <name>CAN-01: Modhera Sun Temple</name>
+        <description><![CDATA[
+          <p><b>Type:</b> arkeologisk_tempel (astronomisk motivert)</p>
+          <p><b>Land:</b> India | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~1000 år</p>
+          <p><b>Koordinater:</b> 23.583806, 72.132686</p>
+          <p><b>Merknad:</b> Solanki-dynastiet 1026 e.Kr. UNESCO. Astronomisk alignet til soloppgang ved jevndøgn.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Sun_Temple%2C_Modhera">https://en.wikipedia.org/wiki/Sun_Temple%2C_Modhera</a></p>
+        ]]></description>
+        <styleUrl>#can-astro</styleUrl>
+        <Point><coordinates>72.132686,23.583806,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-02: Dholavira</name>
+        <description><![CDATA[
+          <p><b>Type:</b> arkeologisk_by (astronomisk motivert)</p>
+          <p><b>Land:</b> India | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~4900 år</p>
+          <p><b>Koordinater:</b> 23.888606, 70.213636</p>
+          <p><b>Merknad:</b> Harappan Indus Valley-by ca. 2650-1900 f.Kr. UNESCO.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Dholavira">https://en.wikipedia.org/wiki/Dholavira</a></p>
+        ]]></description>
+        <styleUrl>#can-astro</styleUrl>
+        <Point><coordinates>70.213636,23.888606,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-03: Chiayi Tropic of Cancer Monument</name>
+        <description><![CDATA[
+          <p><b>Type:</b> vitenskapelig_markor (astronomisk motivert)</p>
+          <p><b>Land:</b> Taiwan | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~118 år</p>
+          <p><b>Koordinater:</b> 23.453917, 120.416722</p>
+          <p><b>Merknad:</b> Japansk kolonitid 1908. Pre-WGS84.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Tropic_of_Cancer_Monument">https://en.wikipedia.org/wiki/Tropic_of_Cancer_Monument</a></p>
+        ]]></description>
+        <styleUrl>#can-astro</styleUrl>
+        <Point><coordinates>120.416722,23.453917,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-04: Aswan/Syene (Eratosthenes)</name>
+        <description><![CDATA[
+          <p><b>Type:</b> arkeologisk_observasjon (astronomisk motivert)</p>
+          <p><b>Land:</b> Egypt | <b>Kontinent:</b> Afrika</p>
+          <p><b>Alder:</b> ~2265 år</p>
+          <p><b>Koordinater:</b> 24.0880, 32.8990</p>
+          <p><b>Merknad:</b> Eratosthenes brukte 240 f.Kr. som nordlig referansepunkt. Brønn der solen ikke kastet skygge på sommersolverv.</p>
+          <p><b>Kilde:</b> <a href="http://kiwihellenist.blogspot.com/2015/11/eratosthenes-and-well.html">http://kiwihellenist.blogspot.com/2015/11/eratosthenes-and-well.html</a></p>
+        ]]></description>
+        <styleUrl>#can-astro</styleUrl>
+        <Point><coordinates>32.8990,24.0880,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-05: Ujjain Jantar Mantar</name>
+        <description><![CDATA[
+          <p><b>Type:</b> vitenskapelig_observatorium (astronomisk motivert)</p>
+          <p><b>Land:</b> India | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~300 år</p>
+          <p><b>Koordinater:</b> 23.1824, 75.7764</p>
+          <p><b>Merknad:</b> Sawai Jai Singh II 1719/1725. Surya Siddhanta-tradisjon plasserte Cancer her.</p>
+          <p><b>Kilde:</b> <a href="https://en.wikipedia.org/wiki/Jantar_Mantar%2C_Ujjain">https://en.wikipedia.org/wiki/Jantar_Mantar%2C_Ujjain</a></p>
+        ]]></description>
+        <styleUrl>#can-astro</styleUrl>
+        <Point><coordinates>75.7764,23.1824,0</coordinates></Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Støttedata - havner/byer (7)</name>
+      <Placemark>
+        <name>CAN-06: Mazatlán havn</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Mexico | <b>Kontinent:</b> Nord-Amerika</p>
+          <p><b>Alder:</b> ~300 år</p>
+          <p><b>Koordinater:</b> 23.217, -106.42</p>
+          <p><b>Merknad:</b> Spansk koloni-havn. Manila-galleon-rute. Skipslogger fra 1700-tallet.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>-106.42,23.217,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-07: Havana havn</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Cuba | <b>Kontinent:</b> Karibia</p>
+          <p><b>Alder:</b> ~500 år</p>
+          <p><b>Koordinater:</b> 23.114, -82.37</p>
+          <p><b>Merknad:</b> Spansk hovedstad i Vest-India fra 1500-tallet.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>-82.37,23.114,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-08: Muscat havn</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Oman | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~1500 år</p>
+          <p><b>Koordinater:</b> 23.61, 58.59</p>
+          <p><b>Merknad:</b> Eldgammel arabisk handelshavn.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>58.59,23.61,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-09: Kandla havn</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> India | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~200 år</p>
+          <p><b>Koordinater:</b> 23.03, 70.22</p>
+          <p><b>Merknad:</b> Gammel handelshavn på vestkysten av Gujarat.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>70.22,23.03,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-10: Guangzhou havn</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Kina | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~1000 år</p>
+          <p><b>Koordinater:</b> 23.13, 113.26</p>
+          <p><b>Merknad:</b> Eneste Vest-tilgang til Kina i Qing-tiden. Eldgammel.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>113.26,23.13,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-11: Macao</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Kina | <b>Kontinent:</b> Asia</p>
+          <p><b>Alder:</b> ~469 år</p>
+          <p><b>Koordinater:</b> 22.171, 113.55</p>
+          <p><b>Merknad:</b> Portugisisk koloni fra 1557. 38 skipslogger 1787-1851 (CLIWOC).</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>113.55,22.171,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAN-12: Nassau Bahamas</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Bahamas | <b>Kontinent:</b> Karibia</p>
+          <p><b>Alder:</b> ~378 år</p>
+          <p><b>Koordinater:</b> 25.06, -77.34</p>
+          <p><b>Merknad:</b> Britisk koloni fra 1648.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#can-stotte</styleUrl>
+        <Point><coordinates>-77.34,25.06,0</coordinates></Point>
+      </Placemark>
+    </Folder>
+  </Folder>
+  <Folder>
+    <name>Capricorn</name>
+    <open>1</open>
+    <Placemark>
+      <name>Capricorn referanselinje (-23.4393°)</name>
+      <description>Moderne capricorn-breddegrad som visuell referanse. IKKE en del av Enok-data.</description>
+      <styleUrl>#line-cap</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>-180.0,-23.4393,0 -179.0,-23.4393,0 -178.0,-23.4393,0 -177.0,-23.4393,0 -176.0,-23.4393,0 -175.0,-23.4393,0 -174.0,-23.4393,0 -173.0,-23.4393,0 -172.0,-23.4393,0 -171.0,-23.4393,0 -170.0,-23.4393,0 -169.0,-23.4393,0 -168.0,-23.4393,0 -167.0,-23.4393,0 -166.0,-23.4393,0 -165.0,-23.4393,0 -164.0,-23.4393,0 -163.0,-23.4393,0 -162.0,-23.4393,0 -161.0,-23.4393,0 -160.0,-23.4393,0 -159.0,-23.4393,0 -158.0,-23.4393,0 -157.0,-23.4393,0 -156.0,-23.4393,0 -155.0,-23.4393,0 -154.0,-23.4393,0 -153.0,-23.4393,0 -152.0,-23.4393,0 -151.0,-23.4393,0 -150.0,-23.4393,0 -149.0,-23.4393,0 -148.0,-23.4393,0 -147.0,-23.4393,0 -146.0,-23.4393,0 -145.0,-23.4393,0 -144.0,-23.4393,0 -143.0,-23.4393,0 -142.0,-23.4393,0 -141.0,-23.4393,0 -140.0,-23.4393,0 -139.0,-23.4393,0 -138.0,-23.4393,0 -137.0,-23.4393,0 -136.0,-23.4393,0 -135.0,-23.4393,0 -134.0,-23.4393,0 -133.0,-23.4393,0 -132.0,-23.4393,0 -131.0,-23.4393,0 -130.0,-23.4393,0 -129.0,-23.4393,0 -128.0,-23.4393,0 -127.0,-23.4393,0 -126.0,-23.4393,0 -125.0,-23.4393,0 -124.0,-23.4393,0 -123.0,-23.4393,0 -122.0,-23.4393,0 -121.0,-23.4393,0 -120.0,-23.4393,0 -119.0,-23.4393,0 -118.0,-23.4393,0 -117.0,-23.4393,0 -116.0,-23.4393,0 -115.0,-23.4393,0 -114.0,-23.4393,0 -113.0,-23.4393,0 -112.0,-23.4393,0 -111.0,-23.4393,0 -110.0,-23.4393,0 -109.0,-23.4393,0 -108.0,-23.4393,0 -107.0,-23.4393,0 -106.0,-23.4393,0 -105.0,-23.4393,0 -104.0,-23.4393,0 -103.0,-23.4393,0 -102.0,-23.4393,0 -101.0,-23.4393,0 -100.0,-23.4393,0 -99.0,-23.4393,0 -98.0,-23.4393,0 -97.0,-23.4393,0 -96.0,-23.4393,0 -95.0,-23.4393,0 -94.0,-23.4393,0 -93.0,-23.4393,0 -92.0,-23.4393,0 -91.0,-23.4393,0 -90.0,-23.4393,0 -89.0,-23.4393,0 -88.0,-23.4393,0 -87.0,-23.4393,0 -86.0,-23.4393,0 -85.0,-23.4393,0 -84.0,-23.4393,0 -83.0,-23.4393,0 -82.0,-23.4393,0 -81.0,-23.4393,0 -80.0,-23.4393,0 -79.0,-23.4393,0 -78.0,-23.4393,0 -77.0,-23.4393,0 -76.0,-23.4393,0 -75.0,-23.4393,0 -74.0,-23.4393,0 -73.0,-23.4393,0 -72.0,-23.4393,0 -71.0,-23.4393,0 -70.0,-23.4393,0 -69.0,-23.4393,0 -68.0,-23.4393,0 -67.0,-23.4393,0 -66.0,-23.4393,0 -65.0,-23.4393,0 -64.0,-23.4393,0 -63.0,-23.4393,0 -62.0,-23.4393,0 -61.0,-23.4393,0 -60.0,-23.4393,0 -59.0,-23.4393,0 -58.0,-23.4393,0 -57.0,-23.4393,0 -56.0,-23.4393,0 -55.0,-23.4393,0 -54.0,-23.4393,0 -53.0,-23.4393,0 -52.0,-23.4393,0 -51.0,-23.4393,0 -50.0,-23.4393,0 -49.0,-23.4393,0 -48.0,-23.4393,0 -47.0,-23.4393,0 -46.0,-23.4393,0 -45.0,-23.4393,0 -44.0,-23.4393,0 -43.0,-23.4393,0 -42.0,-23.4393,0 -41.0,-23.4393,0 -40.0,-23.4393,0 -39.0,-23.4393,0 -38.0,-23.4393,0 -37.0,-23.4393,0 -36.0,-23.4393,0 -35.0,-23.4393,0 -34.0,-23.4393,0 -33.0,-23.4393,0 -32.0,-23.4393,0 -31.0,-23.4393,0 -30.0,-23.4393,0 -29.0,-23.4393,0 -28.0,-23.4393,0 -27.0,-23.4393,0 -26.0,-23.4393,0 -25.0,-23.4393,0 -24.0,-23.4393,0 -23.0,-23.4393,0 -22.0,-23.4393,0 -21.0,-23.4393,0 -20.0,-23.4393,0 -19.0,-23.4393,0 -18.0,-23.4393,0 -17.0,-23.4393,0 -16.0,-23.4393,0 -15.0,-23.4393,0 -14.0,-23.4393,0 -13.0,-23.4393,0 -12.0,-23.4393,0 -11.0,-23.4393,0 -10.0,-23.4393,0 -9.0,-23.4393,0 -8.0,-23.4393,0 -7.0,-23.4393,0 -6.0,-23.4393,0 -5.0,-23.4393,0 -4.0,-23.4393,0 -3.0,-23.4393,0 -2.0,-23.4393,0 -1.0,-23.4393,0 0.0,-23.4393,0 1.0,-23.4393,0 2.0,-23.4393,0 3.0,-23.4393,0 4.0,-23.4393,0 5.0,-23.4393,0 6.0,-23.4393,0 7.0,-23.4393,0 8.0,-23.4393,0 9.0,-23.4393,0 10.0,-23.4393,0 11.0,-23.4393,0 12.0,-23.4393,0 13.0,-23.4393,0 14.0,-23.4393,0 15.0,-23.4393,0 16.0,-23.4393,0 17.0,-23.4393,0 18.0,-23.4393,0 19.0,-23.4393,0 20.0,-23.4393,0 21.0,-23.4393,0 22.0,-23.4393,0 23.0,-23.4393,0 24.0,-23.4393,0 25.0,-23.4393,0 26.0,-23.4393,0 27.0,-23.4393,0 28.0,-23.4393,0 29.0,-23.4393,0 30.0,-23.4393,0 31.0,-23.4393,0 32.0,-23.4393,0 33.0,-23.4393,0 34.0,-23.4393,0 35.0,-23.4393,0 36.0,-23.4393,0 37.0,-23.4393,0 38.0,-23.4393,0 39.0,-23.4393,0 40.0,-23.4393,0 41.0,-23.4393,0 42.0,-23.4393,0 43.0,-23.4393,0 44.0,-23.4393,0 45.0,-23.4393,0 46.0,-23.4393,0 47.0,-23.4393,0 48.0,-23.4393,0 49.0,-23.4393,0 50.0,-23.4393,0 51.0,-23.4393,0 52.0,-23.4393,0 53.0,-23.4393,0 54.0,-23.4393,0 55.0,-23.4393,0 56.0,-23.4393,0 57.0,-23.4393,0 58.0,-23.4393,0 59.0,-23.4393,0 60.0,-23.4393,0 61.0,-23.4393,0 62.0,-23.4393,0 63.0,-23.4393,0 64.0,-23.4393,0 65.0,-23.4393,0 66.0,-23.4393,0 67.0,-23.4393,0 68.0,-23.4393,0 69.0,-23.4393,0 70.0,-23.4393,0 71.0,-23.4393,0 72.0,-23.4393,0 73.0,-23.4393,0 74.0,-23.4393,0 75.0,-23.4393,0 76.0,-23.4393,0 77.0,-23.4393,0 78.0,-23.4393,0 79.0,-23.4393,0 80.0,-23.4393,0 81.0,-23.4393,0 82.0,-23.4393,0 83.0,-23.4393,0 84.0,-23.4393,0 85.0,-23.4393,0 86.0,-23.4393,0 87.0,-23.4393,0 88.0,-23.4393,0 89.0,-23.4393,0 90.0,-23.4393,0 91.0,-23.4393,0 92.0,-23.4393,0 93.0,-23.4393,0 94.0,-23.4393,0 95.0,-23.4393,0 96.0,-23.4393,0 97.0,-23.4393,0 98.0,-23.4393,0 99.0,-23.4393,0 100.0,-23.4393,0 101.0,-23.4393,0 102.0,-23.4393,0 103.0,-23.4393,0 104.0,-23.4393,0 105.0,-23.4393,0 106.0,-23.4393,0 107.0,-23.4393,0 108.0,-23.4393,0 109.0,-23.4393,0 110.0,-23.4393,0 111.0,-23.4393,0 112.0,-23.4393,0 113.0,-23.4393,0 114.0,-23.4393,0 115.0,-23.4393,0 116.0,-23.4393,0 117.0,-23.4393,0 118.0,-23.4393,0 119.0,-23.4393,0 120.0,-23.4393,0 121.0,-23.4393,0 122.0,-23.4393,0 123.0,-23.4393,0 124.0,-23.4393,0 125.0,-23.4393,0 126.0,-23.4393,0 127.0,-23.4393,0 128.0,-23.4393,0 129.0,-23.4393,0 130.0,-23.4393,0 131.0,-23.4393,0 132.0,-23.4393,0 133.0,-23.4393,0 134.0,-23.4393,0 135.0,-23.4393,0 136.0,-23.4393,0 137.0,-23.4393,0 138.0,-23.4393,0 139.0,-23.4393,0 140.0,-23.4393,0 141.0,-23.4393,0 142.0,-23.4393,0 143.0,-23.4393,0 144.0,-23.4393,0 145.0,-23.4393,0 146.0,-23.4393,0 147.0,-23.4393,0 148.0,-23.4393,0 149.0,-23.4393,0 150.0,-23.4393,0 151.0,-23.4393,0 152.0,-23.4393,0 153.0,-23.4393,0 154.0,-23.4393,0 155.0,-23.4393,0 156.0,-23.4393,0 157.0,-23.4393,0 158.0,-23.4393,0 159.0,-23.4393,0 160.0,-23.4393,0 161.0,-23.4393,0 162.0,-23.4393,0 163.0,-23.4393,0 164.0,-23.4393,0 165.0,-23.4393,0 166.0,-23.4393,0 167.0,-23.4393,0 168.0,-23.4393,0 169.0,-23.4393,0 170.0,-23.4393,0 171.0,-23.4393,0 172.0,-23.4393,0 173.0,-23.4393,0 174.0,-23.4393,0 175.0,-23.4393,0 176.0,-23.4393,0 177.0,-23.4393,0 178.0,-23.4393,0 179.0,-23.4393,0 180.0,-23.4393,0</coordinates>
+      </LineString>
+    </Placemark>
+    <Folder>
+      <name>Støttedata - havner/byer (2)</name>
+      <Placemark>
+        <name>CAP-06: Rio de Janeiro havn</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_havn (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Brasil | <b>Kontinent:</b> Sør-Amerika</p>
+          <p><b>Alder:</b> ~461 år</p>
+          <p><b>Koordinater:</b> -23.043, -43.17</p>
+          <p><b>Merknad:</b> Portugisisk koloni fra 1565. 32 skipslogger 1765-1852 (CLIWOC). 44 km nord for Capricorn.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#cap-stotte</styleUrl>
+        <Point><coordinates>-43.17,-23.043,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>CAP-07: Sao Paulo</name>
+        <description><![CDATA[
+          <p><b>Type:</b> historisk_by (støttedata - ikke astronomisk motivert)</p>
+          <p><b>Land:</b> Brasil | <b>Kontinent:</b> Sør-Amerika</p>
+          <p><b>Alder:</b> ~472 år</p>
+          <p><b>Koordinater:</b> -23.55, -46.63</p>
+          <p><b>Merknad:</b> Portugisisk koloni-by fra 1554.</p>
+          <p><i>NB: Denne markøren ligger tilfeldigvis nær sirkelen, men ble ikke bygget med astronomisk motivasjon. Brukes som støttedata.</i></p>
+          
+        ]]></description>
+        <styleUrl>#cap-stotte</styleUrl>
+        <Point><coordinates>-46.63,-23.55,0</coordinates></Point>
+      </Placemark>
+    </Folder>
+  </Folder>
+</Document>
+</kml>

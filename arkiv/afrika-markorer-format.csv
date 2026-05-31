@@ -1,0 +1,5 @@
+id,kategori,navn,land,breddegrad_pre_wgs84,lengdegrad_pre_wgs84,breddegrad_desimal,lengdegrad_desimal,aar_etablert,aar_maalt,kilde_type,kilde_referanse,kilde_url,sirkel_tilhorighet,avstand_til_sirkel_km,naerhet_kategori,merknad
+EKS-001,monument,Tropic of Capricorn Monument Namibia,Namibia,23 26 22 S,16 12 45 E,-23.4394,16.2125,1892,1892,kolonimarkør,Deutsche Kolonialgesellschaft 1892,https://example.com,Capricorn,0.05,på_sirkel,Tysk koloniadministrasjon
+EKS-002,observatorium,Royal Observatory Cape of Good Hope,Sør-Afrika,33 56 03 S,18 28 36 E,-33.9342,18.4767,1820,1834,astronomisk observatorium,Henderson & Maclear triangulering 1834,https://example.com,annen,1170,langt_fra,Sør for Capricorn
+EKS-003,triangulering,Buffelsfontein Base,Sør-Afrika,33 59 32 S,25 30 44 E,-33.9922,25.5122,1880,1883,Arc of 30th Meridian,Gill Geodetic Survey of South Africa,https://example.com,annen,1175,langt_fra,Sørlig basislinje
+EKS-004,havn,Libreville,Gabon,0 23 24 N,9 27 14 E,0.3900,9.4539,1849,1875,fransk skipslogg,Annales Hydrographiques 1880,https://example.com,Ekvator,43,nær_sirkel,Fransk koloniadministrasjon

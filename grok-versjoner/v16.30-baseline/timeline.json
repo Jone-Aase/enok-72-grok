@@ -1,0 +1,259 @@
+{
+  "version": "1.0",
+  "description": "Tidslinje-broen: AM 0–5700 mapping for Enok 72 Dashboard",
+  "totalYears": 5700,
+  "amToGregorianOffset": -3650,
+  "currentAm": 5676,
+  "currentGregorian": 2026,
+  "weeks": [
+    {
+      "num": 1,
+      "start": 0,
+      "end": 700,
+      "length": 700,
+      "label": "Uke 1"
+    },
+    {
+      "num": 2,
+      "start": 700,
+      "end": 1650,
+      "length": 950,
+      "label": "Uke 2"
+    },
+    {
+      "num": 3,
+      "start": 1650,
+      "end": 2050,
+      "length": 400,
+      "label": "Uke 3"
+    },
+    {
+      "num": 4,
+      "start": 2050,
+      "end": 2450,
+      "length": 400,
+      "label": "Uke 4"
+    },
+    {
+      "num": 5,
+      "start": 2450,
+      "end": 2850,
+      "length": 400,
+      "label": "Uke 5"
+    },
+    {
+      "num": 6,
+      "start": 2850,
+      "end": 3250,
+      "length": 400,
+      "label": "Uke 6"
+    },
+    {
+      "num": 7,
+      "start": 3250,
+      "end": 3650,
+      "length": 400,
+      "label": "Uke 7"
+    },
+    {
+      "num": 8,
+      "start": 3650,
+      "end": 4050,
+      "length": 400,
+      "label": "Uke 8"
+    },
+    {
+      "num": 9,
+      "start": 4050,
+      "end": 5000,
+      "length": 950,
+      "label": "Uke 9"
+    },
+    {
+      "num": 10,
+      "start": 5000,
+      "end": 5700,
+      "length": 700,
+      "label": "Uke 10"
+    }
+  ],
+  "anchors": [
+    {
+      "am": 0,
+      "label": "Skapelsen",
+      "type": "start"
+    },
+    {
+      "am": 1310,
+      "label": "Flommen",
+      "type": "event",
+      "scripture": "1 Mos 7"
+    },
+    {
+      "am": 1650,
+      "label": "Slutt Uke 2",
+      "type": "boundary"
+    },
+    {
+      "am": 2050,
+      "label": "Slutt Uke 3",
+      "type": "boundary"
+    },
+    {
+      "am": 2410,
+      "label": "Sinai + første pakt",
+      "type": "event",
+      "scripture": "2 Mos 19"
+    },
+    {
+      "am": 2450,
+      "label": "Slutt Uke 4",
+      "type": "boundary"
+    },
+    {
+      "am": 2850,
+      "label": "Tempelet ferdig (slutt Uke 5)",
+      "type": "event",
+      "scripture": "1 Kong 6:38, Enok 93:7-8"
+    },
+    {
+      "am": 2851,
+      "label": "Start Uke 6",
+      "type": "boundary"
+    },
+    {
+      "am": 3250,
+      "label": "Slutt Uke 6",
+      "type": "boundary"
+    },
+    {
+      "am": 3650,
+      "label": "Jesu fødsel (slutt Uke 7)",
+      "type": "event",
+      "scripture": "Jes 11:1, Dan 9:26"
+    },
+    {
+      "am": 3720,
+      "label": "År 70 e.Kr. — Tempelet ødelagt",
+      "type": "event"
+    },
+    {
+      "am": 4050,
+      "label": "Slutt Uke 8",
+      "type": "boundary"
+    },
+    {
+      "am": 4600,
+      "label": "Sekundært knutepunkt",
+      "type": "pivot"
+    },
+    {
+      "am": 5000,
+      "label": "Slutt Uke 9",
+      "type": "boundary"
+    },
+    {
+      "am": 5676,
+      "label": "Nåtid (mars 2026 → mars 2027)",
+      "type": "now"
+    },
+    {
+      "am": 5700,
+      "label": "Modellens slutt",
+      "type": "end"
+    }
+  ],
+  "symmetries": {
+    "pivot_2850": {
+      "description": "2850 er midtpunkt i hele 5700-syklusen",
+      "halves": [
+        {
+          "from": 0,
+          "to": 2850,
+          "length": 2850
+        },
+        {
+          "from": 2850,
+          "to": 5700,
+          "length": 2850
+        }
+      ]
+    },
+    "blocks_1100": {
+      "description": "1100-blokker (kolonne CJ)",
+      "blocks": [
+        {
+          "from": 1310,
+          "to": 2410,
+          "length": 1100,
+          "label": "Flom → Sinai"
+        },
+        {
+          "from": 4600,
+          "to": 5700,
+          "length": 1100,
+          "label": "4600 → 5700"
+        }
+      ]
+    },
+    "blocks_1310": {
+      "description": "1310-blokker (kolonne CK) — rammer inn paktsfaser",
+      "blocks": [
+        {
+          "from": 0,
+          "to": 1310,
+          "length": 1310,
+          "label": "Skapelse → Flom"
+        },
+        {
+          "from": 2410,
+          "to": 3720,
+          "length": 1310,
+          "label": "Sinai → år 70 e.Kr."
+        }
+      ]
+    },
+    "mirror_4600": {
+      "description": "Speilinger rundt AM 4600",
+      "mirrors": [
+        {
+          "from": 3650,
+          "to": 4600,
+          "length": 950,
+          "label": "Jesu fødsel → 4600 (Noah-speiling)"
+        },
+        {
+          "from": 3720,
+          "to": 4600,
+          "length": 880,
+          "label": "År 70 → 4600 (Enok-speiling)"
+        },
+        {
+          "from": 4600,
+          "to": 5700,
+          "length": 1100,
+          "label": "4600 → 5700 (parallell til 1310→2410)"
+        }
+      ]
+    }
+  },
+  "jubileeCycle": {
+    "yearsPerJubilee": 49,
+    "weeksPerJubilee": 7,
+    "yearsPerWeek": 7,
+    "description": "Hver AM-rad har: jubileumsnummer (1+), uke av 7 (1-7), år av 7 (1-7)"
+  },
+  "functions": {
+    "amToGregorian": "gregorian = AM + (-3650)",
+    "gregorianToAm": "AM = gregorian + 3650",
+    "amToWeek": "Finn uke der AM ∈ [start, end)",
+    "amToJubilee": "jub = floor(AM / 49) + 1; week = floor((AM % 49) / 7) + 1; year = (AM % 49) % 7 + 1",
+    "isAnchor": "Sjekk om AM-året er i anchors-listen"
+  },
+  "notes": [
+    "Modellen går rad-for-rad: én rad = ett AM-år",
+    "Hver rad er låst til Enoks uke, jubelårsstruktur, 400-årsserien, kongerekkene, hendelser",
+    "Tall som 400, 1310, 1100 oppstår som RESULTAT av teksttro innleggelse — ikke tunet",
+    "5676 AM ligger 676 år inn i Uke 10 (AM 5000–5700) — sluttfasen"
+  ]
+}

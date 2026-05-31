@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enoch 72 — The Truth Instrument · AE Projection</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+  }
+
+  /* ============ SHELL ============ */
+  #shell { display: flex; flex-direction: column; height: 100vh; }
+
+  /* Titlebar */
+  #titlebar {
+    background: #141414; height: 32px; display: flex; align-items: center;
+    padding: 0 12px; border-bottom: 1px solid #2a2a2a;
+    font-size: 11px; color: #aaa; user-select: none;
+  }
+  #titlebar .dots { display: flex; gap: 6px; margin-right: 12px; }
+  #titlebar .dot { width: 11px; height: 11px; border-radius: 50%; }
+  #titlebar .dot.r { background: #ff5f56; }
+  #titlebar .dot.y { background: #ffbd2e; }
+  #titlebar .dot.g { background: #27c93f; }
+  #titlebar .title { flex: 1; text-align: center; font-weight: 500; color: #c9a247; letter-spacing: 0.04em; }
+  #titlebar .subtitle { color: #777; }
+
+  /* Toolbar */
+  #toolbar {
+    background: #181818; height: 46px; display: flex; align-items: center;
+    padding: 0 10px; gap: 8px; border-bottom: 1px solid #2a2a2a;
+  }
+  .nav-btn {
+    background: transparent; border: 1px solid transparent; color: #ccc;
+    width: 32px; height: 30px; border-radius: 4px; cursor: pointer;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:hover { background: #2a2a2a; }
+  #urlbar {
+    flex: 1; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 6px;
+    height: 32px; padding: 0 12px; color: #cde;
+    font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 12px;
+  }
+  #urlbar:focus { outline: none; border-color: #4a6a8a; }
+  .toolbar-btn {
+    background: #2a3a4a; color: #fff; border: none; padding: 6px 12px;
+    border-radius: 4px; cursor: pointer; font-size: 11px; height: 30px;
+    white-space: nowrap;
+  }
+  .toolbar-btn:hover { background: #3a5a7a; }
+  .toolbar-btn.primary { background: #4a6a8a; }
+  .toolbar-btn.gold { background: #806020; color: #fff; }
+  .toolbar-btn.gold:hover { background: #a07a30; }
+
+  /* "Vis i kalender"-knapp i bevis-arkivet */
+  .goto-cal-btn {
+    background: #1f2a1a; color: #a8d090; border: 1px solid #2da356;
+    padding: 4px 8px; border-radius: 3px; cursor: pointer;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
+    white-space: nowrap; transition: background 0.15s;
+  }
+  .goto-cal-btn:hover { background: #2da356; color: #fff; }
+
+  /* Mode switcher */
+  .mode-group { display: flex; gap: 0; background: #0d0d0d; border-radius: 4px; padding: 2px; }
+  .mode-btn {
+    background: transparent; border: none; color: #888; padding: 6px 12px;
+    cursor: pointer; font-size: 11px; height: 26px; border-radius: 3px;
+  }
+  .mode-btn.active { background: #c9a247; color: #000; font-weight: 600; }
+  .mode-btn:hover:not(.active) { color: #fff; }
+
+  /* Timeline bar */
+  #timeline-bar {
+    background: #0e0e0e; height: 40px; display: flex; align-items: center;
+    padding: 0 12px; gap: 12px; border-bottom: 1px solid #2a2a2a;
+    font-family: ui-monospace, monospace; font-size: 11px;
+  }
+  #timeline-bar .tl-label { color: #888; min-width: 70px; }
+  #timeline-bar input[type=range] { flex: 1; max-width: 300px; }
+  #timeline-bar .tl-val { color: #c9a247; min-width: 60px; }
+  .preset-btn {
+    background: #1a1a1a; border: 1px solid #2a2a2a; color: #ccc;
+    padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;
+  }
+  .preset-btn:hover { background: #2a2a2a; color: #fff; }
+  .preset-btn.active { background: #c9a247; color: #000; border-color: #c9a247; }
+
+  /* Calendar window — flyttbart og resizable */
+  #calbar {
+    /* v16.27: top flyttet fra 56px til 110px slik at calbar ikke dekker timeline-bar (Play-knappen) */
+    /* v16.42: display:none som default - aapnes via Calendar-knappen */
+    position: fixed; left: 50%; top: 110px;
+    transform: translateX(-50%);
+    width: min(1200px, calc(100vw - 40px));
+    min-width: 600px; min-height: 56px;
+    max-width: calc(100vw - 20px); max-height: 80vh;
+    background: rgba(10,10,10,0.92); backdrop-filter: blur(6px);
+    height: auto; display: none; align-items: center;
+    padding: 10px 50px 10px 40px; gap: 14px;
+    border: 1px solid #2a2a2a; border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+    font-family: ui-monospace, monospace; font-size: 14px;
+    flex-wrap: wrap; overflow: hidden;
+    z-index: 50; resize: both;
+  }
+  #calbar-handle {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 32px;
+    cursor: grab; background: linear-gradient(180deg, #1a1208 0%, #0a0a0a 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: #c9a247; font-size: 16px; border-right: 1px solid #2a2a2a;
+    border-radius: 6px 0 0 6px; user-select: none;
+  }
+  #calbar-handle:active { cursor: grabbing; }
+  #calbar-close {
+    position: absolute; right: 8px; top: 8px;
+    width: 24px; height: 24px; border-radius: 3px;
+    background: #1a1a1a; color: #c9a247; border: 1px solid #333;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; padding: 0;
+  }
+  #calbar-close:hover { background: #2a2a2a; }
+  /* v16.46: Calendar-knapp fast i ovre hoyre, justert til top:90px sa den ligger under toolbar (toolbar bunn=78px, ikke 46px pga embedding) */
+  #btn-show-calbar {
+    position: fixed; right: 14px; top: 90px; z-index: 49;
+    background: #1a1208; color: #c9a247; border: 1px solid #564018;
+    padding: 6px 12px; border-radius: 3px; font-family: inherit;
+    font-size: 12px; cursor: pointer; display: block;
+    user-select: none;
+  }
+  #btn-show-calbar:hover { background: #2a1c10; }
+  #calbar select, #calbar input[type=number] {
+    background: #1a1a1a; color: #e0e0e0; border: 1px solid #333;
+    padding: 6px 10px; font-size: 14px; font-family: inherit;
+  }
+  #calbar .preset-btn { padding: 6px 14px; font-size: 13px; }
+  #calbar .tl-label { font-size: 11px; color: #888; letter-spacing: 0.05em; }
+  #calbar .tl-val { font-size: 13px; color: #c9a247; min-width: 70px; }
+  #calbar .cal-info {
+    color: #c9a247; font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 500;
+    padding: 0 8px; min-width: 320px;
+  }
+  #calbar input[type=range] { flex: 0 0 260px; }
+
+  /* Main grid */
+  #main {
+    flex: 1; display: grid; grid-template-columns: 280px 1fr 320px;
+    min-height: 0;
+    transition: grid-template-columns 0.25s ease;
+  }
+  #main.hide-left  { grid-template-columns: 0 1fr 320px; }
+  #main.hide-right { grid-template-columns: 280px 1fr 0; }
+  #main.hide-left.hide-right { grid-template-columns: 0 1fr 0; }
+  #main.hide-left  #panel-left,
+  #main.hide-right #panel-right { padding: 0; border-width: 0; visibility: hidden; }
+  #panel-left, #panel-right {
+    background: #121212; overflow-y: auto; overflow-x: hidden;
+    padding: 14px; border: solid #2a2a2a; border-width: 0;
+  }
+  #panel-left { border-right-width: 1px; }
+  #panel-right { border-left-width: 1px; }
+  #panel-left::-webkit-scrollbar, #panel-right::-webkit-scrollbar { width: 8px; }
+  #panel-left::-webkit-scrollbar-track, #panel-right::-webkit-scrollbar-track { background: #0a0a0a; }
+  #panel-left::-webkit-scrollbar-thumb, #panel-right::-webkit-scrollbar-thumb {
+    background: #3a3a3a; border-radius: 4px;
+  }
+
+  /* Panels */
+  .panel-section {
+    margin-bottom: 18px; padding-bottom: 14px;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .panel-section:last-child { border-bottom: none; }
+  .panel-section h2 {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: #6b7a99; margin-bottom: 10px; font-weight: 600;
+  }
+  .panel-section h3 {
+    font-size: 11px; color: #c9a247; margin: 8px 0 6px;
+    font-weight: 500;
+  }
+  .ctrl, .layer-toggle {
+    display: flex; align-items: center; padding: 5px 0; cursor: pointer;
+    font-size: 12px; user-select: none;
+  }
+  .ctrl input[type=checkbox], .layer-toggle input { margin-right: 8px; }
+  .ctrl:hover, .layer-toggle:hover { color: #fff; }
+  .layer-color {
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 8px; flex-shrink: 0;
+  }
+
+  /* Search */
+  #searchbox {
+    width: 100%; background: #0d0d0d; border: 1px solid #2a2a2a;
+    color: #e0e0e0; padding: 7px 10px; border-radius: 4px; font-size: 12px;
+  }
+  #searchbox:focus { outline: none; border-color: #c9a247; }
+  #search-results {
+    margin-top: 8px; max-height: 200px; overflow-y: auto;
+  }
+  .search-hit {
+    padding: 6px 8px; background: #1a1a1a; margin-bottom: 4px;
+    border-radius: 3px; font-size: 11px; cursor: pointer;
+  }
+  .search-hit:hover { background: #2a2a2a; }
+  .search-hit .hit-name { color: #fff; }
+  .search-hit .hit-meta { color: #888; font-size: 10px; }
+
+  /* Stats / facts */
+  .stat-row {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 3px 0; font-size: 11px;
+  }
+  .stat-row .k { color: #888; }
+  .stat-row .v {
+    color: #e0e0e0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .stat-row .v.gold { color: #c9a247; }
+  .stat-row .v.green { color: #6fcf6f; }
+  .stat-row .v.red { color: #e07a7a; }
+
+  /* Canvas */
+  #canvas-wrap {
+    position: relative; background: #050505; min-height: 0; overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  /* View menu (dropdown) */
+  .menu-wrap { position: relative; }
+  .menu-btn {
+    background: #1a1a1a; border: 1px solid #2a2a2a; color: #ccc;
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    height: 30px; white-space: nowrap;
+  }
+  .menu-btn:hover { background: #2a2a2a; color: #fff; }
+  .menu-btn.active { background: #c9a247; color: #000; border-color: #c9a247; }
+  .menu-panel {
+    position: absolute; top: 38px; right: 0; min-width: 280px;
+    background: rgba(20,20,20,0.97); border: 1px solid #2a2a2a;
+    border-radius: 6px; padding: 10px 12px; z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    font-family: ui-monospace, monospace; font-size: 10px; color: #aaa;
+    display: none;
+  }
+  .menu-panel.open { display: block; }
+  .menu-panel .menu-section { margin-bottom: 10px; }
+  .menu-panel .menu-section:last-child { margin-bottom: 0; }
+  .menu-panel .menu-h {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: #6b7a99; margin-bottom: 6px; font-weight: 600;
+  }
+  .menu-panel .row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .menu-panel label { color: #888; min-width: 48px; font-family: inherit; font-size: 10px; }
+  .menu-panel input[type=range] { flex: 1; }
+  .menu-panel .val { color: #c9a247; min-width: 36px; text-align: right; font-size: 10px; }
+  .menu-panel .preset-row { display: flex; gap: 4px; margin-top: 8px; }
+  .menu-panel .preset {
+    flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; color: #ccc;
+    padding: 4px 6px; border-radius: 3px; cursor: pointer; font-size: 9px;
+    font-family: inherit;
+  }
+  .menu-panel .preset:hover { background: #2a2a2a; color: #fff; }
+  .menu-panel .menu-item {
+    display: flex; align-items: center; gap: 8px; padding: 4px 0;
+    color: #ccc; cursor: pointer; font-size: 11px; font-family: -apple-system, sans-serif;
+  }
+  .menu-panel .menu-item:hover { color: #fff; }
+  .menu-panel .menu-item input { margin: 0; }
+
+  /* Camera controls overlay (gammel — nullet ut) */
+  #cam-controls {
+    display: none;
+  }
+  #cam-controls .row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  #cam-controls .row:first-child { margin-top: 0; }
+  #cam-controls label { color: #888; min-width: 48px; }
+  #cam-controls input[type=range] { flex: 1; }
+  #cam-controls .val { color: #c9a247; min-width: 36px; text-align: right; }
+  #cam-controls .preset-row { display: flex; gap: 4px; margin-top: 6px; }
+  #cam-controls .preset {
+    flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; color: #ccc;
+    padding: 3px 6px; border-radius: 3px; cursor: pointer; font-size: 9px;
+    font-family: inherit;
+  }
+  #cam-controls .preset:hover { background: #2a2a2a; color: #fff; }
+  #tooltip {
+    position: absolute; background: rgba(20,20,20,0.96); color: #fff;
+    padding: 6px 10px; border-radius: 4px; font-size: 11px;
+    border: 1px solid #c9a247; pointer-events: none; display: none;
+    max-width: 280px; z-index: 100;
+  }
+  #zoom-indicator {
+    position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7);
+    padding: 4px 10px; border-radius: 4px; font-size: 11px;
+    color: #c9a247; font-family: ui-monospace, monospace;
+  }
+
+  /* Statusbar */
+  #statusbar {
+    background: #0e0e0e; height: 28px; display: flex; align-items: center;
+    padding: 0 12px; font-size: 11px; color: #999;
+    font-family: ui-monospace, monospace;
+    border-top: 1px solid #2a2a2a; gap: 16px;
+  }
+  #statusbar .sb-item { display: flex; align-items: center; gap: 6px; }
+  #statusbar .sb-label { color: #666; }
+  #statusbar .sb-val { color: #c9a247; }
+  #statusbar .sb-spacer { flex: 1; }
+
+  /* ============ MARKER MODAL ============ */
+  #marker-modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: none; align-items: center; justify-content: center;
+    z-index: 9000; backdrop-filter: blur(2px);
+  }
+  #marker-modal-backdrop.open { display: flex; }
+  #marker-modal {
+    background: #141414; border: 1px solid #2a2a2a; border-top: 2px solid #c9a247;
+    border-radius: 8px; padding: 0; min-width: 380px; max-width: 520px;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #e0e0e0;
+  }
+  #marker-modal .mm-head {
+    display: flex; align-items: flex-start; padding: 14px 16px 10px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  #marker-modal .mm-name { flex: 1; }
+  #marker-modal .mm-name h2 {
+    color: #c9a247; font-size: 16px; font-weight: 600; margin-bottom: 3px;
+    letter-spacing: 0.02em;
+  }
+  #marker-modal .mm-group {
+    color: #888; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  #marker-modal .mm-close {
+    background: transparent; border: none; color: #888; cursor: pointer;
+    font-size: 20px; width: 28px; height: 28px; border-radius: 4px;
+  }
+  #marker-modal .mm-close:hover { background: #2a2a2a; color: #fff; }
+  #marker-modal .mm-body { padding: 14px 16px; }
+  #marker-modal .mm-row {
+    display: flex; justify-content: space-between; padding: 5px 0;
+    border-bottom: 1px solid #1f1f1f; font-size: 12px;
+  }
+  #marker-modal .mm-row:last-child { border-bottom: none; }
+  #marker-modal .mm-key { color: #888; }
+  #marker-modal .mm-val { color: #cde; font-family: ui-monospace, monospace; }
+  #marker-modal .mm-info {
+    margin-top: 10px; padding: 10px; background: #0d0d0d; border-radius: 4px;
+    color: #aaa; font-size: 11px; line-height: 1.5;
+  }
+  #marker-modal .mm-actions {
+    display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #2a2a2a;
+    flex-wrap: wrap;
+  }
+  #marker-modal .mm-btn {
+    flex: 1; min-width: 140px; padding: 8px 12px; border-radius: 5px;
+    border: 1px solid #2a2a2a; background: #1c1c1c; color: #cde;
+    font-size: 11px; cursor: pointer; text-decoration: none;
+    text-align: center; transition: all 0.15s;
+  }
+  #marker-modal .mm-btn:hover { border-color: #c9a247; color: #c9a247; }
+  #marker-modal .mm-btn.primary {
+    background: #c9a247; color: #141414; border-color: #c9a247; font-weight: 600;
+  }
+  #marker-modal .mm-btn.primary:hover { background: #d4b15a; }
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- Title bar -->
+  <div id="titlebar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="title">Enoch 72 — The Truth Instrument <span class="subtitle">· AE Projection</span> <span style="color:#c9a247;font-weight:700;margin-left:8px">v16.77</span></div>
+
+  </div>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <button class="nav-btn" id="nav-back" title="Back">←</button>
+    <button class="nav-btn" id="nav-forward" title="Forward">→</button>
+    <button class="nav-btn" id="nav-home" title="Home">⌂</button>
+    <button class="nav-btn" id="toggle-left" title="Show/hide left panel">☰</button>
+    <input id="urlbar" type="text" placeholder="enoch://sun?lat=0&lon=0 — or enter a place name">
+    <button class="nav-btn" id="toggle-right" title="Show/hide right panel">≡</button>
+    <button class="nav-btn" id="btn-zoom-out" title="Zoom out (mouse wheel)">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#aaa;min-width:42px;text-align:center;font-family:ui-monospace,monospace">100%</span>
+    <button class="nav-btn" id="btn-zoom-in" title="Zoom in (mouse wheel)">+</button>
+    <button class="nav-btn" id="btn-zoom-reset" title="Reset view">⦿</button>
+    <div class="mode-group">
+      <button class="mode-btn active" data-mode="enoch">Enoch scale</button>
+      <button class="mode-btn" data-mode="ge">GE scale</button>
+    </div>
+    <div class="menu-wrap">
+      <button class="menu-btn" id="view-menu-btn" title="View options">View ▾</button>
+      <div class="menu-panel" id="view-menu">
+        <div class="menu-section">
+          <div class="menu-h">Camera</div>
+          <div class="row"><label>Tilt</label><input type="range" id="vm-cam-tilt" min="-90" max="90" step="1" value="90"><span class="val" id="vm-cam-tilt-val">90°</span></div>
+          <div class="row"><label>Rotate</label><input type="range" id="vm-cam-rot" min="-180" max="180" step="1" value="0"><span class="val" id="vm-cam-rot-val">0°</span></div>
+          <div class="row"><label>Height</label><input type="range" id="vm-cam-height" min="-100" max="100" step="1" value="0"><span class="val" id="vm-cam-height-val">0</span></div>
+          <div class="preset-row">
+            <button class="preset" data-cam="top">Top-down</button>
+            <button class="preset" data-cam="oblique">Oblique</button>
+            <button class="preset" data-cam="side">Side</button>
+            <button class="preset" data-cam="under">Under</button>
+          </div>
+        </div>
+        <div class="menu-section">
+          <div class="menu-h">Panels</div>
+          <label class="menu-item"><input type="checkbox" id="vm-show-left" checked> Show left panel (search, layers, filters)</label>
+          <label class="menu-item"><input type="checkbox" id="vm-show-right" checked> Show right panel (measurements, info)</label>
+        </div>
+      </div>
+    </div>
+    <button class="toolbar-btn" id="btn-daynight" title="Show day/night zone on the map">☼ Day/night</button>
+    <button class="toolbar-btn" id="btn-clock-sol" title="12-hour dial (Enochian time, driven by the sun's position)">☉ Sun-clock</button>
+    <button class="toolbar-btn" id="btn-compass" title="360° compass ring (toggleable separately from the dial)">⌖ Compass</button>
+    <button class="toolbar-btn" id="btn-clock-atom" title="Atomic clock (official time for selected zone)">⏱ Atomic clock</button>
+    <!-- v16.40: Enoch 72 og Evidence Archive flyttet inn i Documents-modalen. Knappene 'btn-enok72' og 'btn-evidence' er skjult her men finnes fortsatt som id-elementer inne i Documents-modalen. -->
+    <button class="toolbar-btn" id="btn-docs" title="Download project documents and instructions">⧫ Documents</button>
+    <a href="contact.html" target="_blank" rel="noopener" class="toolbar-btn" id="btn-contact" title="Contact Jone-Aase — research and collaboration" style="text-decoration:none;display:inline-flex;align-items:center">✉ Contact</a>
+    <a href="norge.html" class="toolbar-btn" id="btn-norge" title="Norge-test: Kartverket-data + 8 byer fra SSR" style="text-decoration:none;display:inline-flex;align-items:center;background:linear-gradient(180deg,#3d2a0e,#1f1505);color:#ffd76b;border-color:#c9a247">⚐ Norge-test</a>
+    <button class="toolbar-btn gold" id="btn-share" title="Copy shareable link">Share</button>
+    <button class="toolbar-btn" id="btn-export" title="Export view as PNG">Export PNG</button>
+  </div>
+
+  <!-- ============ DOKUMENTER MODAL ============ -->
+  <div id="docs-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 20px">
+    <div style="background:#0f0f0f;border:1px solid #c9a247;border-radius:8px;max-width:1100px;width:100%;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.8)">
+      <div style="padding:20px 28px;border-bottom:1px solid #2a2a2a;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,#1a1610,#0f0f0f)">
+        <div>
+          <h1 style="color:#c9a247;font-size:20px;font-weight:600;letter-spacing:0.02em;margin:0">Documents</h1>
+          <div style="font-size:11px;color:#888;margin-top:4px">Download project documents, team instructions and master data &mdash; secure backup on your own machine</div>
+        </div>
+        <button id="docs-close" style="background:transparent;border:1px solid #c9a247;color:#c9a247;padding:6px 14px;cursor:pointer;font-size:14px;border-radius:4px">Close</button>
+      </div>
+      <div style="padding:24px 28px;color:#ddd;font-size:13px;line-height:1.6">
+
+        <!-- v16.40: Snarveier til Enoch 72 og Evidence Archive (flyttet hit fra toolbar) -->
+        <section style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">Quick access</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+            <button id="btn-enok72" type="button" title="Enoch 72 text for today's gate" style="display:block;padding:14px;border:1px solid #c9a247;border-radius:6px;background:#161412;color:#ddd;text-align:left;font:inherit;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#1a1610'" onmouseout="this.style.background='#161412'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">✎ Enoch 72</div>
+              <div style="font-size:11px;color:#999">Enoch 72 text for today's gate.</div>
+            </button>
+            <button id="btn-evidence" type="button" title="Empirical evidence archive" style="display:block;padding:14px;border:1px solid #c9a247;border-radius:6px;background:#161412;color:#ddd;text-align:left;font:inherit;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#1a1610'" onmouseout="this.style.background='#161412'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">★ Evidence Archive</div>
+              <div style="font-size:11px;color:#999">Empirical evidence archive — ship logs, monuments, observations.</div>
+            </button>
+          </div>
+        </section>
+
+        <!-- ============ MASTER-DOKUMENTER ============ -->
+        <section style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">Master documents (read first) &mdash; in Norwegian</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+            <a href="dokumenter/AGENT-OPPSTART.md" download style="display:block;padding:14px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd;transition:border-color 0.2s" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">AGENT-OPPSTART.md</div>
+              <div style="font-size:11px;color:#999">6-step re-awakening protocol for any agent. Norwegian rule base, file inventory, compaction rule.</div>
+            </a>
+            <a href="dokumenter/simulator-master-referanse.md" download style="display:block;padding:14px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd;transition:border-color 0.2s" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">simulator-master-referanse.md</div>
+              <div style="font-size:11px;color:#999">Full operations manual for the instrument (16 sections). Core constants, AE projection, gate system, calendar, changelog.</div>
+            </a>
+          </div>
+        </section>
+
+        <!-- ============ TEAM-INSTRUKSER ============ -->
+        <section style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">Team instructions (9 AI members) &mdash; in Norwegian</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+            <a href="dokumenter/team-oversikt.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">team-oversikt.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Master &mdash; 9 members + responsibilities</div>
+            </a>
+            <a href="dokumenter/instruks-grok-oppstart.md" download style="display:block;padding:12px;border:1px solid #2da356;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2da356'">
+              <div style="color:#2da356;font-weight:600;font-size:12px">instruks-grok-oppstart.md (NY)</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Grok startup &mdash; memory layer + using the instrument as backup</div>
+            </a>
+            <a href="dokumenter/instruks-grok-12-agenter.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-grok-12-agenter.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Grok &mdash; wide search (12 sub-agents)</div>
+            </a>
+            <a href="dokumenter/instruks-grok-heavy-regnemaskin.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-grok-heavy-regnemaskin.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Grok Heavy &mdash; memory layer + calculator</div>
+            </a>
+            <a href="dokumenter/instruks-chatgpt-kvalitetskontroll.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-chatgpt-kvalitetskontroll.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">ChatGPT &mdash; quality control</div>
+            </a>
+            <a href="dokumenter/instruks-mistral.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-mistral.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Mistral &mdash; European historical archive</div>
+            </a>
+            <a href="dokumenter/instruks-copilot.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-copilot.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Copilot &mdash; British academic sources</div>
+            </a>
+            <a href="dokumenter/forklaring-til-copilot.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">forklaring-til-copilot.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Copilot &mdash; supplementary explanation</div>
+            </a>
+            <a href="dokumenter/instruks-gemini.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-gemini.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Gemini &mdash; ancient books</div>
+            </a>
+            <a href="dokumenter/instruks-google-ai.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-google-ai.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Google AI &mdash; map validation</div>
+            </a>
+            <a href="dokumenter/instruks-justdone.md" download style="display:block;padding:12px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;font-size:12px">instruks-justdone.md</div>
+              <div style="font-size:10px;color:#999;margin-top:2px">Justdone &mdash; narrow verification</div>
+            </a>
+          </div>
+        </section>
+
+        <!-- ============ DATA + REFERANSE ============ -->
+        <section style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">Data and references</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+            <a href="Ark-T-V6-uttrekk.xlsx" download style="display:block;padding:14px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">Ark-T-V6-uttrekk.xlsx</div>
+              <div style="font-size:11px;color:#999">Master calendar sheet T from V6 (392 KB, 621 rows). All solar paths, gates, extra rounds, walls.</div>
+            </a>
+            <a href="dokumenter/AE-projeksjon-forklart.md" download style="display:block;padding:14px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">AE-projeksjon-forklart.md</div>
+              <div style="font-size:11px;color:#999">Why Azimuthal Equidistant is Enoch's geometry. Mathematical foundation (in Norwegian).</div>
+            </a>
+            <a href="dokumenter/sol-zenith-og-porter-fundamenter.md" download style="display:block;padding:14px;border:1px solid #2a2a2a;border-radius:6px;background:#161412;text-decoration:none;color:#ddd" onmouseover="this.style.borderColor='#c9a247'" onmouseout="this.style.borderColor='#2a2a2a'">
+              <div style="color:#c9a247;font-weight:600;margin-bottom:4px">sol-zenith-og-porter-fundamenter.md</div>
+              <div style="font-size:11px;color:#999">Foundational premises for the solar geometry and gate system (in Norwegian).</div>
+            </a>
+          </div>
+        </section>
+
+        <!-- ============ INFO ============ -->
+        <section style="margin-bottom:8px;padding:14px;background:#1a1610;border:1px solid #564018;border-radius:6px">
+          <div style="color:#c9a247;font-weight:600;font-size:12px;margin-bottom:6px">Secure backup &mdash; three levels</div>
+          <ul style="margin:0 0 0 18px;padding:0;font-size:11px;color:#bbb;line-height:1.7">
+            <li><b>Level 1</b> &mdash; You're reading this now: the instrument on Perplexity hosting (pplx.app). Daily use.</li>
+            <li><b>Level 2</b> &mdash; Download the documents above to your own machine. Private physical backup.</li>
+            <li><b>Level 3</b> &mdash; GitHub repository: <a href="https://github.com/Jone-Aase/enok-72-truth-instrument" target="_blank" style="color:#c9a247">github.com/Jone-Aase/enok-72-truth-instrument</a>. Public secure backup hosted by Microsoft.</li>
+          </ul>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #564018;font-size:11px;color:#bbb">
+            For inquiries or academic dialogue: <a href="contact.html" target="_blank" style="color:#c9a247">✉ Open contact page</a>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BEVIS-ARKIV MODAL ============ -->
+  <div id="evidence-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 20px">
+    <div style="background:#0f0f0f;border:1px solid #c9a247;border-radius:8px;max-width:1100px;width:100%;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.8)">
+      <div style="padding:20px 28px;border-bottom:1px solid #2a2a2a;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,#1a1610,#0f0f0f)">
+        <div>
+          <h1 style="color:#c9a247;font-size:20px;font-weight:600;letter-spacing:0.02em;margin:0">Evidence Archive</h1>
+          <div style="font-size:11px;color:#888;margin-top:4px">Empirical verifications against official sources &mdash; the prize is the truth</div>
+        </div>
+        <button id="btn-close-evidence" style="background:#2a2a2a;color:#fff;border:none;width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:18px">×</button>
+      </div>
+
+      <div style="padding:24px 28px">
+
+        <!-- CATEGORY 1: SOLAR GEOMETRY -->
+        <div style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">1. Solar geometry</h2>
+
+          <!-- 1.1 Aswan + Fort Yukon -->
+          <div style="background:#141210;border:1px solid #2a2a2a;border-left:4px solid #2da356;border-radius:4px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="color:#2da356;font-size:11px;font-weight:600;letter-spacing:0.05em">✓ CONFIRMED &middot; 19 June 2026</div>
+                <h3 style="color:#fff;font-size:15px;font-weight:500;margin-top:4px">1.1 &mdash; Aswan zenith + Fort Yukon midnight sun</h3>
+              </div>
+              <div style="text-align:right">
+                <button class="goto-cal-btn" data-goto-day="92" title="Jump to 21 June in the calendar">→ Show in calendar (21 June)</button>
+                <div style="font-size:10px;color:#666;margin-top:4px">Verified 24 May 2026</div>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#bbb;line-height:1.6;margin:10px 0">
+              <span style="color:#c9a247;font-weight:600">Hypothesis:</span> At the summer solstice, the sun stands at zenith over the Tropic of Cancer (Aswan/Syene, 24.09°N, 32.90°E) at 12:00 local time. At the same moment the sun is seen as midnight sun due north from Fort Yukon (66.56°N, 145.26°W) at 00:00 local time. The straight line of sight between them passes practically through the AE North Pole.
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Geometry prediction (Enoch-AE)</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Aswan AE radius: <span style="color:#c9a247">7,325 km</span><br>
+                  Fort Yukon AE radius: <span style="color:#c9a247">2,604 km</span><br>
+                  Flat line of sight: <span style="color:#c9a247">9,928 km</span><br>
+                  Longitude diff: <span style="color:#c9a247">178.16°</span> (≈ antipode)<br>
+                  Line's pass at North Pole: <span style="color:#c9a247">62 km</span>
+                </div>
+              </div>
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Official data (verified)</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Midnight sun Fort Yukon: <span style="color:#2da356">✓ 24-hour day</span><br>
+                  Solar noon Fort Yukon: <span style="color:#2da356">✓ 13:42 AKDT</span><br>
+                  Time diff Aswan/F.Y.: <span style="color:#2da356">✓ 11h 53m (≈7 min from perfect)</span><br>
+                  Solar declination 19 June: <span style="color:#2da356">✓ +23.43° (= Tropic of Cancer)</span><br>
+                  Summer solstice 2026: <span style="color:#2da356">✓ 21 June at 08:25 UTC</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#0a1810;border-left:3px solid #2da356;padding:10px;font-size:11px;color:#a0d0a0;line-height:1.5;margin:10px 0">
+              <span style="font-weight:600;color:#2da356">Conclusion:</span> All geometric and astronomical predictions match official sources. On 19 June the sun is 0.66° from zenith over Aswan (the zenith point lies exactly on the tropic, 70 km south of the city) and appears as midnight sun due north over the Fort Yukon horizon. When the spherical arc is straightened, the line-of-sight centre falls back onto the AE North Pole.
+            </div>
+
+            <div style="font-size:10px;color:#666;line-height:1.6;padding-top:8px;border-top:1px solid #2a2a2a">
+              <span style="color:#888;font-weight:600">Sources:</span>
+              <a href="https://sunrise-sunset.org/us/fort-yukon-ak/2026/6" target="_blank" style="color:#7aa0c0;text-decoration:none">sunrise-sunset.org/Fort Yukon June 2026</a> &middot;
+              <a href="https://aa.usno.navy.mil/calculated/seasons?year=2026" target="_blank" style="color:#7aa0c0;text-decoration:none">US Naval Observatory &mdash; Earth's Seasons 2026</a> &middot;
+              <a href="https://earthsky.org/astronomy-essentials/everything-you-need-to-know-june-solstice/" target="_blank" style="color:#7aa0c0;text-decoration:none">EarthSky &mdash; June solstice 2026</a> &middot;
+              <a href="https://in-the-sky.org/news.php?id=20260621_07_100" target="_blank" style="color:#7aa0c0;text-decoration:none">In-The-Sky &mdash; solstice data</a>
+            </div>
+          </div>
+
+          <!-- 1.2 Antofagasta (Steinbukkens vendekrets) -->
+          <div style="background:#141210;border:1px solid #2a2a2a;border-left:4px solid #2da356;border-radius:4px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="color:#2da356;font-size:11px;font-weight:600;letter-spacing:0.05em">✓ CONFIRMED &middot; 21 December at 13:40</div>
+                <h3 style="color:#fff;font-size:15px;font-weight:500;margin-top:4px">1.2 &mdash; Antofagasta zenith on the Tropic of Capricorn</h3>
+              </div>
+              <div style="text-align:right">
+                <button class="goto-cal-btn" data-goto-day="275" title="Jump to 21 December in the calendar">→ Show in calendar (21 Dec)</button>
+                <div style="font-size:10px;color:#666;margin-top:4px">Verified 24 May 2026</div>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#bbb;line-height:1.6;margin:10px 0">
+              <span style="color:#c9a247;font-weight:600">Hypothesis:</span> The sun stands 90° straight up over Antofagasta, Chile (23.44°S) only <em>once</em> per year &mdash; at the winter solstice on 21 December at 13:40 local time. This is the southern turning point where the sun reverses and begins its journey northward. At this instant, the shadow from every vertical object vanishes.
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Geometry prediction (Enoch-AE)</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Antofagasta AE radius: <span style="color:#c9a247">12,606 km</span><br>
+                  Sun's sub-point on 21 Dec: <span style="color:#c9a247">12,606 km</span> (outermost gate)<br>
+                  Angle sun-to-surface: <span style="color:#c9a247">90° (zenith)</span><br>
+                  Shadow from vertical pole: <span style="color:#c9a247">none</span>
+                </div>
+              </div>
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Direct empirical documentation</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Site: <span style="color:#2da356">✓ Hito al Trópico de Capricornio</span><br>
+                  GPS-measured monument: <span style="color:#2da356">✓ built in 2000</span><br>
+                  Filmed poles losing shadow: <span style="color:#2da356">✓ at 13:40</span><br>
+                  Event once per year: <span style="color:#2da356">✓ documented</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#0a1810;border-left:3px solid #2da356;padding:10px;font-size:11px;color:#a0d0a0;line-height:1.5;margin:10px 0">
+              <span style="font-weight:600;color:#2da356">Conclusion:</span> Antofagasta is the southern turning point in the sun's annual pendulum motion. Together with Aswan (northern turning point), this establishes the two outermost gates in Enoch's 72-gate system &mdash; the only two places on Earth where the sun stands at zenith only once per year.
+            </div>
+
+            <div style="font-size:10px;color:#666;line-height:1.6;padding-top:8px;border-top:1px solid #2a2a2a">
+              <span style="color:#888;font-weight:600">Sources:</span>
+              <a href="https://www.youtube.com/watch?v=NROhPbKhclo" target="_blank" style="color:#7aa0c0;text-decoration:none">Claux.7 &mdash; EL DIA SIN SOMBRAS Chile (YouTube 2020)</a> &middot; Hito al Trópico de Capricornio (GPS-measured monument, 2000)
+            </div>
+          </div>
+
+          <!-- 1.3 Catequilla + Pontianak (ekvator-zenith to ganger per år) -->
+          <div style="background:#141210;border:1px solid #2a2a2a;border-left:4px solid #2da356;border-radius:4px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="color:#2da356;font-size:11px;font-weight:600;letter-spacing:0.05em">✓ CONFIRMED &middot; 21 March and 23 September</div>
+                <h3 style="color:#fff;font-size:15px;font-weight:500;margin-top:4px">1.3 &mdash; Equator zenith at equinox (Catequilla + Pontianak)</h3>
+              </div>
+              <div style="text-align:right">
+                <button class="goto-cal-btn" data-goto-day="0" title="Jump to spring equinox 21 March">→ Spring equinox</button>
+                <button class="goto-cal-btn" data-goto-day="186" title="Jump to autumn equinox 23 September" style="margin-left:4px">→ Autumn equinox</button>
+                <div style="font-size:10px;color:#666;margin-top:4px">Verified 24 May 2026</div>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#bbb;line-height:1.6;margin:10px 0">
+              <span style="color:#c9a247;font-weight:600">Hypothesis:</span> The sun stands 90° straight up over the equator <em>twice</em> per year &mdash; at spring equinox (21 March) on the way north, and at autumn equinox (23 September) on the way south. The equator is not a turning point, only the midline between the two tropics.
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Catequilla, Ecuador</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Position: <span style="color:#c9a247">0.00°N, 78.43°W</span><br>
+                  Age: <span style="color:#2da356">✓ c. 800 AD (pre-Inca)</span><br>
+                  Gnomon, no shadow: <span style="color:#2da356">✓ documented</span><br>
+                  Ritual offerings at equinox: <span style="color:#2da356">✓ still active</span>
+                </div>
+              </div>
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Pontianak, Indonesia</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Position: <span style="color:#c9a247">0.00°N, 109.32°E</span><br>
+                  Monument built: <span style="color:#2da356">✓ 1928</span><br>
+                  "Shadows lost": <span style="color:#2da356">✓ documented 2x per year</span><br>
+                  Tourist attraction: <span style="color:#2da356">✓ GPS-measured</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#0a1810;border-left:3px solid #2da356;padding:10px;font-size:11px;color:#a0d0a0;line-height:1.5;margin:10px 0">
+              <span style="font-weight:600;color:#2da356">Conclusion:</span> Two independent cultures on two different continents (South America c. 800 AD and Southeast Asia 1928) have documented the exact same phenomenon at the same latitude. This rules out coincidence and confirms that equatorial zenith is a measurable astronomical event occurring twice per year.
+            </div>
+
+            <div style="font-size:10px;color:#666;line-height:1.6;padding-top:8px;border-top:1px solid #2a2a2a">
+              <span style="color:#888;font-weight:600">Sources:</span>
+              <a href="https://core.tdar.org/document/396903/san-catequilla-de-pichincha-and-catequil-the-cult-to-lightning-illapa-in-the-context-of-inca-expansion" target="_blank" style="color:#7aa0c0;text-decoration:none">tDAR &mdash; San Catequilla de Pichincha</a> &middot;
+              <a href="https://blog.oup.com/2014/09/earthquake-lightning-huaca-san-catequilla-de-pichincha/" target="_blank" style="color:#7aa0c0;text-decoration:none">OUP Blog &mdash; Lightning huaca</a> &middot;
+              <a href="https://www.indonesia.travel/gb/en/travel-ideas/culture/tugu-khatulistiwa/" target="_blank" style="color:#7aa0c0;text-decoration:none">Indonesia.travel &mdash; Tugu Khatulistiwa</a> &middot;
+              <a href="https://en.wikipedia.org/wiki/Equator_Monument" target="_blank" style="color:#7aa0c0;text-decoration:none">Wikipedia &mdash; Equator Monument Pontianak</a>
+            </div>
+          </div>
+
+          <!-- 1.4 Solens tre faste zenith-soner -->
+          <div style="background:#141210;border:1px solid #2a2a2a;border-left:4px solid #c9a247;border-radius:4px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="color:#c9a247;font-size:11px;font-weight:600;letter-spacing:0.05em">★ SUMMARY &middot; three independent cultures, three continents</div>
+                <h3 style="color:#fff;font-size:15px;font-weight:500;margin-top:4px">1.4 &mdash; The sun's pendulum between two turning points</h3>
+              </div>
+              <div style="text-align:right;display:flex;flex-direction:column;gap:4px">
+                <button class="goto-cal-btn" data-goto-day="0" title="21 March">→ Spring equinox (day 1)</button>
+                <button class="goto-cal-btn" data-goto-day="92" title="21 June">→ Summer solstice (day 93)</button>
+                <button class="goto-cal-btn" data-goto-day="186" title="23 September">→ Autumn equinox (day 187)</button>
+                <button class="goto-cal-btn" data-goto-day="275" title="21 December">→ Winter solstice (day 276)</button>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#bbb;line-height:1.7;margin:10px 0">
+              There are only <span style="color:#c9a247;font-weight:600">two places on Earth</span> where the sun stands 90° straight up <span style="color:#c9a247;font-weight:600">once per year</span>: the two tropics. All other places between them (including the equator) reach zenith <span style="color:#c9a247;font-weight:600">twice per year</span> &mdash; once on the way south, once on the way north. Outside the tropics the sun <span style="color:#c9a247;font-weight:600">never</span> reaches zenith.
+            </div>
+
+            <table style="width:100%;margin-top:10px;border-collapse:collapse;font-size:11px">
+              <thead>
+                <tr style="background:#1a1814;color:#c9a247">
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Place</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Latitude</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Date</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Per year</th>
+                </tr>
+              </thead>
+              <tbody style="color:#ddd">
+                <tr style="border-bottom:1px solid #2a2a2a">
+                  <td style="padding:6px">Aswan/Syene, Egypt</td>
+                  <td style="padding:6px;color:#c9a247">+23.44°</td>
+                  <td style="padding:6px">21 June</td>
+                  <td style="padding:6px;color:#c9a247;font-weight:600">1 (turns)</td>
+                </tr>
+                <tr style="border-bottom:1px solid #2a2a2a">
+                  <td style="padding:6px">Catequilla, Ecuador</td>
+                  <td style="padding:6px;color:#c9a247">0.00°</td>
+                  <td style="padding:6px">21 Mar + 23 Sep</td>
+                  <td style="padding:6px">2 times</td>
+                </tr>
+                <tr style="border-bottom:1px solid #2a2a2a">
+                  <td style="padding:6px">Pontianak, Indonesia</td>
+                  <td style="padding:6px;color:#c9a247">0.00°</td>
+                  <td style="padding:6px">21 Mar + 23 Sep</td>
+                  <td style="padding:6px">2 times</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px">Antofagasta, Chile</td>
+                  <td style="padding:6px;color:#c9a247">−23.44°</td>
+                  <td style="padding:6px">21 December</td>
+                  <td style="padding:6px;color:#c9a247;font-weight:600">1 (turns)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="margin-top:14px;padding:10px;background:#1a1610;border-left:3px solid #c9a247;font-size:11px;color:#d0c090;line-height:1.6">
+              <span style="color:#c9a247;font-weight:600">Enoch 72:8-10:</span> At the spring equinox, day and night are exactly equal (9 parts each). After 30 days (one gate passage), night is 8 parts and day is 10 parts. The exact ratio occurs at every gate change &mdash; between gate boundaries the day length is distributed evenly across all days. This matches precisely the sun's measurable pendulum motion between the two tropics.
+            </div>
+          </div>
+        </div>
+
+        <!-- CATEGORY 2: MERIDIAN GOLD-FINDING (CLIWOC 249,649 observations) -->
+        <div style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">2. Meridian measurements</h2>
+
+          <div style="background:#141210;border:1px solid #2a2a2a;border-left:4px solid #2da356;border-radius:4px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="color:#2da356;font-size:11px;font-weight:600;letter-spacing:0.05em">&check; CONFIRMED &middot; 249,649 independent observations &middot; 1750-1850</div>
+                <h3 style="color:#fff;font-size:15px;font-weight:500;margin-top:4px">2.1 &mdash; The Meridian Gold-Finding (CLIWOC database)</h3>
+              </div>
+              <div style="text-align:right">
+                <a href="meridian-gull-rapport.pdf" target="_blank" style="display:inline-block;background:#1a1208;border:1px solid #564018;color:#c9a247;padding:6px 12px;border-radius:3px;text-decoration:none;font-size:11px;font-weight:600">&darr; Full report (PDF)</a>
+                <div style="font-size:10px;color:#666;margin-top:4px">Version 1.0 &middot; 22 May 2026</div>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#bbb;line-height:1.6;margin:10px 0">
+              <span style="color:#c9a247;font-weight:600">Hypothesis:</span> If the sun moves along a circular path with a common centre in the north &mdash; as Enoch 72 describes &mdash; then the time of sun-in-meridian passage must follow longitude in an exact pattern: <span style="color:#c9a247">15&deg; of longitude = 1 hour difference</span>. The chronometer reading at the moment the sun crosses the meridian is a direct, model-free observation: clocks set in Greenwich, sextants measuring the sun overhead. No theory of Earth's shape is assumed.
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Geometry prediction (Enoch-AE)</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Expected pattern: <span style="color:#c9a247">15&deg;/hour exactly</span><br>
+                  Formula: <span style="color:#c9a247">GMT = 12:00 − longitude/15</span><br>
+                  Required precision: <span style="color:#c9a247">&lt; 30 min globally</span><br>
+                  Centre of motion: <span style="color:#c9a247">AE North Pole</span><br>
+                  Independent of: <span style="color:#c9a247">Earth's shape</span>
+                </div>
+              </div>
+              <div style="background:#0a0a0a;padding:10px;border-radius:3px">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:6px">Empirical result (verified)</div>
+                <div style="font-size:11px;color:#ddd;line-height:1.7">
+                  Observations analysed: <span style="color:#2da356">✓ 249,649</span><br>
+                  Mean deviation: <span style="color:#2da356">✓ −0.1 min (statistical zero)</span><br>
+                  Median deviation: <span style="color:#2da356">✓ −0.2 min</span><br>
+                  Within ±30 min: <span style="color:#2da356">✓ 100.0%</span><br>
+                  Standard deviation: <span style="color:#2da356">✓ 17.4 min (chronometer-era expected)</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size:11px;color:#aaa;line-height:1.6;margin:10px 0;padding:10px;background:#0a0a0a;border-radius:3px">
+              <div style="color:#c9a247;font-weight:600;font-size:11px;margin-bottom:6px;text-transform:uppercase">Pattern around the Earth (5&deg; longitude bands)</div>
+              <table style="width:100%;border-collapse:collapse;font-size:11px;color:#ddd">
+                <thead>
+                  <tr style="color:#888;text-transform:uppercase;font-size:10px">
+                    <th style="padding:4px 6px;text-align:left;border-bottom:1px solid #2a2a2a">Longitude band</th>
+                    <th style="padding:4px 6px;text-align:right;border-bottom:1px solid #2a2a2a">Observations</th>
+                    <th style="padding:4px 6px;text-align:right;border-bottom:1px solid #2a2a2a">Expected GMT</th>
+                    <th style="padding:4px 6px;text-align:right;border-bottom:1px solid #2a2a2a">Most frequent HR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style="padding:3px 6px">−90&deg; to −85&deg;</td><td style="padding:3px 6px;text-align:right">841</td><td style="padding:3px 6px;text-align:right;color:#c9a247">17:48</td><td style="padding:3px 6px;text-align:right;color:#2da356">18:00</td></tr>
+                  <tr><td style="padding:3px 6px"><strong>−75&deg; to −70&deg;</strong> (Hartswell)</td><td style="padding:3px 6px;text-align:right"><strong>2,733</strong></td><td style="padding:3px 6px;text-align:right;color:#c9a247"><strong>16:50</strong></td><td style="padding:3px 6px;text-align:right;color:#2da356"><strong>17:00</strong></td></tr>
+                  <tr><td style="padding:3px 6px">−60&deg; to −55&deg;</td><td style="padding:3px 6px;text-align:right">6,215</td><td style="padding:3px 6px;text-align:right;color:#c9a247">15:49</td><td style="padding:3px 6px;text-align:right;color:#2da356">16:00</td></tr>
+                  <tr><td style="padding:3px 6px">−30&deg; to −25&deg;</td><td style="padding:3px 6px;text-align:right">18,904</td><td style="padding:3px 6px;text-align:right;color:#c9a247">13:49</td><td style="padding:3px 6px;text-align:right;color:#2da356">14:00</td></tr>
+                  <tr><td style="padding:3px 6px">0&deg; to 5&deg;</td><td style="padding:3px 6px;text-align:right">6,447</td><td style="padding:3px 6px;text-align:right;color:#c9a247">11:50</td><td style="padding:3px 6px;text-align:right;color:#2da356">12:00</td></tr>
+                  <tr><td style="padding:3px 6px">30&deg; to 35&deg;</td><td style="padding:3px 6px;text-align:right">2,617</td><td style="padding:3px 6px;text-align:right;color:#c9a247">09:50</td><td style="padding:3px 6px;text-align:right;color:#2da356">10:00</td></tr>
+                  <tr><td style="padding:3px 6px">90&deg; to 95&deg;</td><td style="padding:3px 6px;text-align:right">3,298</td><td style="padding:3px 6px;text-align:right;color:#c9a247">05:50</td><td style="padding:3px 6px;text-align:right;color:#2da356">06:00</td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:8px;font-size:10px;color:#888;line-height:1.5">Pattern holds without exception from −180&deg; to +180&deg;. For every 15&deg; west = +1 hour GMT. Complete table in <a href="meridian-gull-analyse.csv" target="_blank" style="color:#7aa0c0;text-decoration:none">meridian-gull-analyse.csv</a> (71 bands).</div>
+            </div>
+
+            <div style="background:#1a1610;border-left:3px solid #c9a247;padding:10px;font-size:11px;color:#d0c090;line-height:1.5;margin:10px 0">
+              <span style="font-weight:600;color:#c9a247">Cook's K1 observation (1774):</span> James Cook at Christmas Sound (53.4&deg;S, 76.3&deg;W) read <strong>17:05:14 GMT</strong> on his K1 chronometer when the sun crossed the meridian. Expected from longitude: 12:00 + 76.3/15 = <strong>17:05:12 GMT</strong>. Difference: <strong>2 seconds</strong>. Cook's single observation now stands among 2,733 others in the same 5&deg; band &mdash; and 249,649 globally. The drift-of-K1 objection falls away.
+            </div>
+
+            <div style="background:#0a1810;border-left:3px solid #2da356;padding:10px;font-size:11px;color:#a0d0a0;line-height:1.5;margin:10px 0">
+              <span style="font-weight:600;color:#2da356">Conclusion:</span> Sun-in-meridian passage follows the 15&deg;/hour pattern <em>exactly</em>. This is the geometric signature of circular motion around a common centre &mdash; precisely as Enoch chapter 72 describes. 249,649 independent observations from thousands of navigators across 100 years, four nations, and every longitude band of the globe cannot be coincidence, systematic clock error, or retrospective correction. The mean deviation is statistically zero (−0.1 min). Centre-oriented circular motion is empirically confirmed.
+            </div>
+
+            <div style="font-size:10px;color:#666;line-height:1.6;padding-top:8px;border-top:1px solid #2a2a2a">
+              <span style="color:#888;font-weight:600">Sources:</span>
+              <a href="https://en.wikipedia.org/wiki/CLIWOC" target="_blank" style="color:#7aa0c0;text-decoration:none">CLIWOC database (Wikipedia)</a> &middot;
+              <a href="http://climexp.knmi.nl/" target="_blank" style="color:#7aa0c0;text-decoration:none">KNMI Climate Explorer (raw data)</a> &middot;
+              <a href="https://www.nodc.noaa.gov/archive/arc0106/0162250/1.1/data/0-data/R3.0-imma1.pdf" target="_blank" style="color:#7aa0c0;text-decoration:none">NOAA IMMA1 format specification</a> &middot;
+              <a href="https://astroedu.iau.org/activities/the-quest-for-longitude/" target="_blank" style="color:#7aa0c0;text-decoration:none">astroEDU — Quest for Longitude (Wales &amp; Bayly 1777)</a> &middot;
+              <a href="https://www.rmg.co.uk/collections/objects/rmgc-object-79143" target="_blank" style="color:#7aa0c0;text-decoration:none">Royal Museums Greenwich — K1 chronometer</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATEGORY 4: LATITUDE ARCS -->
+        <div style="margin-bottom:28px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">4. Latitude arcs</h2>
+          <div style="background:#141210;border:1px dashed #444;border-radius:4px;padding:16px;color:#666;font-size:12px">
+            Coming: Tropic of Cancer test &middot; Tropic of Capricorn test &middot; Equator circumference test
+          </div>
+        </div>
+
+        <!-- CATEGORY 5: THE FOUR EXTRA ROUNDS -->
+        <div style="margin-bottom:8px">
+          <h2 style="color:#c9a247;font-size:14px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid #c9a247;padding-bottom:6px;margin-bottom:14px">5. The four extra rounds</h2>
+
+          <div style="background:#141210;border:1px solid #2a2a2a;border-left:4px solid #c9a247;border-radius:4px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div>
+                <div style="color:#c9a247;font-size:11px;font-weight:600;letter-spacing:0.05em">&starf; FOUNDATION &middot; Enoch 72:13, 19, 25, 31 + Enoch 75:1-2 + Enoch 82:4-6</div>
+                <h3 style="color:#fff;font-size:15px;font-weight:500;margin-top:4px">5.1 &mdash; The year has 364 days + 4 extra rounds = 368 real solar rounds</h3>
+              </div>
+              <div style="text-align:right;display:flex;flex-direction:column;gap:4px">
+                <button class="goto-cal-btn" data-goto-day="90" title="Solar day 91 (Summer solstice — Gate 6)">&rarr; Day 91 (Gate 6)</button>
+                <button class="goto-cal-btn" data-goto-day="181" title="Solar day 182 (Spring equinox start — Gate 4)">&rarr; Day 182 (Gate 4)</button>
+                <button class="goto-cal-btn" data-goto-day="272" title="Solar day 273 (Winter solstice — Gate 1)">&rarr; Day 273 (Gate 1)</button>
+                <button class="goto-cal-btn" data-goto-day="363" title="Solar day 364 (Spring equinox end — Gate 3)">&rarr; Day 364 (Gate 3)</button>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#bbb;line-height:1.7;margin:10px 0">
+              <span style="color:#c9a247;font-weight:600">Hypothesis:</span> The Book of Enoch 75:1-2 and 82:4-6 state explicitly that there are four intercalary days &mdash; one in each of gates 1, 3, 4 and 6. These are the solstice and equinox gates. On these four days the sun takes an extra round in the same path as the day before (lat constant, lon continues normally). This delays the gate change by 1 day and is observable to those who know. This is how the observers know when the solar month-shift occurs.
+            </div>
+
+            <table style="width:100%;margin-top:10px;border-collapse:collapse;font-size:11px">
+              <thead>
+                <tr style="background:#1a1814;color:#c9a247">
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Solar day</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Gate</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Path (lat)</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Event</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Enoch verse</th>
+                  <th style="padding:6px;text-align:left;border-bottom:1px solid #c9a247">Sheet T row</th>
+                </tr>
+              </thead>
+              <tbody style="color:#ddd">
+                <tr style="border-bottom:1px solid #2a2a2a">
+                  <td style="padding:6px;color:#c9a247;font-weight:600">91</td>
+                  <td style="padding:6px">Gate 6 (innermost)</td>
+                  <td style="padding:6px">+23.7&deg; (Cancer, zenith)</td>
+                  <td style="padding:6px">Summer solstice (Sivan 31)</td>
+                  <td style="padding:6px">72:13</td>
+                  <td style="padding:6px;color:#888">222</td>
+                </tr>
+                <tr style="border-bottom:1px solid #2a2a2a">
+                  <td style="padding:6px;color:#c9a247;font-weight:600">182</td>
+                  <td style="padding:6px">Gate 4 (equator)</td>
+                  <td style="padding:6px">0&deg;</td>
+                  <td style="padding:6px">Spring equinox start</td>
+                  <td style="padding:6px">72:19</td>
+                  <td style="padding:6px;color:#888">125 (H2-side)</td>
+                </tr>
+                <tr style="border-bottom:1px solid #2a2a2a">
+                  <td style="padding:6px;color:#c9a247;font-weight:600">273</td>
+                  <td style="padding:6px">Gate 1 (outermost)</td>
+                  <td style="padding:6px">-23.7&deg; (Capricorn)</td>
+                  <td style="padding:6px">Winter solstice</td>
+                  <td style="padding:6px">72:25</td>
+                  <td style="padding:6px;color:#888">30</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px;color:#c9a247;font-weight:600">364</td>
+                  <td style="padding:6px">Gate 3 (equator)</td>
+                  <td style="padding:6px">0&deg;</td>
+                  <td style="padding:6px">Spring equinox end (Adar 31)</td>
+                  <td style="padding:6px">72:31</td>
+                  <td style="padding:6px;color:#888">125 (H1-side)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="margin-top:14px;padding:10px;background:#1a1610;border-left:3px solid #c9a247;font-size:11px;color:#d0c090;line-height:1.6">
+              <span style="color:#c9a247;font-weight:600">Enoch 82:13-14 — the leaders of the four extra days:</span> Milki'el, Hel'emmelek, Mel'ejal and Narel. Adnar'el, Ijasusa'el and 'Elome'el are the names of those who lead them.
+            </div>
+
+            <div style="background:#0a1810;border-left:3px solid #2da356;padding:10px;font-size:11px;color:#a0d0a0;line-height:1.5;margin:10px 0">
+              <span style="font-weight:600;color:#2da356">Verification:</span> Enoch 72:5 also states: <em>"The sun returns through the north to reach the east."</em> The gate change therefore happens at the north passage, not by a sudden jump between paths. The sun shines every single day &mdash; no exceptions. On the extra-round day it merely stays 2 days in the same path before continuing.
+            </div>
+
+            <div style="font-size:10px;color:#666;line-height:1.6;padding-top:8px;border-top:1px solid #2a2a2a">
+              <span style="color:#888;font-weight:600">Sources:</span>
+              <a href="https://www.ccel.org/c/charles/otpseudepig/enoch/ENOCH_3.HTM" target="_blank" style="color:#7aa0c0;text-decoration:none">R.H. Charles &mdash; The Book of Enoch (1917) Section III</a> &middot;
+              <a href="https://www.pseudepigrapha.com/pseudepigrapha/enoch.htm" target="_blank" style="color:#7aa0c0;text-decoration:none">Pseudepigrapha &mdash; Book of Enoch</a> &middot;
+              One-voice-740-Perplexity-V6.xlsx sheet T (rows 30, 125, 222)
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Sun timeline -->
+  <div id="timeline-bar">
+    <span class="tl-label">SUN LAT</span>
+    <input type="range" id="sun-lat" min="-23.7" max="23.7" step="0.1" value="0">
+    <span class="tl-val" id="sun-lat-val">0.0°</span>
+    <button class="preset-btn" id="preset-equinox" title="Equinox (Sun at equator)">⇄ Equinox</button>
+    <button class="preset-btn" id="preset-cancer" title="Summer solstice (Tropic of Cancer)">↑ Cancer</button>
+    <button class="preset-btn" id="preset-capricorn" title="Winter solstice (Tropic of Capricorn)">↓ Capricorn</button>
+    <button class="preset-btn" id="btn-play" title="Animate the year">▶ Play</button>
+  </div>
+
+  <!-- Calendar window (movable + resizable) -->
+  <button id="btn-show-calbar" title="Open calendar window">✎ Calendar</button>
+  <div id="calbar">
+    <div id="calbar-handle" title="Drag to move">⋮⋮</div>
+    <button class="popout-btn" data-popout="calbar" title="Move the calendar to a separate window (can be dragged to another screen)" style="position:absolute;right:38px;top:8px;width:24px;height:24px;border-radius:3px;background:transparent;border:1px solid #333;color:#888;cursor:pointer;font-size:12px;padding:0;line-height:1;">⧉</button>
+    <button id="calbar-close" title="Hide the calendar window">✕</button>
+    <span style="color:#888">DATE</span>
+    <select id="cal-month"></select>
+    <input type="range" id="cal-day" min="1" max="31" step="1" value="1">
+    <span class="tl-val" id="cal-day-val">1</span>
+    <button class="preset-btn" id="cal-prev">◀</button>
+    <button class="preset-btn" id="cal-next">▶</button>
+    <button class="preset-btn" id="cal-today">Today</button>
+    <a href="Ark-T-V6-uttrekk.xlsx" download class="preset-btn" id="cal-arkT" title="Download the master calendar (Sheet T) from V6 as Excel" style="text-decoration:none;color:#c9a247;border-color:#564018">↓ Sheet T (V6)</a>
+    <span style="color:#666">|</span>
+    <span class="cal-info" id="cal-info">Enoch year —</span>
+    <span style="color:#666">|</span>
+    <div style="display:inline-flex;flex-direction:column;align-items:center;padding:2px 10px;border-left:1px solid #333;border-right:1px solid #333;line-height:1.2">
+      <span id="rotation-display" style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;letter-spacing:1.5px;color:#d4af37;text-shadow:0 0 4px rgba(212,175,55,0.35)">ROTATION 1 / 364</span>
+      <span id="rotation-sub" style="font-size:10px;color:#9a8a5a;letter-spacing:0.5px;margin-top:1px">Year 1 · 0.0% · Gate 4 · 10/8 parts</span>
+    </div>
+    <span style="color:#666">|</span>
+    <span class="tl-label">SPEED</span>
+    <input type="range" id="speed-slider" min="0" max="1000" step="1" value="940" title="Logarithmic: from atomic-clock rate (24 h/round) to 5 d/s. Default 940 = ~2 d/s so the annual path appears immediately">
+    <span class="tl-val" id="speed-val" style="min-width:140px">2.0 d/s · 12.0 h/round</span>
+    <button class="preset-btn" id="btn-realtime" title="Set to atomic-clock rate: one round = 24 hours (86,400 s)" style="border-color:#564018;color:#c9a247">⏱ Real time</button>
+    <span style="color:#666">|</span>
+    <span class="tl-label">TZ</span>
+    <select id="clock-tz" title="Time zone for the dial">
+      <option value="-12">UTC−12</option><option value="-11">UTC−11</option>
+      <option value="-10">UTC−10</option><option value="-9">UTC−9</option>
+      <option value="-8">UTC−8 (PST)</option><option value="-7">UTC−7 (MST)</option>
+      <option value="-6">UTC−6 (CST)</option><option value="-5">UTC−5 (EST)</option>
+      <option value="-4">UTC−4</option><option value="-3">UTC−3</option>
+      <option value="-2">UTC−2</option><option value="-1">UTC−1</option>
+      <option value="0">UTC±0 (GMT)</option><option value="1">UTC+1 (CET)</option>
+      <option value="2">UTC+2 (CEST/EET)</option><option value="3">UTC+3 (MSK)</option>
+      <option value="4">UTC+4</option><option value="5">UTC+5</option>
+      <option value="5.5">UTC+5:30 (IST)</option><option value="6">UTC+6</option>
+      <option value="7">UTC+7</option><option value="8">UTC+8 (CST/HKT)</option>
+      <option value="9">UTC+9 (JST)</option><option value="10">UTC+10 (AEST)</option>
+      <option value="11">UTC+11</option><option value="12">UTC+12 (NZST)</option>
+      <option value="13">UTC+13</option><option value="14">UTC+14</option>
+    </select>
+    <span class="tl-val" id="clock-sol-digital" style="min-width:140px;color:#c9a247">—</span>
+    <span style="color:#666">|</span>
+    <span class="tl-label">SOL R</span>
+    <input type="range" id="clock-sol-radius" min="20" max="110" value="100" style="width:120px" title="Percent of the outermost diameter (R_OUTER). 100% = the whole map.">
+    <span class="tl-val" id="clock-sol-radius-val" style="min-width:40px">100%</span>
+  </div>
+
+  <!-- ATOM-KLOKKE POPUP (digital, 24 t, sann offisiell tid) -->
+  <div id="atom-clock-popup" style="
+    display:none; position:fixed; top:80px; right:20px; z-index:50;
+    background:linear-gradient(180deg,#0a1828 0%,#0a1218 100%);
+    border:1px solid #6090d0; border-radius:8px;
+    padding:14px 18px 16px; min-width:230px;
+    box-shadow:0 8px 28px rgba(0,0,0,0.55);
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    color:#dfeaff;
+  ">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;letter-spacing:1.5px;color:#6090d0;text-transform:uppercase">Atomic clock — real time</div>
+      <button id="atom-clock-close" style="background:none;border:none;color:#6090d0;font-size:16px;cursor:pointer;padding:0 4px" title="Close">×</button>
+    </div>
+    <div id="clock-atom-digital" style="
+      font-family:'SF Mono','Menlo','Consolas',monospace;
+      font-size:38px; font-weight:600; letter-spacing:2px;
+      color:#a0c8ff; text-align:center; line-height:1.0; margin:4px 0 6px;
+      text-shadow:0 0 12px rgba(96,144,208,0.4);
+    ">—</div>
+    <div id="clock-atom-tz-label" style="
+      font-size:12px; color:#6090d0; text-align:center; letter-spacing:1px;
+    ">UTC±0</div>
+    <div style="font-size:10px;color:#506880;text-align:center;margin-top:8px;line-height:1.4">
+      24-hour, real official time<br>(independent of simulation)
+    </div>
+  </div>
+
+  <!-- Main: left panel | canvas | right panel -->
+  <div id="main">
+
+    <!-- LEFT PANEL: Search, Layers, Filters -->
+    <div id="panel-left">
+
+      <div class="panel-section">
+        <h2>Search</h2>
+        <input id="searchbox" type="text" placeholder="Marker, place or coordinate...">
+        <div id="search-results"></div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Layer 3 — Firmament</h2>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-polaris" checked>
+          <span class="layer-color" style="background:#ffd860"></span>
+          Polaris (central axis)
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-stars">
+          <span class="layer-color" style="background:#aaccff"></span>
+          Stars (placeholder)
+        </label>
+      </div>
+
+      <div class="panel-section">
+        <h2>Layer 2 — Sun, Moon, Planets, Enoch Gates</h2>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-enoch-gates" checked>
+          <span class="layer-color" style="background:#e06030"></span>
+          Enoch 12 gates (walls + openings)
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-sun" checked>
+          <span class="layer-color" style="background:#ffd860"></span>
+          Sun (current position)
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-moon">
+          <span class="layer-color" style="background:#d0d0e0"></span>
+          Moon
+        </label>
+      </div>
+
+      <div class="panel-section">
+        <h2>Layer 1 — The Enoch Map (with magnetic center)</h2>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-equator" checked>
+          <span class="layer-color" style="background:#c9a247"></span>
+          Equator ring
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-cancer" checked>
+          <span class="layer-color" style="background:#e0c060"></span>
+          Tropic of Cancer
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-capricorn" checked>
+          <span class="layer-color" style="background:#c08040"></span>
+          Tropic of Capricorn
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-polarcircles" checked>
+          <span class="layer-color" style="background:#7090c0"></span>
+          Polar circles (Arctic + Antarctic)
+        </label>
+        <label class="layer-toggle" title="Google Earth lat/long reference: standard rutenett + finmasket 5° edderkoppnett (72 meridianer) + GE-lengdegradtall (10°E, 90°E osv.) inni kompasset">
+          <input type="checkbox" id="layer-grid" checked>
+          <span class="layer-color" style="background:#3a5070"></span>
+          GE grid (lat/long + 5° fine)
+        </label>
+        <div class="ctrl" style="padding-left:18px">
+          <label style="color:#888;font-size:11px">Grid size:
+            <select id="grid-size" style="background:#0d0d0d;color:#ccc;border:1px solid #2a2a2a;padding:2px;font-size:11px">
+              <option value="10">10°</option>
+              <option value="5" selected>5°</option>
+              <option value="1">1°</option>
+            </select>
+          </label>
+        </div>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-square-grid">
+          <span class="layer-color" style="background:#ffffff"></span>
+          Square grid (Cartesian, GE-scale 110.593 km/°)
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-coast" checked>
+          <span class="layer-color" style="background:#2d8fcf"></span>
+          UN AE map (continents)
+        </label>
+        <div style="padding-left:20px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#888;margin:4px 0">
+            Map opacity
+            <input type="range" id="map-opacity" min="0" max="100" value="85" style="flex:1">
+            <span id="map-opacity-val" style="width:30px;text-align:right;font-family:monospace;color:#c9a247">85</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#888;margin:4px 0" title="Rotate the UN map to align Greenwich with our AE coordinates (negative = clockwise)">
+            Map rotation
+            <input type="range" id="map-rotation" min="-180" max="180" step="0.5" value="0" style="flex:1">
+            <span id="map-rotation-val" style="width:42px;text-align:right;font-family:monospace;color:#c9a247">0°</span>
+          </label>
+        </div>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-ports" checked>
+          <span class="layer-color" style="background:#a08040"></span>
+          Ports / measurement points
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-meridians" checked>
+          <span class="layer-color" style="background:#404060"></span>
+          Meridians
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-outerring" checked>
+          <span class="layer-color" style="background:#e07a7a"></span>
+          Outer ring (Antarctica, 197 421 km)
+        </label>
+      </div>
+
+      <!-- v16.36: Magnetic North toggle fjernet etter Jone-Aase 2026-05-28 (lilla glow-sirkel borte). -->
+
+      <div class="panel-section">
+        <h2>Marker filters</h2>
+        <label class="ctrl"><input type="checkbox" id="filt-equator" checked> Equator (16)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-cancer" checked> Cancer (23)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-capricorn" checked> Capricorn (11)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-arctic" checked> Arctic circle</label>
+        <label class="ctrl"><input type="checkbox" id="filt-port" checked> Ports</label>
+        <label class="ctrl"><input type="checkbox" id="filt-megalithic" checked> Megalithic</label>
+        <label class="ctrl"><input type="checkbox" id="filt-vendekretsmon" checked> Vendekrets-monumenter (17)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-havn-sor" checked> Sørlige havner (EK-01..02)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-110e" checked> Meridian 110°E (EK-03..05)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-150e" checked> Meridian 150°E (EK-06..10)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-149w" checked> Meridian 149.5°W (EK-12..17)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-70w" checked> Meridian 70°W (MR70W-01..12)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-antipodal-axes" checked> Antipodal akser (5 par)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-axis-70w-110e" checked> Akse 70°W &harr; 110°E (Carvajal-Casey)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-antarctica-bases" checked> Antarktis-baser (29)</label>
+        <label class="ctrl"><input type="checkbox" id="show-labels"> Show labels</label>
+      </div>
+
+    </div>
+
+    <!-- CENTER: Canvas -->
+    <div id="canvas-wrap">
+      <canvas id="cv"></canvas>
+      <div id="tooltip"></div>
+      <div id="zoom-indicator">100% · Enoch scale</div>
+      <!-- v16.36: Port-progresjons-indikator fjernet etter Jone-Aase 2026-05-28. -->
+      <!-- v16.41: Synlig kamera-panel fjernet etter Jone-Aase 2026-05-28. Bruk View-menyen ved siden av Day/night for kamera-kontroll. -->
+    </div>
+
+    <!-- RIGHT PANEL: Verified numbers, info -->
+    <div id="panel-right">
+
+      <div class="panel-section">
+        <h2>Verified measurements</h2>
+        <div class="stat-row"><span class="k">GE radius (R)</span><span class="v gold">10,001.47 km</span></div>
+        <div class="stat-row"><span class="k">Sphere circumference (2πR)</span><span class="v">62,841.09 km</span></div>
+        <div class="stat-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #2a2a2a"><span class="k">Half circumference = new R</span><span class="v gold">31,420.55 km</span></div>
+        <div class="stat-row"><span class="k">New circumference (2π × new R)</span><span class="v gold">197,421.10 km</span></div>
+      </div>
+
+      <div class="panel-section">
+        <h2>AE projection radii (from N. Pole)</h2>
+        <div class="stat-row"><span class="k">Arctic Circle (66°33′N)</span><span class="v">2,608 km</span></div>
+        <div class="stat-row"><span class="k">Tropic of Cancer (23°27′N)</span><span class="v">7,393 km</span></div>
+        <div class="stat-row"><span class="k">Equator (0°)</span><span class="v gold">10,001 km</span></div>
+        <div class="stat-row"><span class="k">Tropic of Capricorn (23°27′S)</span><span class="v">12,608 km</span></div>
+        <div class="stat-row"><span class="k">Antarctic Circle (66°33′S)</span><span class="v">17,394 km</span></div>
+        <div class="stat-row"><span class="k">Outer edge (90°S)</span><span class="v gold">31,420.55 km</span></div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Latitude span (measured)</h2>
+        <div class="stat-row"><span class="k">Equator → 10°N (Africa)</span><span class="v">1,105.93 km · 110.59 /°</span></div>
+        <div class="stat-row"><span class="k">30°N → 35°N (USA)</span><span class="v">554.60 km · 110.92 /°</span></div>
+        <div class="stat-row"><span class="k">60°N → 65°N (N. Europe)</span><span class="v">557.36 km · 111.47 /°</span></div>
+        <div class="stat-row"><span class="k">60°N → 70°N</span><span class="v">1,115.25 km · 111.53 /°</span></div>
+        <div class="stat-row"><span class="k">Difference (10° equator vs 10° polar)</span><span class="v gold">9,320 m</span></div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Solar line of sight at equinox</h2>
+        <div style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">
+          At equinox (21 March / 23 September) the sun shines to both polar circles.
+          The line Arctic Circle → North Pole → Antarctic Circle is the sun's measurable line of sight.
+        </div>
+        <label class="layer-toggle">
+          <input type="checkbox" id="siktlinje-show">
+          <span class="layer-color" style="background:#ffe06a"></span>
+          Show line of sight on the map
+        </label>
+        <div class="stat-row" style="margin-top:10px"><span class="k">Arctic Circle (AE radius)</span><span class="v" id="sl-r-arctic">2,608 km</span></div>
+        <div class="stat-row"><span class="k">Antarctic Circle (AE radius)</span><span class="v" id="sl-r-antarctic">17,394 km</span></div>
+        <div class="stat-row" style="margin-top:6px;padding-top:6px;border-top:1px solid #2a2a2a"><span class="k">Line of sight on flat plane</span><span class="v gold" id="sl-flat">20,003 km</span></div>
+        <div class="stat-row"><span class="k">Sphere: through the Earth (chord)</span><span class="v" id="sl-sphere-chord">11,693 km</span></div>
+        <div class="stat-row"><span class="k">Sphere: along the surface</span><span class="v" id="sl-sphere-arc">14,809 km</span></div>
+        <div class="stat-row" style="margin-top:6px;padding-top:6px;border-top:1px solid #2a2a2a"><span class="k">Difference (flat − sphere chord)</span><span class="v gold" id="sl-diff">+8,310 km</span></div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2a2a2a;font-size:10px;color:#888;line-height:1.4">
+          The sun's ray is a STRAIGHT line. On the sphere, the light must curl around the Earth or pass through it. On the flat map, the light travels straight across the plane.
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Latitude circumference: flat vs. sphere</h2>
+        <div style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">
+          Drag the slider. The glowing ring on the map follows the selected latitude.
+          Compare flat AE circumference with spherical circumference.
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:6px">
+          <input type="checkbox" id="lc-show-ring">
+          <span>Show compare ring on map</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px">
+          <span style="width:36px">Lat</span>
+          <input type="range" id="lat-slider" min="-85" max="85" step="0.5" value="0" style="flex:1">
+          <span id="lat-slider-val" style="width:48px;text-align:right;font-family:monospace;color:#c9a247">0.0°</span>
+        </label>
+        <div style="margin-top:6px;display:flex;justify-content:space-between;font-size:10px;color:#666">
+          <span>-85° S</span><span>0° (equator)</span><span>85° N</span>
+        </div>
+        <div class="stat-row" style="margin-top:10px"><span class="k">AE radius (from North Pole)</span><span class="v" id="lc-radius">10,001 km</span></div>
+        <div class="stat-row"><span class="k">Flat circumference (Enoch)</span><span class="v gold" id="lc-flat">62,841 km</span></div>
+        <div class="stat-row"><span class="k">Sphere circumference (2πR⋅cos)</span><span class="v" id="lc-sphere">40,075 km</span></div>
+        <div class="stat-row" style="margin-top:6px;padding-top:6px;border-top:1px solid #2a2a2a"><span class="k">Difference</span><span class="v gold" id="lc-diff">+22,766 km</span></div>
+        <div class="stat-row"><span class="k">Factor (flat / sphere)</span><span class="v gold" id="lc-factor">1.57×</span></div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2a2a2a;font-size:10px;color:#888;line-height:1.4" id="lc-zone">
+          Zone: Equator. On the sphere this latitude also exists.
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Zenith test: solar line of sight on actual dates</h2>
+        <div style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">
+          Three testable pairs: the sun stands at zenith over the zenith point (12:00 local), and the midnight sun is seen due north/south from the observation point (00:00 local). The straight line between them is the sun's actual line of sight through flat geometry.
+        </div>
+        <label class="layer-toggle">
+          <input type="checkbox" id="zenith-show" checked>
+          <span class="layer-color" style="background:#ffd54a"></span>
+          Show lines of sight on the map
+        </label>
+
+        <div style="margin-top:10px;padding:8px;background:#1a1814;border-left:3px solid #c9a247;border-radius:3px">
+          <div style="color:#c9a247;font-weight:600;font-size:11px;margin-bottom:4px">Test 1: Summer solstice 19 June 2026</div>
+          <div class="stat-row"><span class="k">Zenith: Aswan/Syene</span><span class="v">24.09°N · 32.90°E</span></div>
+          <div class="stat-row"><span class="k">Midnight sun: Fort Yukon</span><span class="v">66.56°N · 145.26°W</span></div>
+          <div class="stat-row"><span class="k">Longitude diff (≈antipode)</span><span class="v" id="zt1-londiff">178.16°</span></div>
+          <div class="stat-row"><span class="k">Flat line of sight</span><span class="v gold" id="zt1-flat">9,928 km</span></div>
+          <div class="stat-row"><span class="k">Line's pass at North Pole</span><span class="v" id="zt1-npmiss">62 km</span></div>
+        </div>
+
+        <div style="margin-top:8px;padding:8px;background:#141a1a;border-left:3px solid #6abfff;border-radius:3px">
+          <div style="color:#6abfff;font-weight:600;font-size:11px;margin-bottom:4px">Test 2: Equinox 21 March &amp; 23 September</div>
+          <div class="stat-row"><span class="k">Zenith: Catequilla (equator)</span><span class="v">0.00°N · 78.50°W</span></div>
+          <div class="stat-row"><span class="k">Antipodal midnight</span><span class="v">0.00°N · 101.50°E</span></div>
+          <div class="stat-row"><span class="k">Longitude diff (antipode)</span><span class="v" id="zt2-londiff">180.00°</span></div>
+          <div class="stat-row"><span class="k">Flat line of sight (equator diameter)</span><span class="v gold" id="zt2-flat">20,003 km</span></div>
+          <div class="stat-row"><span class="k">Line's pass at North Pole</span><span class="v" id="zt2-npmiss">0 km</span></div>
+        </div>
+
+        <div style="margin-top:8px;padding:8px;background:#1a1414;border-left:3px solid #ff9060;border-radius:3px">
+          <div style="color:#ff9060;font-weight:600;font-size:11px;margin-bottom:4px">Test 3: Summer solstice 21 June</div>
+          <div class="stat-row"><span class="k">Midnight sun: Grimsey, Iceland</span><span class="v">66.56°N · 18.02°W</span></div>
+          <div class="stat-row"><span class="k">Capricorn-zenith antipode</span><span class="v">23.44°S · 161.98°E</span></div>
+          <div class="stat-row"><span class="k">Longitude diff (antipode)</span><span class="v" id="zt3-londiff">180.00°</span></div>
+          <div class="stat-row"><span class="k">Flat line of sight</span><span class="v gold" id="zt3-flat">15,210 km</span></div>
+          <div class="stat-row"><span class="k">Line's pass at North Pole</span><span class="v" id="zt3-npmiss">0 km</span></div>
+        </div>
+
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2a2a2a;font-size:10px;color:#888;line-height:1.4">
+          When the curved arc is straightened, the solar path centre falls back onto the AE North Pole. The lines pass practically through the centre &mdash; confirmation that the solar mechanics are polar-centred.
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Sun geometry (today)</h2>
+        <div class="stat-row"><span class="k">Sun latitude</span><span class="v gold" id="sg-lat">0.0°</span></div>
+        <div class="stat-row"><span class="k">Sun ring radius (AE)</span><span class="v" id="sg-radius">10,001 km</span></div>
+        <div class="stat-row"><span class="k">Sun ring circumf.</span><span class="v" id="sg-circ">62,840 km</span></div>
+        <div class="stat-row"><span class="k">Day half (illuminated)</span><span class="v" id="sg-day">— km</span></div>
+        <div class="stat-row"><span class="k">Day rotation</span><span class="v" id="sg-rot">0°</span></div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Pointer</h2>
+        <div class="stat-row"><span class="k">Lat / Long</span><span class="v" id="pt-latlong">—</span></div>
+        <div class="stat-row"><span class="k">AE radius from N. Pole</span><span class="v" id="pt-radius">—</span></div>
+        <div class="stat-row"><span class="k">Distance to sun ring</span><span class="v" id="pt-sundist">—</span></div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Selected marker</h2>
+        <div id="marker-info" style="font-size:11px;color:#aaa;line-height:1.5">
+          Click a marker on the map to see details.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="statusbar">
+    <div class="sb-item"><span class="sb-label">Mode</span><span class="sb-val" id="sb-mode">Enoch · AE</span></div>
+    <div class="sb-item"><span class="sb-label">Markers</span><span class="sb-val" id="sb-count">0</span></div>
+    <div class="sb-item"><span class="sb-label">Visible</span><span class="sb-val" id="sb-visible">0</span></div>
+    <div class="sb-item"><span class="sb-label">Pointer</span><span class="sb-val" id="sb-pointer">—</span></div>
+    <div class="sb-spacer"></div>
+    <div class="sb-item"><span class="sb-label">© Enoch Project</span><span class="sb-val">Phase 9 · May 2026</span></div>
+  </div>
+
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<!-- Marker info modal -->
+<div id="marker-modal-backdrop">
+  <div id="marker-modal" role="dialog" aria-modal="true">
+    <div class="mm-head">
+      <div class="mm-name">
+        <h2 id="mm-name">Marker</h2>
+        <div class="mm-group" id="mm-group">—</div>
+      </div>
+      <button class="mm-close" id="mm-close" title="Close">×</button>
+    </div>
+    <div class="mm-body">
+      <div class="mm-row"><span class="mm-key">ID</span><span class="mm-val" id="mm-id">—</span></div>
+      <div class="mm-row"><span class="mm-key">Type</span><span class="mm-val" id="mm-type">—</span></div>
+      <div class="mm-row"><span class="mm-key">Latitude</span><span class="mm-val" id="mm-lat">—</span></div>
+      <div class="mm-row"><span class="mm-key">Longitude</span><span class="mm-val" id="mm-lon">—</span></div>
+      <div class="mm-row"><span class="mm-key">AE radius (km)</span><span class="mm-val" id="mm-aer">—</span></div>
+      <div class="mm-info" id="mm-info"></div>
+    </div>
+    <div class="mm-actions">
+      <a class="mm-btn primary" id="mm-ge-web" href="#" target="_blank" rel="noopener">Open in Google Earth</a>
+      <a class="mm-btn" id="mm-gmaps" href="#" target="_blank" rel="noopener">Open in Google Maps</a>
+      <a class="mm-btn" id="mm-src" href="#" target="_blank" rel="noopener" style="display:none">Source</a>
+    </div>
+  </div>
+</div>
+
+<!-- Enok 72 tekst-modal -->
+<div id="enok72-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:9000;">
+  <div style="background:#181818;border:1px solid #444;max-width:780px;width:92%;max-height:84vh;overflow:auto;color:#ddd;font-family:Georgia,serif;">
+    <div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1f1f1f;font-family:sans-serif;">
+      <div style="flex:1">
+        <div style="font-size:18px;color:#e0c060">The Book of Enoch — chapter 72</div>
+        <div id="enok72-subtitle" style="font-size:13px;color:#888;margin-top:2px">The 6 gates of the sun — "The Book of the Courses of the Heavenly Luminaries"</div>
+      </div>
+      <button id="enok72-close" style="background:#2a2a2a;border:1px solid #555;color:#ccc;font-size:20px;padding:4px 14px;cursor:pointer">×</button>
+    </div>
+    <div id="enok72-content" style="padding:18px 22px;line-height:1.7;font-size:15px;"></div>
+    <div style="padding:10px 18px;border-top:1px solid #333;background:#161616;font-size:12px;color:#666;font-family:sans-serif;">
+      Source: One-voice-740-renset-for-Perplexity-1.xlsx (sheet H) · Book of Enoch 72:1–37 complete
+    </div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

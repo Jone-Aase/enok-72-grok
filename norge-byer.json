@@ -1,0 +1,70 @@
+{
+  "kilde": "Kartverket Sentralt stedsnavnregister (SSR) og offisielle koordinater",
+  "datum": "WGS84 / EPSG:4326",
+  "byer": [
+    {
+      "navn": "Lindesnes fyr",
+      "lat": 57.9839,
+      "lon": 7.0481,
+      "beskrivelse": "Sorligste fastlandspunkt, fyr fra 1655",
+      "kategori": "fyr",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Kristiansand sentrum",
+      "lat": 58.1467,
+      "lon": 7.9956,
+      "beskrivelse": "Markens gate",
+      "kategori": "by",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Stavanger domkirke",
+      "lat": 58.9700,
+      "lon": 5.7331,
+      "beskrivelse": "Stavanger domkirke fra 1125",
+      "kategori": "by",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Bergen Bryggen",
+      "lat": 60.3935,
+      "lon": 5.3247,
+      "beskrivelse": "UNESCO verdensarv hanseatisk havn",
+      "kategori": "by",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Oslo Akershus festning",
+      "lat": 59.9075,
+      "lon": 10.7367,
+      "beskrivelse": "Festning fra 1290",
+      "kategori": "by",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Trondheim Nidarosdomen",
+      "lat": 63.4267,
+      "lon": 10.3969,
+      "beskrivelse": "Kroningskatedral, byggestart 1070",
+      "kategori": "by",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Tromso domkirke",
+      "lat": 69.6492,
+      "lon": 18.9553,
+      "beskrivelse": "Nordligste domkirke",
+      "kategori": "by",
+      "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Nordkapp platet",
+      "lat": 71.1685,
+      "lon": 25.7833,
+      "beskrivelse": "Nordligste punkt pa det europeiske fastlandet",
+      "kategori": "landemerke",
+      "ge_verifisering": "pending"
+    }
+  ]
+}
