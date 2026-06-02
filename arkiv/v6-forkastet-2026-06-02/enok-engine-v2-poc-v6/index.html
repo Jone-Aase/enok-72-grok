@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Enok Engine v2 POC v6 GE-stil adaptiv</title>
+  <style>
+    body { margin:0; padding:0; overflow:hidden; background:#000; }
+    #container { position:relative; width:100vw; height:100vh; }
+    canvas { position:absolute; top:0; left:0; z-index:1; }
+    #info { position:absolute; top:10px; left:10px; color:white; z-index:10; background:rgba(0,0,0,0.7); padding:10px; border-radius:4px; font-family:sans-serif; }
+    #debug { position:absolute; top:10px; right:10px; z-index:10; background:rgba(0,0,0,0.7); padding:5px; border-radius:4px; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="container">
+    <canvas id="cv"></canvas>
+  </div>
+  <div id="info">
+v6 GE-stil: adaptiv tile-lasting for hele Norge<br>
+    Scroll = zoom • Venstre-drag = pan • Tiles lastes basert på synsfelt og høyde
+  </div>
+  <div id="debug">
+    <button onclick="setDebugMode('normal')">Normal (Kartverket)</button>
+    <button onclick="setDebugMode('solid')">Solid farge</button>
+    <button onclick="setDebugMode('wireframe')">Wireframe</button>
+    <br>
+    <button onclick="flyTo(59.91, 10.75, 5)">Oslo</button>
+    <button onclick="flyTo(60.39, 5.32, 5)">Bergen</button>
+    <button onclick="flyTo(63.43, 10.40, 5)">Trondheim</button>
+    <button onclick="flyTo(69.65, 18.96, 5)">Tromsø</button>
+    <button onclick="flyTo(66.55, 14.0, 2)">Polarsirkelen</button>
+    <button onclick="flyTo(64.5, 17.5, 50)">Hele Norge</button>
+  </div>
+
+  <script type="module" src="src/poc-main.js"></script>
+</body>
+</html>
