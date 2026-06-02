@@ -2465,7 +2465,9 @@ function focusBaseMap(selected) {
   camState.rot = 0;
   camState.height = 0;
   if (selected === 'norge') {
-    return;
+    const p = aeProject(66.55, 14.0);
+    camState.target.set(p.x, 0, p.z);
+    camState.dist = 4;
   } else {
     camState.target.set(0, 0, 0);
     camState.dist = 100;
@@ -2885,18 +2887,60 @@ function currentNorgeDetailSources() {
   if (document.getElementById('norge-layer-sjokart')?.checked) {
     sources.push({ type: 'kartverket', layer: 'sjokartraster', role: 'overlay' });
   }
+  if (document.getElementById('norge-layer-nib')?.checked) {
+    sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
+  }
   return sources;
 }
 
-function detailTileUrl(source, z, x, y) {
+function mercatorMeters(lon, lat) {
+  const r = 6378137;
+  const clampedLat = Math.max(-85.05112878, Math.min(85.05112878, lat));
+  return {
+    x: r * lon * Math.PI / 180,
+    y: r * Math.log(Math.tan(Math.PI / 4 + clampedLat * Math.PI / 360)),
+  };
+}
+
+function detailTileUrl(source, z, x, y, bounds) {
   if (source.type === 'osm') return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  if (source.type === 'wms-nib') {
+    const sw = mercatorMeters(bounds.west, bounds.south);
+    const ne = mercatorMeters(bounds.east, bounds.north);
+    const token = localStorage.getItem('norgeibilder-token') || window.NORGEIBILDER_TOKEN || '';
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return 'https://services.norgeibilder.no/wms/ortofoto?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      '&LAYERS=ortofoto&FORMAT=image/jpeg&CRS=EPSG:3857' +
+      `&BBOX=${sw.x},${sw.y},${ne.x},${ne.y}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}` +
+      tokenParam;
+  }
   return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
 }
 
-function currentNorgeDetailZoom() {
-  const pct = Math.max(100, Math.round(100 / camState.dist * 100));
-  const z = 9 + Math.round(Math.log2(pct / 100));
-  return Math.max(NORGE_SURFACE_DETAIL.minZoom, Math.min(NORGE_SURFACE_DETAIL.maxZoom, z));
+function estimateDetailTileScreenSize(bounds, zoom) {
+  const centerLat = (bounds.latMin + bounds.latMax) / 2;
+  const centerLon = (bounds.lonMin + bounds.lonMax) / 2;
+  const tile = lonLatToTile(centerLon, centerLat, zoom);
+  const b = tileBounds(Math.floor(tile.x), Math.floor(tile.y), zoom);
+  const corners = [
+    aeProject(b.north, b.west),
+    aeProject(b.north, b.east),
+    aeProject(b.south, b.west),
+    aeProject(b.south, b.east),
+  ].map(p => worldToCanvasPoint(p.x, p.z));
+  const width = Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x));
+  const height = Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y));
+  return Math.max(width, height);
+}
+
+function currentNorgeDetailZoom(bounds) {
+  const minTilePx = 54;
+  for (let z = NORGE_SURFACE_DETAIL.maxZoom; z >= NORGE_SURFACE_DETAIL.minZoom; z--) {
+    if (estimateDetailTileScreenSize(bounds, z) >= minTilePx) return z;
+  }
+  return NORGE_SURFACE_DETAIL.minZoom;
 }
 
 function visibleNorgeSourceBounds() {
@@ -2995,7 +3039,7 @@ function updateNorgeDetailTiles() {
     norgeDetailKey = '';
     return;
   }
-  let zoom = currentNorgeDetailZoom();
+  let zoom = currentNorgeDetailZoom(bounds);
   let tileRange = null;
   const nw = lonLatToTile(bounds.lonMin, bounds.latMax, zoom);
   const se = lonLatToTile(bounds.lonMax, bounds.latMin, zoom);
@@ -3041,7 +3085,7 @@ function updateNorgeDetailTiles() {
         img.className = `norge-detail-tile${source.role === 'overlay' ? ' overlay' : ''}`;
         img.loading = 'eager';
         img.decoding = 'async';
-        img.src = detailTileUrl(source, zoom, x, y);
+        img.src = detailTileUrl(source, zoom, x, y, b);
         img.addEventListener('error', () => img.remove(), { once: true });
         const tileW = Math.max(0.01, right - left);
         const tileH = Math.max(0.01, bottom - top);
@@ -3417,8 +3461,8 @@ function initNorgeSurfaceMap() {
     });
   const nibToggle = document.getElementById('norge-layer-nib');
   if (nibToggle) {
-    nibToggle.checked = false;
-    nibToggle.disabled = true;
+    nibToggle.checked = true;
+    nibToggle.disabled = false;
     nibToggle.title = 'Norge i bilder WMS krever autorisert tilgang fra denne IP-en. Bygges inn når flyfoto-kilde er tilgjengelig.';
   }
   document.querySelectorAll('#norge-layer-geo-grid, #norge-layer-square-grid, #norge-layer-cities')
@@ -3426,6 +3470,15 @@ function initNorgeSurfaceMap() {
       el.disabled = false;
       el.title = '';
     });
+  [
+    'norge-layer-sjokart',
+    'norge-layer-geo-grid',
+    'norge-layer-square-grid',
+    'norge-layer-cities',
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = true;
+  });
   const zoomEl = document.getElementById('norge-info-zoom');
   if (zoomEl) zoomEl.textContent = 'surface';
   bindNorgeSurfaceEngine();
@@ -3782,6 +3835,7 @@ function applyNorgeInstrumentMode(active) {
       : 'Norgeskart ligger klart i instrumentflaten';
   }
   if (active) {
+    focusBaseMap('norge');
     initNorgeSurfaceMap();
     applyNorgePlacement();
   }
