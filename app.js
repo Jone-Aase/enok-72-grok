@@ -316,6 +316,7 @@ const MARKERS = [
   { id:"EK-19", g:"Polarsirkel", n:"Raudskjærholmen", lat:66.54329, lon:12.16575, type:"polarsirkel-punkt", info:"EK_Data V6. Raw GE: 66°32'35.83\"N 12°9'56.69\"E" },
   { id:"EK-20", g:"Polarsirkel", n:"Itilleq Arsaattarfik (Grønland)", lat:66.57695, lon:-53.49841, type:"polarsirkel-punkt", info:"EK_Data V6. Raw GE: 66°34'37.01\"N 53°29'54.27\"W" },
   { id:"EK-21", g:"Polarsirkel", n:"Nedlung", lat:66.54316, lon:-71.32839, type:"polarsirkel-punkt", info:"EK_Data V6. Raw GE: 66°32'35.39\"N 71°19'42.20\"W" },
+  { id:"NO-AC-01", g:"Polarsirkel", n:"Arctic Circle Center", lat:66.550008, lon:15.327011, type:"polarsirkel-punkt", info:"Jone-Aase kalibreringspunkt. Raw GE: 66°33'0.03\"N 15°19'37.24\"E" },
 ];
 
 const FARGER = {
@@ -375,7 +376,7 @@ const wrap = document.getElementById('canvas-wrap');
 const canvas = document.getElementById('cv');
 let cw = wrap.clientWidth, ch = wrap.clientHeight;
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(cw, ch, false);
 renderer.setClearColor(0x050505, 1);
@@ -387,6 +388,10 @@ scene.fog = new THREE.Fog(0x050505, 120, 300);
 const camera = new THREE.PerspectiveCamera(50, cw / ch, 0.1, 2000);
 camera.position.set(0, 100, 0.001);
 camera.lookAt(0, 0, 0);
+// v17.00 (2026-06-01 anker-system): eksponer camera + renderer på window
+// slik at anker-systemet kan projisere AE-koordinater til skjerm-pixels.
+window.camera   = camera;
+window.renderer = renderer;
 
 // Belysning — flat farger, men en dim ambient for stjernerne
 scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -427,6 +432,10 @@ const camState = {
 function applyCamera() {
   const tiltRad = camState.tilt * Math.PI / 180;
   const rotRad  = camState.rot  * Math.PI / 180;
+  // (Steg 1 — 2026-06-01) Hook for at andre systemer skal kunne reagere
+  // på kameraendringer. Vi setter et flagg og trigger callbacks på slutten
+  // av funksjonen. window.__cameraChangeListeners er en array av funksjoner.
+
   // sfærisk -> kartesisk (offset fra target, ikke fra origo —
   // slik at pan blir en ren translasjon og ikke endrer synsvinkel)
   const r = camState.dist;
@@ -439,9 +448,23 @@ function applyCamera() {
     camState.target.y + y,
     camState.target.z + z
   );
-  camera.up.set(0, 1, 0);
+  // Når kameraet står rett over kartet er Y-aksen parallell med blikkretningen.
+  // Bruk scene-nord som up-vektor for en stabil top-down-matrise.
+  if (Math.abs(horiz) < 0.0001) {
+    camera.up.set(0, 0, -1);
+  } else {
+    camera.up.set(0, 1, 0);
+  }
   camera.lookAt(camState.target);
+  // (Steg 1) Kjør alle registrerte kameraendrings-callbacks (f.eks. anker-system).
+  if (Array.isArray(window.__cameraChangeListeners)) {
+    for (const cb of window.__cameraChangeListeners) {
+      try { cb(); } catch (e) { console.error('camera listener error', e); }
+    }
+  }
 }
+window.applyCamera = applyCamera;
+window.camState = camState;
 applyCamera();
 
 // =================================================================
@@ -456,6 +479,8 @@ const grpFirma   = new THREE.Group(); grpFirma.position.y   = Y_FIRMA;  scene.ad
 // Sub-grupper for fin-toggling
 const subMap = {
   grid: new THREE.Group(), coast: new THREE.Group(), ports: new THREE.Group(),
+  equator: new THREE.Group(), cancer: new THREE.Group(), capricorn: new THREE.Group(),
+  polarcircles: new THREE.Group(),
   meridians: new THREE.Group(), latcircles: new THREE.Group(), outerring: new THREE.Group(),
   squareGrid: new THREE.Group(),  // Kartesisk referanse-rutenett (1° lat = 110.593 km, GE-skala)
   gridFine: new THREE.Group(),    // v16.49: Finmasket 5°-edderkoppnett (72 meridianer + 5°-breddesirkler)
@@ -465,20 +490,20 @@ const subMap = {
   daynight: new THREE.Group(),
   clockSol: new THREE.Group(),   // Sol-klokke (Enok-tid, drives av sunLonAngle)
   clockAtom: new THREE.Group(),  // Atom-klokke (sann tid, drives av Date)
-  norgeKart: new THREE.Group(),  // Norge-fork: Norge-kystpolygon tegnet pa AE-disken (Natural Earth ne_50m). Fastland + Svalbard.
+  norgeKart: new THREE.Group(),       // Dynamisk zoom-laget (Three.js-tiles ved kameraets aktuelle zoom-nivaa)
+  norgeKartBase: new THREE.Group(),   // Permanent bakgrunns-lag (alltid z=5, hele Norge synlig uansett zoom-niva)
 };
 Object.values(subMap).forEach(g => grpMap.add(g));
 
 const subCel = {
-  equator: new THREE.Group(), cancer: new THREE.Group(), capricorn: new THREE.Group(),
-  polarcircles: new THREE.Group(), sun: new THREE.Group(), moon: new THREE.Group(),
+  sun: new THREE.Group(), moon: new THREE.Group(),
 };
+subCel.equator = subMap.equator;
+subCel.cancer = subMap.cancer;
+subCel.capricorn = subMap.capricorn;
+subCel.polarcircles = subMap.polarcircles;
 // v16.34: equator/cancer/capricorn/polarcircles flyttet til Layer 1 (grpMap) etter Jone-Aase 2026-05-28.
 // Sun og moon forblir på Layer 2 (grpCelest).
-grpMap.add(subCel.equator);
-grpMap.add(subCel.cancer);
-grpMap.add(subCel.capricorn);
-grpMap.add(subCel.polarcircles);
 grpCelest.add(subCel.sun);
 grpCelest.add(subCel.moon);
 
@@ -719,6 +744,8 @@ const UN_MAP_RADIUS = R_OUTER;  // 31.42 — kartet fyller hele disken ut til An
 // Justerbart via UI-slider for å matche kartets Greenwich-meridian mot våre AE-koordinater.
 let unMapRotationDeg = 0;
 let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rotasjon uten ombygging
+let norgeMapDiskRef = null;
+let currentMapOpacity = 0.85;
 {
   const loader = new THREE.TextureLoader();
   // v16.65: 8192x8192 hypsometrisk kart (WebP q85). Sahara sand, Amazonas grønn,
@@ -755,10 +782,12 @@ let unMapDiskRef = null;  // referanse til mesh slik at sliderene kan endre rota
 
 // =================================================================
 // NORGE-KART (Norge-fork)
-// Toggle-en 'Norgeskart (Kartverket)' i Layer 1 styrer subMap.norgeKart-gruppen,
-// men gruppen er tom inntil vi bestemmer hvordan kartet fra norge.html
-// skal legges inn over Norge-omraadet paa UN AE map.
+// Kartverket skal inn som ekte Layer 1-basiskart, ikke som iframe og ikke
+// samtidig med UN AE-kartet. Ingen manuell grid-tilpassing: rasteret må være
+// bygget deterministisk fra offisielle koordinater og egen metadata.
 // =================================================================
+// Selve Leaflet/Kartverket-kartet initialiseres senere, når brukeren velger
+// Norgeskart som Layer 1-basiskart.
 
 // =================================================================
 // BYGG LAG 1 — ENOK-KARTET
@@ -808,7 +837,7 @@ let currentGridSize = 5;
 function rebuildGrid(step) {
   subMap.grid.clear();
   subMap.grid.add(makeLatGrid(step, 0x3a5070, 0.30));
-  subMap.grid.add(makeMeridians(36, 0x3a5070, 0.30));
+  subMap.grid.add(makeMeridians(36, 0x3a5070, 0.22));
 }
 rebuildGrid(5);
 
@@ -904,7 +933,6 @@ function rebuildGridFine() {
   // 72 meridianer (én hver 5°), dempet teal-farge for å skille fra blå standard-grid
   subMap.gridFine.add(makeMeridians(72, 0x4a6878, 0.32));
   // Ekstra 5°-breddesirkler (samme farge for visuell konsistens)
-  subMap.gridFine.add(makeLatGrid(5, 0x4a6878, 0.22));
 }
 rebuildGridFine();
 subMap.gridFine.visible = false;  // av som default — bruker slår på
@@ -1015,25 +1043,35 @@ function buildMarkers() {
   for (const m of MARKERS) {
     const p = aeProject(m.lat, m.lon);
     const color = FARGER[m.g] || 0xffffff;
+    const isArcticMarker = m.g === 'Polarsirkel';
     // Liten pin-stil markør (GE-stil) — sirkulær disk + tynn vertikal stilk
     const pinGroup = new THREE.Group();
-    const geom = new THREE.SphereGeometry(0.13, 12, 12);  // v16.46: 0.08 -> 0.13 for bedre synlighet pa utzoomet AE-disk
-    const mat = new THREE.MeshBasicMaterial({ color });
+    const geom = new THREE.SphereGeometry(isArcticMarker ? 0.006 : 0.055, 12, 12);
+    const mat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: isArcticMarker,
+      opacity: isArcticMarker ? 0.65 : 1,
+    });
     const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.set(0, 0.15, 0);
+    mesh.position.set(0, isArcticMarker ? 0.03 : 0.08, 0);
     mesh.userData = m;
     pinGroup.add(mesh);
     // Tynn vertikal pin-stilk for synlighet
-    const stalkGeom = new THREE.CylinderGeometry(0.012, 0.012, 0.12, 6);
+    const stalkGeom = new THREE.CylinderGeometry(
+      isArcticMarker ? 0.0015 : 0.006,
+      isArcticMarker ? 0.0015 : 0.006,
+      isArcticMarker ? 0.025 : 0.07,
+      6
+    );
     const stalkMat = new THREE.MeshBasicMaterial({ color, opacity: 0.7, transparent: true });
     const stalk = new THREE.Mesh(stalkGeom, stalkMat);
-    stalk.position.set(0, 0.06, 0);
+    stalk.position.set(0, isArcticMarker ? 0.012 : 0.035, 0);
     pinGroup.add(stalk);
     // v16.39: Usynlig hit-sphere for lettere klikk-treff (~2x større radius enn synlig pin)
-    const hitGeom = new THREE.SphereGeometry(0.18, 8, 8);
+    const hitGeom = new THREE.SphereGeometry(0.14, 8, 8);
     const hitMat = new THREE.MeshBasicMaterial({ visible: false });
     const hitMesh = new THREE.Mesh(hitGeom, hitMat);
-    hitMesh.position.set(0, 0.12, 0);
+    hitMesh.position.set(0, 0.08, 0);
     hitMesh.userData = m;
     pinGroup.add(hitMesh);
     pinGroup.position.set(p.x, 0, p.z);
@@ -1050,12 +1088,17 @@ buildMarkers();
 // =================================================================
 // v16.35: En ring per breddegrad etter Jone-Aase 2026-05-28. Duplikater i subMap.grid og subMap.latcircles
 // er fjernet under. Ekvator, Cancer og Capricorn vises som EN ring her, ikke som Ark T + empirisk par.
-subCel.equator.add(makeRing(latToR(0), 0xc9a247, 0.85));  // v16.38: latToR(0) = 15710 km, samme radius som ekvator-punktene (Pyramid of Oyambaro, Pontianak, Quitsato). v16.37: gull.
+subMap.equator.add(makeRing(latToR(0), 0xc9a247, 0.85));  // v16.38: latToR(0) = 15710 km, samme radius som ekvator-punktene (Pyramid of Oyambaro, Pontianak, Quitsato). v16.37: gull.
 // Krepsens og Steinbukkens vendekrets ved 23.7° (Enoks port-yttergrenser, master-kalender Ark T H212)
-subCel.cancer.add(makeRing(latToR(23.7), 0xe0c060, 0.85));
-subCel.capricorn.add(makeRing(latToR(-23.7), 0xc08040, 0.85));
-subCel.polarcircles.add(makeRing(latToR(66.5634), 0x7090c0, 0.85));
-subCel.polarcircles.add(makeRing(latToR(-66.5634), 0x7090c0, 0.85));
+subMap.cancer.add(makeRing(latToR(23.7), 0xe0c060, 0.85));
+subMap.capricorn.add(makeRing(latToR(-23.7), 0xc08040, 0.85));
+// v17.00 (2026-06-01 anker-system): Polarsirkel-ringene gjøres dynamiske.
+// Lagres på window.anchorSystem.polarRings så de kan oppdateres når slider beveges.
+const _polarArcticRing = makeRing(latToR(66.5634), 0x7090c0, 0.85);
+const _polarAntarRing  = makeRing(latToR(-66.5634), 0x7090c0, 0.85);
+subMap.polarcircles.add(_polarArcticRing);
+subMap.polarcircles.add(_polarAntarRing);
+window.__polarRings = { arctic: _polarArcticRing, antar: _polarAntarRing };
 
 // Sol (v16.25: redusert til størrelsen på ark-T-sol-bane-prikken, 0.18)
 const sunMesh = new THREE.Mesh(
@@ -2000,13 +2043,13 @@ function highlightTropics(lat) {
   const cancerHit = Math.abs(lat - 23.7) < 0.5;
   const capricornHit = Math.abs(lat - (-23.7)) < 0.5;
   // Plukk første barn (selve ringen) og juster opacity
-  if (subCel.cancer.children[0]) {
-    subCel.cancer.children[0].material.opacity = cancerHit ? 1.0 : 0.5;
-    subCel.cancer.children[0].material.color.setHex(cancerHit ? 0xffe080 : 0xe0c060);
+  if (subMap.cancer.children[0]) {
+    subMap.cancer.children[0].material.opacity = cancerHit ? 1.0 : 0.5;
+    subMap.cancer.children[0].material.color.setHex(cancerHit ? 0xffe080 : 0xe0c060);
   }
-  if (subCel.capricorn.children[0]) {
-    subCel.capricorn.children[0].material.opacity = capricornHit ? 1.0 : 0.5;
-    subCel.capricorn.children[0].material.color.setHex(capricornHit ? 0xffa050 : 0xc08040);
+  if (subMap.capricorn.children[0]) {
+    subMap.capricorn.children[0].material.opacity = capricornHit ? 1.0 : 0.5;
+    subMap.capricorn.children[0].material.color.setHex(capricornHit ? 0xffa050 : 0xc08040);
   }
 }
 
@@ -2378,23 +2421,75 @@ document.querySelectorAll('[data-cam]').forEach(btn => {
 
 // Mus: venstre-drag = roter kamera, høyre-drag (eller Shift+venstre) = pan, hjul = zoom
 // Google Earth-stil: zoom helt ned til overflaten, og forskyv kartet i vinduet.
-const CAM_DIST_MIN = 1.5;   // helt nær overflaten — Google Earth-nivå
+const CAM_DIST_MIN = 0.1;   // kalibrering: tillater ekstrem nærzoom på gridflaten
 const CAM_DIST_MAX = 400;
 const PAN_RADIUS_MAX = R_OUTER_KM * SCALE * 1.5; // ikke pan lenger ut enn 1.5× disken
 
 let dragMode = null; // 'rotate' | 'pan' | null
 let lastX = 0, lastY = 0;
+let currentMode = 'enoch';
+
+function currentModeLabel() { return currentMode === 'enoch' ? 'Enoch scale' : 'GE scale'; }
 
 function updateZoomReadout() {
   const el = document.getElementById('zoom-level');
   const ind = document.getElementById('zoom-indicator');
+  const norgeZoom = document.getElementById('norge-instrument-zoom');
+  const norgeZoomVal = document.getElementById('norge-instrument-zoom-val');
+  const gridX = document.getElementById('norge-grid-x');
+  const gridY = document.getElementById('norge-grid-y');
+  const gridXVal = document.getElementById('norge-grid-x-val');
+  const gridYVal = document.getElementById('norge-grid-y-val');
   const pct = Math.round(100 / camState.dist * 100);
   if (el) el.textContent = pct + '%';
+  if (norgeZoom) norgeZoom.value = String(Math.max(25, Math.min(50000, pct)));
+  if (norgeZoomVal) norgeZoomVal.textContent = pct + '%';
+  if (gridX) gridX.value = String(camState.target.x);
+  if (gridY) gridY.value = String(camState.target.z);
+  if (gridXVal) gridXVal.textContent = camState.target.x.toFixed(2);
+  if (gridYVal) gridYVal.textContent = camState.target.z.toFixed(2);
+  // (v6.1) Leaflet er borte — ingen applyNorgePlacement() lenger
   if (ind) ind.textContent = pct + '% · ' + currentModeLabel();
 }
 
 // Pan: forskyv camState.target i kamera-planet (høyre + opp relativt til kamera),
 // projisert ned i XZ-planet slik at vi følger kartet — som i Google Earth.
+function setInstrumentZoomPercent(percent) {
+  const pct = Math.max(25, Math.min(50000, percent));
+  camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, 10000 / pct));
+  applyCamera();
+  updateZoomReadout();
+}
+
+function setInstrumentGridOffset({ x = camState.target.x, y = camState.target.z }) {
+  camState.target.x = Math.max(-40, Math.min(40, x));
+  camState.target.z = Math.max(-40, Math.min(40, y));
+  applyCamera();
+  updateZoomReadout();
+}
+
+function isNorgeMouseGridMode() {
+  return !!document.getElementById('norge-mouse-grid')?.checked;
+}
+
+function syncNorgeMouseMode() {
+  // (v6.1) Leaflet er borte — ingen mus-modus å synkronisere lenger. No-op.
+}
+
+function focusBaseMap(selected) {
+  camState.tilt = 90;
+  camState.rot = 0;
+  camState.height = 0;
+  if (selected === 'norge') {
+    return;
+  } else {
+    camState.target.set(0, 0, 0);
+    camState.dist = 100;
+  }
+  applyCamera();
+  updateZoomReadout();
+}
+
 function panCameraTarget(dx, dy) {
   // dx, dy er piksel-delta. Skalér til scene-enheter basert på dist (zoom-nivå).
   // Ved dist=100 og 60° FOV: én piksel ~ dist/canvas.height scene-enheter.
@@ -2453,13 +2548,17 @@ window.addEventListener('mousemove', (e) => {
   applyCamera();
 });
 
-canvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
+function zoomInstrumentOverlay(deltaY) {
   // Adaptiv zoom: multiplikativ. Mindre følsom enn før.
-  const factor = Math.pow(1.0008, e.deltaY);
+  const factor = Math.pow(1.0008, deltaY);
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camState.dist * factor));
   applyCamera();
   updateZoomReadout();
+}
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  zoomInstrumentOverlay(e.deltaY);
 }, { passive: false });
 
 // Touch-støtte: en finger = roter, to fingre = pinch-zoom + pan
@@ -2515,6 +2614,619 @@ canvas.addEventListener('dblclick', (e) => {
   applyCamera();
 });
 
+// =================================================================
+// NORGESKART SOM THREE.JS-TILES (v6.1, 2026-06-02)
+// =================================================================
+// Erstatter den tidligere Leaflet-overlegg-blokken. Hele Norge er n\u00e5
+// en Three.js-gruppe (subMap.norgeKart) som inneholder FLATE Kartverket-
+// tiles i sin naturlige Web Mercator-form. Hele gruppen blir festet
+// til AE-disken via similarity-transform fra 3 ankerpunkter
+// (Sels\u00f8y, Kveitanosen, Arctic Circle Center) \u2014 samme matematikk som
+// hovedinstrumentet brukte mot Leaflet, men anvendt p\u00e5 Three.js-mesh
+// i stedet for CSS-matrix.
+//
+// Fordeler:
+//   - Norge kan tiltes med 3D-kameraet
+//   - Adaptive tiles laster skarpere n\u00e5r kameraet zoomer inn
+//   - Ingen Leaflet, ingen CSS-matrix, ingen DOM-overlegg
+// =================================================================
+
+// ---- Norges grenser (brukes som ytre clip for tile-utvalg) ----
+const NORGE_BOUNDS = {
+  latMin: 57.5, latMax: 71.5,
+  lonMin: 4.0,  lonMax: 31.5,
+};
+
+// ---- 3 ankerpunkter (uendret fra hovedinstrumentet) ----
+const arcticCalibrationPoints = [
+  { name: 'Sels\u00f8y g\u00e5rden / Polarsirkelen',        lat: 66.5502, lon: 12.8462 },
+  { name: 'Kveitanosen / Enganveien S\u00f8rnes\u00f8ya',   lat: 66.5500, lon: 12.6383 },
+  { name: 'Arctic Circle Center',                lat: 66.5500, lon: 15.3266 },
+];
+
+// ---- Tile-cache (LRU) ----
+const TILE_CACHE_MAX = 500;
+const norgeTileCache = {
+  textures: new Map(),    // key "z/x/y" -> { texture, lastAccess }
+  meshes:   new Map(),    // key "z/x/y" -> { mesh, lastAccess }
+  loading:  new Map(),    // key "z/x/y" -> Promise
+  tileKey(z, x, y) { return `${z}/${x}/${y}`; },
+  getTexture(z, x, y) {
+    const key = this.tileKey(z, x, y);
+    if (this.textures.has(key)) {
+      const e = this.textures.get(key); e.lastAccess = Date.now(); return e.texture;
+    }
+    if (this.loading.has(key)) return this.loading.get(key);
+    const url = `https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/${z}/${y}/${x}.png`;
+    const p = new THREE.TextureLoader().loadAsync(url).then(tex => {
+      this.textures.set(key, { texture: tex, lastAccess: Date.now() });
+      this.loading.delete(key);
+      this._evict();
+      return tex;
+    }).catch(err => { this.loading.delete(key); throw err; });
+    this.loading.set(key, p);
+    return p;
+  },
+  getMesh(z, x, y) {
+    const key = this.tileKey(z, x, y);
+    if (this.meshes.has(key)) { const e = this.meshes.get(key); e.lastAccess = Date.now(); return e.mesh; }
+    return null;
+  },
+  setMesh(z, x, y, mesh) {
+    this.meshes.set(this.tileKey(z, x, y), { mesh, lastAccess: Date.now() });
+    this._evict();
+  },
+  _evict() {
+    if (this.textures.size > TILE_CACHE_MAX) {
+      const arr = [...this.textures.entries()].sort((a, b) => a[1].lastAccess - b[1].lastAccess);
+      for (const [k, e] of arr.slice(0, arr.length - TILE_CACHE_MAX)) {
+        e.texture.dispose(); this.textures.delete(k);
+      }
+    }
+    if (this.meshes.size > TILE_CACHE_MAX * 2) {
+      const arr = [...this.meshes.entries()].sort((a, b) => a[1].lastAccess - b[1].lastAccess);
+      for (const [k, e] of arr.slice(0, arr.length - TILE_CACHE_MAX * 2)) {
+        if (e.mesh.geometry) e.mesh.geometry.dispose();
+        if (e.mesh.material) e.mesh.material.dispose();
+        this.meshes.delete(k);
+      }
+    }
+  },
+};
+
+// ---- Web Mercator-konvertering ----
+function latLonToTileXY(lat, lon, z) {
+  const n = Math.pow(2, z);
+  const x = (lon + 180) / 360 * n;
+  const latRad = lat * Math.PI / 180;
+  const y = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n;
+  return { x, y };
+}
+function tileToLatLon(z, x, y) {
+  const n = Math.pow(2, z);
+  const lon = x / n * 360 - 180;
+  const latRad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)));
+  return { lat: latRad * 180 / Math.PI, lon };
+}
+
+// ---- Velg zoom basert p\u00e5 kameraets avstand til scenen (camState.dist) ----
+// Hovedinstrumentet bruker camState.dist (avstand fra target). dist=100 = standard.
+// dist < 50  -> zoom inn  (z=7)
+// dist < 25  -> z=8
+// dist < 10  -> z=10
+// dist < 4   -> z=11
+function chooseNorgeZoom(dist) {
+  if (dist > 80) return 5;
+  if (dist > 40) return 6;
+  if (dist > 18) return 7;
+  if (dist > 8)  return 8;
+  if (dist > 3)  return 10;
+  return 11;
+}
+
+// ---- Tile-Y \u2192 verdens-Z konvertering: vi vil ha NORD opp i AE-rom ----
+// I Web Mercator \u00f8ker tile-Y mot s\u00f8r. I AE-projeksjonen \u00f8ker world-Z mot s\u00f8r ogs\u00e5
+// (fordi `aeProject(0, 0)` har positiv Z = nedover skjermen). Vi bruker derfor
+// world.x = tile.x og world.z = tile.y direkte \u2014 men HELE gruppen blir transformert
+// av similarity slik at retningene stemmer uansett. Konstantene 0.5 sentrerer tilen.
+
+// ---- Bygg \u00e9n tile-mesh ----
+async function buildNorgeTileMesh(z, x, y) {
+  const cached = norgeTileCache.getMesh(z, x, y);
+  if (cached) return cached;
+  const geometry = new THREE.PlaneGeometry(1, 1, 1, 1);
+  geometry.rotateX(-Math.PI / 2);
+  let material;
+  try {
+    const texture = await norgeTileCache.getTexture(z, x, y);
+    material = new THREE.MeshBasicMaterial({
+      map: texture, side: THREE.DoubleSide, transparent: true, opacity: 0.95,
+    });
+  } catch (err) {
+    return null;
+  }
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x + 0.5, 0, y + 0.5);
+  mesh.userData = { z, x, y };
+  norgeTileCache.setMesh(z, x, y, mesh);
+  return mesh;
+}
+
+// ---- Finn alle tile-kandidater innenfor NORGE_BOUNDS ved gitt zoom ----
+function tilesForNorge(zoom) {
+  const tl = latLonToTileXY(NORGE_BOUNDS.latMax, NORGE_BOUNDS.lonMin, zoom);
+  const br = latLonToTileXY(NORGE_BOUNDS.latMin, NORGE_BOUNDS.lonMax, zoom);
+  const xMin = Math.floor(tl.x), xMax = Math.floor(br.x);
+  const yMin = Math.floor(tl.y), yMax = Math.floor(br.y);
+  const tiles = [];
+  for (let x = xMin; x <= xMax; x++) {
+    for (let y = yMin; y <= yMax; y++) {
+      tiles.push({ z: zoom, x, y });
+    }
+  }
+  return tiles;
+}
+
+// ---- Viewport-culling (v6-stil: AE-region fra kamera-frustum) ----
+// 1) Skyt str\u00e5ler fra kameraet gjennom NDC-rutenett (9 punkter) ned p\u00e5 Y=0-planet.
+//    Skj\u00e6ringspunktene danner et AE-rektangel som dekker hele kamerasynsfeltet.
+// 2) For hver tile-kandidat: beregn dens AE-bounding-box ved \u00e5 transformere
+//    de 4 tile-hj\u00f8rnene gjennom anker-matrisen M (samme matrise som tegner
+//    tiles i scenen). Inkluder hvis bbox overlapper synsfelt-rektangelet.
+//
+// Hard sikkerhets-cap MAX_TILES_PER_UPDATE som siste l\u00e5s; tiles sorteres etter
+// avstand fra synsfelt-senteret (AE-rom) f\u00f8r cap anvendes.
+const MAX_TILES_PER_UPDATE = 200;
+
+function computeVisibleAERegion() {
+  const cam = window.camera;
+  if (!cam) return null;
+  cam.updateMatrixWorld();
+  cam.updateProjectionMatrix();
+
+  // 9 NDC-punkter (4 hj\u00f8rner + 4 midt-kanter + senter)
+  const ndcPoints = [
+    [-1, -1], [1, -1], [1, 1], [-1, 1],
+    [0, -1], [1, 0], [0, 1], [-1, 0], [0, 0],
+  ];
+  const aePoints = [];
+  const v = new THREE.Vector3();
+  const dir = new THREE.Vector3();
+  for (const [nx, ny] of ndcPoints) {
+    v.set(nx, ny, 0.5).unproject(cam);
+    dir.copy(v).sub(cam.position).normalize();
+    if (Math.abs(dir.y) < 1e-6) continue;
+    const t = -cam.position.y / dir.y;
+    if (t < 0) continue;
+    const hit = new THREE.Vector3().copy(cam.position).addScaledVector(dir, t);
+    aePoints.push({ x: hit.x, z: hit.z });
+  }
+  if (aePoints.length === 0) return null;
+
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const p of aePoints) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.z < minZ) minZ = p.z;
+    if (p.z > maxZ) maxZ = p.z;
+  }
+  const dx = maxX - minX, dz = maxZ - minZ;
+  return {
+    minX: minX - dx * 0.2, maxX: maxX + dx * 0.2,
+    minZ: minZ - dz * 0.2, maxZ: maxZ + dz * 0.2,
+    cx: (minX + maxX) / 2,
+    cz: (minZ + maxZ) / 2,
+  };
+}
+
+function cullTilesByViewport(tiles, M) {
+  if (!M) return tiles.slice(0, MAX_TILES_PER_UPDATE);
+  const region = computeVisibleAERegion();
+  if (!region) return tiles.slice(0, MAX_TILES_PER_UPDATE);
+
+  const visible = [];
+  const c1 = new THREE.Vector3();
+  const c2 = new THREE.Vector3();
+  const c3 = new THREE.Vector3();
+  const c4 = new THREE.Vector3();
+  for (const t of tiles) {
+    // 4 tile-hj\u00f8rner i tile-rom, transformer til AE-rom via anker-matrisen
+    c1.set(t.x,       0, t.y      ).applyMatrix4(M);
+    c2.set(t.x + 1.0, 0, t.y      ).applyMatrix4(M);
+    c3.set(t.x,       0, t.y + 1.0).applyMatrix4(M);
+    c4.set(t.x + 1.0, 0, t.y + 1.0).applyMatrix4(M);
+    const tileMinX = Math.min(c1.x, c2.x, c3.x, c4.x);
+    const tileMaxX = Math.max(c1.x, c2.x, c3.x, c4.x);
+    const tileMinZ = Math.min(c1.z, c2.z, c3.z, c4.z);
+    const tileMaxZ = Math.max(c1.z, c2.z, c3.z, c4.z);
+    // Overlapp-test mot synsfelt-rektangelet
+    if (tileMaxX < region.minX || tileMinX > region.maxX) continue;
+    if (tileMaxZ < region.minZ || tileMinZ > region.maxZ) continue;
+    const tcx = (tileMinX + tileMaxX) / 2;
+    const tcz = (tileMinZ + tileMaxZ) / 2;
+    const d = Math.hypot(tcx - region.cx, tcz - region.cz);
+    visible.push({ tile: t, d });
+  }
+  visible.sort((a, b) => a.d - b.d);
+  return visible.slice(0, MAX_TILES_PER_UPDATE).map(o => o.tile);
+}
+
+// Beregn anker-matrise UTEN \u00e5 anvende den (brukes til viewport-culling før mesh-bygg)
+function computeAnchorMatrix(zoom) {
+  if (!anchorState.polar.active) return null;
+  const src = anchorState.polar.points.map(p => {
+    const t = latLonToTileXY(p.lat, p.lon, zoom);
+    return [t.x, t.y];
+  });
+  const dst = anchorState.polar.points.map(p => {
+    const ae = aeProject(p.lat, p.lon);
+    return [ae.x, ae.z];
+  });
+  const lonSenter = anchorState.polar.points.reduce((s, p) => s + p.lon, 0) / anchorState.polar.points.length;
+  // Rotasjons-tegn: +lon_senter (verifisert ved residual-test mot Oslo/Bergen/Tromsoe/Nordkapp,
+  // residualene faller fra ~500 km til ~50-150 km. Three.js makeRotationY(theta) roterer
+  // (x,z) -> (x*cos + z*sin, -x*sin + z*cos), som krever +lon_senter for at tile-nord (0,-1)
+  // skal mappe til AE-nord (mot origo) korrekt.)
+  const rotRad = lonSenter * Math.PI / 180;
+  const sim = solveSimilarity(src, dst);
+  if (!sim) return null;
+  const { srcC, dstC, scale } = sim;
+  const T1 = new THREE.Matrix4().makeTranslation(-srcC[0], 0, -srcC[1]);
+  const S  = new THREE.Matrix4().makeScale(scale, 1, scale);
+  const Ry = new THREE.Matrix4().makeRotationY(rotRad);
+  const T2 = new THREE.Matrix4().makeTranslation(dstC[0], 0, dstC[1]);
+  return new THREE.Matrix4().multiplyMatrices(T2, Ry).multiply(S).multiply(T1);
+}
+
+// ---- Anker-system ----
+const anchorState = {
+  polar: {
+    points: arcticCalibrationPoints,
+    lat:    66.5634,
+    km:     0,
+    active: true,
+    lastMatrix: null,
+  },
+};
+window.anchorState = anchorState;
+
+// ---- Polarsirkel-ring oppdatering (Three.js-scenen, samme som f\u00f8r) ----
+function updatePolarRing(ring, lat, kmOffset) {
+  if (!ring) return;
+  const rKm = R_OUTER_KM * (90 - Math.abs(lat)) / 180 + kmOffset;
+  const r = rKm * SCALE;
+  const pts = [];
+  const segs = 256;
+  for (let i = 0; i <= segs; i++) {
+    const a = (i / segs) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+  }
+  ring.geometry.dispose();
+  ring.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+}
+function refreshPolarRings() {
+  if (!window.__polarRings) return;
+  updatePolarRing(window.__polarRings.arctic,  anchorState.polar.lat,  anchorState.polar.km);
+  updatePolarRing(window.__polarRings.antar,  -anchorState.polar.lat,  anchorState.polar.km);
+}
+
+// ---- L\u00f8s SIMILARITY TRANSFORM (samme som hovedinstrumentet) ----
+function solveSimilarity(srcPts, dstPts) {
+  if (srcPts.length < 2 || dstPts.length < 2) return null;
+  const srcC = srcPts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]).map(v => v / srcPts.length);
+  const dstC = dstPts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]).map(v => v / dstPts.length);
+  let srcRms = 0, dstRms = 0;
+  for (let i = 0; i < srcPts.length; i++) {
+    const dx = srcPts[i][0] - srcC[0], dy = srcPts[i][1] - srcC[1];
+    srcRms += dx*dx + dy*dy;
+    const dx2 = dstPts[i][0] - dstC[0], dy2 = dstPts[i][1] - dstC[1];
+    dstRms += dx2*dx2 + dy2*dy2;
+  }
+  srcRms = Math.sqrt(srcRms / srcPts.length);
+  dstRms = Math.sqrt(dstRms / dstPts.length);
+  if (srcRms < 1e-9) return null;
+  return { srcC, dstC, scale: dstRms / srcRms };
+}
+
+// ---- Gjeldende tile-zoom (settes av updateNorgeLayer) ----
+let currentNorgeZoom = 5;
+
+// ---- Anvend ankertransform p\u00e5 subMap.norgeKart (Three.js Group) ----
+// Source = ankerpunktenes tile-koordinater ved currentNorgeZoom
+// Destination = ankerpunktenes AE world-koordinater (fra aeProject)
+// Resultatet er en Matrix4 som flytter, roterer, og skalerer hele gruppen.
+function applyAnchorTransform() {
+  const grp = subMap.norgeKart;
+  if (!grp) return;
+  if (!anchorState.polar.active) {
+    grp.matrixAutoUpdate = true;
+    grp.position.set(0, 0, 0);
+    grp.rotation.set(0, 0, 0);
+    grp.scale.set(1, 1, 1);
+    anchorState.polar.lastMatrix = null;
+    const status = document.getElementById('anchor-status');
+    if (status) status.textContent = 'Anker AV \u2014 Norge ligger i tile-koordinater.';
+    return;
+  }
+
+  // Source: tile-koordinater (x, y) for hvert ankerpunkt
+  const src = anchorState.polar.points.map(p => {
+    const t = latLonToTileXY(p.lat, p.lon, currentNorgeZoom);
+    return [t.x, t.y];
+  });
+  // Destination: AE world-koordinater (x, z) for hvert ankerpunkt
+  const dst = anchorState.polar.points.map(p => {
+    const ae = aeProject(p.lat, p.lon);
+    return [ae.x, ae.z];
+  });
+
+  // Deterministisk rotasjon = +lon_senter (se kommentar i computeAnchorMatrix)
+  const lonSenter = anchorState.polar.points.reduce((s, p) => s + p.lon, 0) / anchorState.polar.points.length;
+  const rotDeg = lonSenter;
+  const rotRad = rotDeg * Math.PI / 180;
+  const cosR = Math.cos(rotRad), sinR = Math.sin(rotRad);
+
+  const sim = solveSimilarity(src, dst);
+  if (!sim) return;
+  const { srcC, dstC, scale } = sim;
+
+  // Matrix-form for 2D similarity (mapping (x, y) i tile -> (x, z) i world):
+  //   x' = scale * (cos*(x - srcC.x) - sin*(y - srcC.y)) + dstC.x
+  //   z' = scale * (sin*(x - srcC.x) + cos*(y - srcC.y)) + dstC.y
+  // I Three.js bruker vi grp.position + grp.rotation.y + grp.scale (uniform).
+  // For at rotasjonsorigo skal v\u00e6re srcC (i tile-rom), m\u00e5 vi bruke
+  // Matrix4 manuelt.
+  grp.matrixAutoUpdate = false;
+  const T1 = new THREE.Matrix4().makeTranslation(-srcC[0], 0, -srcC[1]); // origin til srcC
+  const S  = new THREE.Matrix4().makeScale(scale, 1, scale);
+  // Rotasjon rundt Y-aksen: positiv vinkel roterer +X mot -Z i Three.js.
+  // Vi vil ha: tilrom (x \u00f8st, y s\u00f8r) \u2192 world (X \u00f8st-ish, Z s\u00f8r-ish) etter rotasjon -lon_senter.
+  const Ry = new THREE.Matrix4().makeRotationY(rotRad);
+  const T2 = new THREE.Matrix4().makeTranslation(dstC[0], 0, dstC[1]);
+  // M = T2 * Ry * S * T1
+  const M = new THREE.Matrix4().multiplyMatrices(T2, Ry).multiply(S).multiply(T1);
+  grp.matrix.copy(M);
+  grp.matrixWorldNeedsUpdate = true;
+  anchorState.polar.lastMatrix = M.elements.slice();
+
+  // Verifikasjon: m\u00e5l maks residual mellom forventet og oppn\u00e5dd destinasjon
+  let maxResidual = 0;
+  for (let i = 0; i < src.length; i++) {
+    const v = new THREE.Vector3(src[i][0], 0, src[i][1]).applyMatrix4(M);
+    const ex = dst[i][0], ez = dst[i][1];
+    const r = Math.hypot(v.x - ex, v.z - ez);
+    if (r > maxResidual) maxResidual = r;
+  }
+
+  const status = document.getElementById('anchor-status');
+  if (status) {
+    status.textContent =
+      `Anker P\u00c5 \u2014 polarsirkel lat=${anchorState.polar.lat.toFixed(4)}\u00b0, km=${anchorState.polar.km}. ` +
+      `Rotasjon=${rotDeg.toFixed(3)}\u00b0 (+lon_senter, lon_senter=${lonSenter.toFixed(4)}\u00b0E). ` +
+      `Skala=${scale.toFixed(4)}. Tile-zoom=${currentNorgeZoom}. ` +
+      `Maks-residual=${maxResidual.toFixed(4)} AE-enheter.`;
+  }
+}
+
+// ---- BASE-LAG: permanent z=5 bakgrunn (alltid synlig n\u00e5r Norgeskart er p\u00e5) ----
+// Tegnes \u00e9n gang, holdes statisk. Sikrer at Norge er synlig selv n\u00e5r kameraet
+// zoomer langt inn p\u00e5 origo og dynamisk-laget skulle blitt cullet bort.
+const NORGE_BASE_ZOOM = 5;
+let norgeBaseLoaded = false;
+let norgeBaseLoading = false;
+async function updateNorgeBaseLayer() {
+  const grp = subMap.norgeKartBase;
+  if (!grp) return;
+  if (norgeBaseLoading) return;
+  norgeBaseLoading = true;
+
+  const tiles = tilesForNorge(NORGE_BASE_ZOOM);
+  const meshes = await Promise.all(
+    tiles.map(t => buildNorgeTileMesh(t.z, t.x, t.y).catch(() => null))
+  );
+
+  // T\u00f8m gruppen (cache eier meshes \u2014 ikke dispose)
+  while (grp.children.length) grp.remove(grp.children[0]);
+  for (const m of meshes) if (m) grp.add(m);
+
+  applyBaseAnchorTransform();
+  norgeBaseLoaded = true;
+  norgeBaseLoading = false;
+}
+
+// Anker-transform for base-laget (egen matrise basert p\u00e5 NORGE_BASE_ZOOM)
+function applyBaseAnchorTransform() {
+  const grp = subMap.norgeKartBase;
+  if (!grp) return;
+  const M = computeAnchorMatrix(NORGE_BASE_ZOOM);
+  if (!M) {
+    grp.matrixAutoUpdate = true;
+    grp.position.set(0, 0, 0);
+    grp.rotation.set(0, 0, 0);
+    grp.scale.set(1, 1, 1);
+    return;
+  }
+  grp.matrixAutoUpdate = false;
+  grp.matrix.copy(M);
+  grp.matrixWorldNeedsUpdate = true;
+}
+
+// ---- Last og bytt ut Norge-tiles ved gjeldende zoom ----
+let norgeUpdatePending = false;
+let norgeRequestId = 0;
+async function updateNorgeLayer() {
+  norgeUpdatePending = false;
+  const grp = subMap.norgeKart;
+  if (!grp) return;
+  const requestId = ++norgeRequestId;
+
+  const dist = (window.camState && isFinite(window.camState.dist)) ? window.camState.dist : 100;
+  const zoom = chooseNorgeZoom(dist);
+  currentNorgeZoom = zoom;
+
+  // Multi-zoom: base-laget dekker z=5. Hopp over dynamisk render n\u00e5r zoom==BASE.
+  if (zoom === NORGE_BASE_ZOOM) {
+    while (grp.children.length) grp.remove(grp.children[0]);
+    applyAnchorTransform();
+    return;
+  }
+
+  // Viewport-culling: bygg matrisen forh\u00e5ndsvis og behold bare synlige tiles
+  const candidateTiles = tilesForNorge(zoom);
+  const M = computeAnchorMatrix(zoom);
+  const tiles = M ? cullTilesByViewport(candidateTiles, M) : candidateTiles.slice(0, MAX_TILES_PER_UPDATE);
+
+  const meshes = await Promise.all(
+    tiles.map(t => buildNorgeTileMesh(t.z, t.x, t.y).catch(() => null))
+  );
+  if (requestId !== norgeRequestId) return;
+
+  // T\u00f8m gruppen (men IKKE dispose, fordi cache eier meshes)
+  while (grp.children.length) grp.remove(grp.children[0]);
+  for (const m of meshes) if (m) grp.add(m);
+
+  applyAnchorTransform();
+}
+function scheduleNorgeUpdate() {
+  if (norgeUpdatePending) return;
+  norgeUpdatePending = true;
+  requestAnimationFrame(updateNorgeLayer);
+}
+
+// ---- Koble til kamera-listener (samme mekanikk som anker-systemet) ----
+if (!Array.isArray(window.__cameraChangeListeners)) {
+  window.__cameraChangeListeners = [];
+}
+window.__cameraChangeListeners.push(scheduleNorgeUpdate);
+
+// ---- UI-bindinger (Anker-slider + reset) ----
+function bindNorgeAnchorUI() {
+  const anchorLatSlider = document.getElementById('anchor-polar-lat');
+  const anchorKmSlider  = document.getElementById('anchor-polar-km');
+  const anchorLatVal    = document.getElementById('anchor-polar-lat-val');
+  const anchorKmVal     = document.getElementById('anchor-polar-km-val');
+  const anchorToggle    = document.getElementById('anchor-norge-toggle');
+  const anchorReset     = document.getElementById('anchor-reset');
+
+  function onAnchorChange() {
+    if (anchorLatSlider) anchorState.polar.lat = parseFloat(anchorLatSlider.value) || 66.5634;
+    if (anchorKmSlider)  anchorState.polar.km  = parseFloat(anchorKmSlider.value)  || 0;
+    if (anchorLatVal) anchorLatVal.textContent = `${anchorState.polar.lat.toFixed(4)}\u00b0`;
+    if (anchorKmVal)  anchorKmVal.textContent  = `${anchorState.polar.km} km`;
+    refreshPolarRings();
+    if (anchorState.polar.active) {
+      applyAnchorTransform();
+      applyBaseAnchorTransform();
+    }
+  }
+  if (anchorLatSlider) anchorLatSlider.addEventListener('input', onAnchorChange);
+  if (anchorKmSlider)  anchorKmSlider.addEventListener('input',  onAnchorChange);
+  if (anchorToggle) {
+    anchorToggle.addEventListener('change', () => {
+      anchorState.polar.active = anchorToggle.checked;
+      applyAnchorTransform();
+      applyBaseAnchorTransform();
+    });
+  }
+  if (anchorReset) {
+    anchorReset.addEventListener('click', () => {
+      if (anchorLatSlider) anchorLatSlider.value = '66.5634';
+      if (anchorKmSlider)  anchorKmSlider.value  = '0';
+      onAnchorChange();
+    });
+  }
+  onAnchorChange();
+}
+bindNorgeAnchorUI();
+
+// ---- Eksponer for debugging ----
+window.anchorSystem = {
+  state: anchorState,
+  refreshRings: refreshPolarRings,
+  apply: applyAnchorTransform,
+  solveSimilarity,
+};
+window.norgeTiles = {
+  update: updateNorgeLayer,
+  updateBase: updateNorgeBaseLayer,
+  applyBaseAnchor: applyBaseAnchorTransform,
+  cache: norgeTileCache,
+  bounds: NORGE_BOUNDS,
+  anchors: arcticCalibrationPoints,
+  baseGroup: subMap.norgeKartBase,
+  dynamicGroup: subMap.norgeKart,
+  baseZoom: NORGE_BASE_ZOOM,
+};
+
+// ---- Aktivere/deaktivere Norge-modus (kobles fra base-map-norge-checkboxen) ----
+// Norges senter ETTER anker-transform (faktisk world-posisjon hvor tiles tegnes).
+// Vi kan ikke bare bruke aeProject(senter-lat, senter-lon) fordi anker-matrisen
+// flytter tiles fra tile-rom til AE-rom basert p\u00e5 ankerpunktene (lat\u224866.55\u00b0N),
+// ikke generelt fra lat/lon. Vi m\u00e5 transformere Norge-senter i tile-rom gjennom M.
+function norgeAESenter() {
+  const cLat = (NORGE_BOUNDS.latMin + NORGE_BOUNDS.latMax) / 2;
+  const cLon = (NORGE_BOUNDS.lonMin + NORGE_BOUNDS.lonMax) / 2;
+  const M = computeAnchorMatrix(NORGE_BASE_ZOOM);
+  if (!M) {
+    // Anker av: fall tilbake til ren AE-projeksjon
+    return aeProject(cLat, cLon);
+  }
+  const t = latLonToTileXY(cLat, cLon, NORGE_BASE_ZOOM);
+  const v = new THREE.Vector3(t.x, 0, t.y).applyMatrix4(M);
+  return { x: v.x, z: v.z };
+}
+
+// Lagre forrige target slik at vi kan gjenopprette n\u00e5r modus skrus av
+let __norgeSavedTarget = null;
+
+function applyNorgeInstrumentMode(active) {
+  const wrap = document.getElementById('canvas-wrap');
+  const controls = document.getElementById('norge-controls');
+  const status = document.getElementById('norge-map-status');
+  if (wrap) wrap.classList.toggle('norge-active', active);
+  if (controls) controls.classList.toggle('open', active);
+  renderer.setClearColor(0x050505, active ? 0 : 1);
+  if (status) {
+    status.textContent = active
+      ? 'Norgeskart aktivt (Three.js-tiles, multi-zoom, kamera-target=Norge)'
+      : 'Norgeskart skjult';
+  }
+  subMap.norgeKart.visible = active;
+  subMap.norgeKartBase.visible = active;
+
+  if (active) {
+    // Lagre n\u00e5v\u00e6rende target og flytt kamera-target til Norges senter
+    if (!__norgeSavedTarget && window.camState) {
+      __norgeSavedTarget = {
+        x: window.camState.target.x,
+        y: window.camState.target.y,
+        z: window.camState.target.z,
+      };
+      const c = norgeAESenter();
+      window.camState.target.set(c.x, 0, c.z);
+      if (typeof window.applyCamera === 'function') window.applyCamera();
+    }
+    if (!norgeBaseLoaded) updateNorgeBaseLayer();
+    else applyBaseAnchorTransform();
+    scheduleNorgeUpdate();
+  } else {
+    // Gjenopprett tidligere target
+    if (__norgeSavedTarget && window.camState) {
+      window.camState.target.set(__norgeSavedTarget.x, __norgeSavedTarget.y, __norgeSavedTarget.z);
+      __norgeSavedTarget = null;
+      if (typeof window.applyCamera === 'function') window.applyCamera();
+    }
+  }
+}
+
+// ---- Initial last n\u00e5r DOM er klar ----
+setTimeout(() => {
+  subMap.norgeKart.visible = false; // styres av base-map-norge-checkbox
+  subMap.norgeKartBase.visible = false;
+  scheduleNorgeUpdate();
+}, 200);
+
+
 // Layer-togglers
 function bindToggle(id, group, prop = 'visible') {
   const el = document.getElementById(id);
@@ -2544,17 +3256,22 @@ function bindToggle(id, group, prop = 'visible') {
 bindToggle('layer-square-grid', subMap.squareGrid);
 bindToggle('layer-meridians', subMap.meridians);
 bindToggle('layer-latcircles', subMap.latcircles);
-bindToggle('layer-coast', subMap.coast);
-// Norge-fork 2026-05-31: 'Norgeskart (Kartverket)'-toggle styrer iframe-overlegg av norge.html
-// over Norge-omraadet paa AE-disken. Iframen ligger i index.html (#norge-iframe-wrap)
-// og inneholder Leaflet med Kartverket WMTS (zoom 1:5000, sjokart, byer). norge.html er uroert.
+// Layer 1-basiskart: UN AE og Norgeskart kan vises uavhengig eller samtidig.
 {
-  const el = document.getElementById('layer-norge-kart');
-  const wrap = document.getElementById('norge-iframe-wrap');
-  if (el && wrap) {
-    const sync = () => { wrap.style.display = el.checked ? 'block' : 'none'; };
-    el.addEventListener('change', sync);
-    sync();
+  const unEl = document.getElementById('base-map-un');
+  const norgeEl = document.getElementById('base-map-norge');
+  const apply = () => {
+    const showUn = !unEl || unEl.checked;
+    const showNorge = !!(norgeEl && norgeEl.checked);
+    subMap.coast.visible = showUn;
+    subMap.norgeKart.visible = false;
+    applyNorgeInstrumentMode(showNorge);
+    if (!showNorge) focusBaseMap('un');
+  };
+  if (unEl || norgeEl) {
+    unEl?.addEventListener('change', apply);
+    norgeEl?.addEventListener('change', apply);
+    apply();
   }
 }
 // v16.49: FN-kart-rotasjon slider (for å finjustere Greenwich-orientering)
@@ -2581,13 +3298,16 @@ bindToggle('layer-coast', subMap.coast);
   if (slider) {
     slider.addEventListener('input', () => {
       const v = parseFloat(slider.value) / 100;
+      currentMapOpacity = v;
       valEl.textContent = slider.value;
-      subMap.coast.traverse(obj => {
-        if (obj.userData && obj.userData.isUnMap && obj.material) {
-          obj.material.opacity = v;
-          obj.material.needsUpdate = true;
-        }
-      });
+      for (const group of [subMap.coast, subMap.norgeKart]) {
+        group.traverse(obj => {
+          if (obj.userData && (obj.userData.isUnMap || obj.userData.isNorgeMap) && obj.material) {
+            obj.material.opacity = v;
+            obj.material.needsUpdate = true;
+          }
+        });
+      }
     });
   }
 }
@@ -2870,10 +3590,10 @@ bindToggle('layer-outerring', subMap.outerring);
   }
 }
 
-bindToggle('layer-equator', subCel.equator);
-bindToggle('layer-cancer', subCel.cancer);
-bindToggle('layer-capricorn', subCel.capricorn);
-bindToggle('layer-polarcircles', subCel.polarcircles);
+bindToggle('layer-equator', subMap.equator);
+bindToggle('layer-cancer', subMap.cancer);
+bindToggle('layer-capricorn', subMap.capricorn);
+bindToggle('layer-polarcircles', subMap.polarcircles);
 bindToggle('layer-sun', subCel.sun);
 bindToggle('layer-moon', subCel.moon);
 bindToggle('layer-enoch-gates', subCel.ports);
@@ -3102,24 +3822,43 @@ document.getElementById('toggle-right').addEventListener('click', () => {
 vmLeft.addEventListener('change', applyPanelVisibility);
 vmRight.addEventListener('change', applyPanelVisibility);
 
-// View-meny: toggle dropdown
+// View-meny: fjernet i Steg 2 (2026-06-01). Beholder no-op her i tilfelle annen kode
+// refererer til viewMenuBtn / viewMenu — begge vil bare være null og koden hopper over.
 const viewMenuBtn = document.getElementById('view-menu-btn');
 const viewMenu    = document.getElementById('view-menu');
-viewMenuBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  viewMenu.classList.toggle('open');
-  viewMenuBtn.classList.toggle('active', viewMenu.classList.contains('open'));
-});
-document.addEventListener('click', (e) => {
-  if (!viewMenu.contains(e.target) && e.target !== viewMenuBtn) {
-    viewMenu.classList.remove('open');
-    viewMenuBtn.classList.remove('active');
-  }
+if (viewMenuBtn && viewMenu) {
+  viewMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    viewMenu.classList.toggle('open');
+    viewMenuBtn.classList.toggle('active', viewMenu.classList.contains('open'));
+  });
+  document.addEventListener('click', (e) => {
+    if (!viewMenu.contains(e.target) && e.target !== viewMenuBtn) {
+      viewMenu.classList.remove('open');
+      viewMenuBtn.classList.remove('active');
+    }
+  });
+}
+
+// (Steg 2 — 2026-06-01) Bind +/−/⦿ knappene i topp-toolbar til kamera-zoom.
+// Funksjonen zoomInstrumentOverlay(deltaY) bruker samme matematikk som musehjul:
+// camState.dist *= 1.0008^deltaY. Vi bruker deltaY = ±300 for ett klikk ≈ 28% endring.
+const _btnZoomIn  = document.getElementById('btn-zoom-in');
+const _btnZoomOut = document.getElementById('btn-zoom-out');
+const _btnZoomRst = document.getElementById('btn-zoom-reset');
+if (_btnZoomIn)  _btnZoomIn.addEventListener('click',  () => zoomInstrumentOverlay(-300));
+if (_btnZoomOut) _btnZoomOut.addEventListener('click', () => zoomInstrumentOverlay( 300));
+if (_btnZoomRst) _btnZoomRst.addEventListener('click', () => {
+  camState.target.set(0, 0, 0);
+  camState.tilt = 90;
+  camState.rot  = 0;
+  camState.height = 0;
+  camState.dist = 100;
+  applyCamera();
+  if (typeof updateZoomReadout === 'function') updateZoomReadout();
 });
 
 // Modus
-let currentMode = 'enoch';
-function currentModeLabel() { return currentMode === 'enoch' ? 'Enoch scale' : 'GE scale'; }
 document.querySelectorAll('[data-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
@@ -3152,6 +3891,7 @@ function onResize() {
   camera.aspect = cw / ch;
   camera.updateProjectionMatrix();
   renderer.setSize(cw, ch, false);
+  // (v6.1) Leaflet er borte
 }
 window.addEventListener('resize', onResize);
 
@@ -3759,6 +4499,7 @@ document.getElementById('enok72-modal-backdrop').addEventListener('click', (e) =
 document.getElementById('cal-info').style.cursor = 'pointer';
 document.getElementById('cal-info').title = 'Click to read Enoch 72 text for today\'s gate';
 document.getElementById('cal-info').addEventListener('click', openEnok72Modal);
+// (v6.1) bindNorgePlacementControls() fjernet — ingen Leaflet-x/y/scale-slidere lenger
 
 // =================================================================
 // START

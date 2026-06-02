@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Enoch 72 — Norge-fork (basert på v16.77) — EKSPERIMENT</title>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enoch 72 — Norge-fork (basert på v16.77) — EKSPERIMENT</title>
+  <!-- (v6.1) Leaflet fjernet — Norge rendres nå som Three.js-tiles -->
+  <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
   body {
@@ -231,9 +232,160 @@
   /* Canvas */
   #canvas-wrap {
     position: relative; background: #050505; min-height: 0; overflow: hidden;
+    container-type: size;
   }
   canvas { display: block; width: 100%; height: 100%; cursor: grab; }
   canvas:active { cursor: grabbing; }
+  #norge-leaflet-map {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(82cqw, 82cqh);
+    height: min(82cqw, 82cqh);
+    display: none;
+    background: transparent;
+    z-index: 1;
+    /* Anker-system: hvis --norge-anchor-transform er satt, overstyrer den scale-varianten.
+       Default: translate(-50%, -50%) scale(var(--norge-map-scale, 1)). */
+    transform: var(--norge-anchor-transform, translate(-50%, -50%) scale(var(--norge-map-scale, 1)));
+    transform-origin: center center;
+  }
+  #norge-leaflet-map.leaflet-container {
+    background: transparent;
+  }
+  /* Krysshår-markører (kalibrering) — transparent bakgrunn, ingen Leaflet-default-stil */
+  .enok72-crosshair {
+    background: transparent !important;
+    border: 0 !important;
+  }
+  .enok72-marker-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px dashed #1f1f1f;
+  }
+  .enok72-marker-row:last-child { border-bottom: 0; }
+  .enok72-marker-coord { color: #888; font-size: 10px; }
+  .enok72-remove-marker-list {
+    padding: 2px 6px;
+    background: #2a1a1a;
+    border: 1px solid #4a2a2a;
+    color: #c99e9e;
+    font: 10px ui-monospace, monospace;
+    cursor: pointer;
+  }
+  .enok72-remove-marker-list:hover { background: #3a2020; }
+  #canvas-wrap.norge-active #cv {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    /* GE-canvas skal motta mus-events (drag, wheel, dblclick) som vanlig.
+       Norge er permanent ankret og skal ikke fange mus. */
+    pointer-events: auto;
+  }
+  #canvas-wrap.norge-active #tooltip {
+    display: none !important;
+  }
+  #canvas-wrap.norge-active #norge-leaflet-map {
+    display: block;
+    /* Norge er passivt overlegg — alle mus-events skal gå rett gjennom til GE-canvas. */
+    pointer-events: none;
+  }
+  #canvas-wrap.norge-active #zoom-indicator {
+    z-index: 3;
+  }
+  #norge-controls {
+    display: none;
+    margin: 6px 0 8px 20px;
+    padding: 8px;
+    border: 1px solid #2a2a2a;
+    background: #101010;
+  }
+  #norge-controls.open { display: block; }
+  #norge-controls .norge-section { margin-top: 10px; }
+  #norge-controls .norge-section:first-child { margin-top: 0; }
+  #norge-controls .norge-title {
+    color: #9a8a58;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  #norge-controls label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #ccc;
+    font-size: 11px;
+    margin: 4px 0;
+  }
+  #norge-controls button {
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #d4af37;
+    font-size: 10px;
+    padding: 4px 7px;
+    margin: 2px 4px 4px 0;
+    cursor: pointer;
+  }
+  #norge-controls button:hover { border-color: #d4af37; }
+  #norge-controls .norge-range-row {
+    display: grid;
+    grid-template-columns: 42px 1fr 42px;
+    align-items: center;
+    gap: 6px;
+    color: #888;
+    font-size: 10px;
+    margin: 5px 0;
+  }
+  #norge-controls .norge-range-row input { min-width: 0; }
+  #norge-controls .norge-range-row span:last-child {
+    color: #d4af37;
+    font-family: ui-monospace, monospace;
+    text-align: right;
+  }
+  .norge-measure-box {
+    background: #0d0d0d;
+    border: 1px solid #2a2a2a;
+    color: #ccc;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    line-height: 1.45;
+    padding: 6px;
+    white-space: pre-wrap;
+  }
+  .norge-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: #888;
+    font-size: 10px;
+    margin: 2px 0;
+  }
+  .norge-info-row span:last-child {
+    color: #ddd;
+    font-family: ui-monospace, monospace;
+  }
+  #norge-city-list {
+    max-height: 170px;
+    overflow: auto;
+    border-top: 1px solid #242424;
+    margin-top: 4px;
+  }
+  .norge-city-item {
+    padding: 5px 0;
+    border-bottom: 1px solid #242424;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .norge-city-item:hover { color: #fff; }
+  .norge-city-coord {
+    color: #d4af37;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+  }
 
   /* View menu (dropdown) */
   .menu-wrap { position: relative; }
@@ -403,28 +555,18 @@
       <button class="mode-btn active" data-mode="enoch">Enoch scale</button>
       <button class="mode-btn" data-mode="ge">GE scale</button>
     </div>
-    <div class="menu-wrap">
-      <button class="menu-btn" id="view-menu-btn" title="View options">View ▾</button>
-      <div class="menu-panel" id="view-menu">
-        <div class="menu-section">
-          <div class="menu-h">Camera</div>
-          <div class="row"><label>Tilt</label><input type="range" id="vm-cam-tilt" min="-90" max="90" step="1" value="90"><span class="val" id="vm-cam-tilt-val">90°</span></div>
-          <div class="row"><label>Rotate</label><input type="range" id="vm-cam-rot" min="-180" max="180" step="1" value="0"><span class="val" id="vm-cam-rot-val">0°</span></div>
-          <div class="row"><label>Height</label><input type="range" id="vm-cam-height" min="-100" max="100" step="1" value="0"><span class="val" id="vm-cam-height-val">0</span></div>
-          <div class="preset-row">
-            <button class="preset" data-cam="top">Top-down</button>
-            <button class="preset" data-cam="oblique">Oblique</button>
-            <button class="preset" data-cam="side">Side</button>
-            <button class="preset" data-cam="under">Under</button>
-          </div>
-        </div>
-        <div class="menu-section">
-          <div class="menu-h">Panels</div>
-          <label class="menu-item"><input type="checkbox" id="vm-show-left" checked> Show left panel (search, layers, filters)</label>
-          <label class="menu-item"><input type="checkbox" id="vm-show-right" checked> Show right panel (measurements, info)</label>
-        </div>
-      </div>
-    </div>
+    <!-- (Steg 2 — 2026-06-01) View-knapp og hele meny-panel fjernet. Mus styrer alle kameraendringer.
+         Panel-toggles ligger fortsatt på venstre/høyre side via toggle-left/toggle-right.
+         Skjulte input-felter beholdes med id-er som andre deler av app.js leser, men uten
+         brukergrensesnitt. -->
+    <input type="hidden" id="vm-cam-tilt" value="90">
+    <input type="hidden" id="vm-cam-rot" value="0">
+    <input type="hidden" id="vm-cam-height" value="0">
+    <span id="vm-cam-tilt-val" style="display:none">90°</span>
+    <span id="vm-cam-rot-val" style="display:none">0°</span>
+    <span id="vm-cam-height-val" style="display:none">0</span>
+    <input type="checkbox" id="vm-show-left" checked style="display:none">
+    <input type="checkbox" id="vm-show-right" checked style="display:none">
     <button class="toolbar-btn" id="btn-daynight" title="Show day/night zone on the map">☼ Day/night</button>
     <button class="toolbar-btn" id="btn-clock-sol" title="12-hour dial (Enochian time, driven by the sun's position)">☉ Sun-clock</button>
     <button class="toolbar-btn" id="btn-compass" title="360° compass ring (toggleable separately from the dial)">⌖ Compass</button>
@@ -1086,7 +1228,7 @@
       <div class="panel-section">
         <h2>Layer 3 — Firmament</h2>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-polaris" checked>
+          <input type="checkbox" id="layer-polaris">
           <span class="layer-color" style="background:#ffd860"></span>
           Polaris (central axis)
         </label>
@@ -1100,12 +1242,12 @@
       <div class="panel-section">
         <h2>Layer 2 — Sun, Moon, Planets, Enoch Gates</h2>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-enoch-gates" checked>
+          <input type="checkbox" id="layer-enoch-gates">
           <span class="layer-color" style="background:#e06030"></span>
           Enoch 12 gates (walls + openings)
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-sun" checked>
+          <input type="checkbox" id="layer-sun">
           <span class="layer-color" style="background:#ffd860"></span>
           Sun (current position)
         </label>
@@ -1119,22 +1261,22 @@
       <div class="panel-section">
         <h2>Layer 1 — The Enoch Map (with magnetic center)</h2>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-equator" checked>
+          <input type="checkbox" id="layer-equator">
           <span class="layer-color" style="background:#c9a247"></span>
           Equator ring
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-cancer" checked>
+          <input type="checkbox" id="layer-cancer">
           <span class="layer-color" style="background:#e0c060"></span>
           Tropic of Cancer
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-capricorn" checked>
+          <input type="checkbox" id="layer-capricorn">
           <span class="layer-color" style="background:#c08040"></span>
           Tropic of Capricorn
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-polarcircles" checked>
+          <input type="checkbox" id="layer-polarcircles">
           <span class="layer-color" style="background:#7090c0"></span>
           Polar circles (Arctic + Antarctic)
         </label>
@@ -1157,11 +1299,120 @@
           <span class="layer-color" style="background:#ffffff"></span>
           Square grid (Cartesian, GE-scale 110.593 km/°)
         </label>
-        <label class="layer-toggle">
-          <input type="checkbox" id="layer-coast" checked>
+        <div style="font-size:11px;color:#888;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.08em">Basiskart</div>
+        <label class="layer-toggle" title="Vis/skjul dagens UN/Natural Earth AE-kart. Kan vises sammen med Norgeskart.">
+          <input type="checkbox" id="base-map-un">
           <span class="layer-color" style="background:#2d8fcf"></span>
           UN AE map (continents)
         </label>
+        <label class="layer-toggle" title="Vis/skjul hele Norgeskartet som interaktivt Layer 1-kart. Kan vises sammen med UN AE-kartet.">
+          <input type="checkbox" id="base-map-norge">
+          <span class="layer-color" style="background:#5a5a5a"></span>
+          Norgeskart (Kartverket)
+        </label>
+        <div id="norge-map-status" style="padding-left:20px;margin:3px 0 7px;color:#9a8a58;font-size:10px;line-height:1.35">
+          Norgeskart ligger klart i instrumentflaten
+        </div>
+        <div id="norge-controls">
+          <div class="norge-section">
+            <div class="norge-title">Bakgrunnskart</div>
+            <label><input type="radio" name="norge-base" value="topograatone" checked> Topografisk gråtone</label>
+            <label><input type="radio" name="norge-base" value="topo"> Topografisk farge</label>
+            <label><input type="radio" name="norge-base" value="toporaster"> Turkart-raster</label>
+            <label><input type="radio" name="norge-base" value="osm"> OpenStreetMap</label>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Kartlag</div>
+            <label><input type="checkbox" id="norge-layer-sjokart"> Sjøkartraster</label>
+            <label><input type="checkbox" id="norge-layer-nib"> Flyfoto Norge i bilder</label>
+            <label><input type="checkbox" id="norge-layer-geo-grid"> Geografisk grid</label>
+            <label><input type="checkbox" id="norge-layer-square-grid"> Square grid 110.593 km/°</label>
+            <label><input type="checkbox" id="norge-layer-cities"> 8 norske byer</label>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Markører (kalibrering)</div>
+            <label title="Tre referansepunkter på polarsirkelen: Selsøy gården, Kveitanosen, Arctic Circle Center. Brukes for å plassere Norgeskartet riktig."><input type="checkbox" id="arctic-cal-toggle"> Polarsirkel-referansepunkter (3)</label>
+            <label title="Markører du har lagt til selv — lagres lokalt i nettleseren."><input type="checkbox" id="manual-markers-toggle" checked> Manuelle markører</label>
+            <label title="Speil markører også på UN AE-kartet (via aeProject). Lar deg sammenligne Leaflet-posisjon mot AE-posisjon."><input type="checkbox" id="markers-on-ae-toggle"> Vis markører på UN AE-kart</label>
+            <div style="margin-top:8px;padding:6px 0 0;border-top:1px solid #2a2a2a">
+              <div style="font-size:10px;color:#888;margin-bottom:4px">Legg til manuell markør (eller klikk på kartet):</div>
+              <div style="display:flex;gap:4px;margin-bottom:3px">
+                <input type="text" id="enok72-marker-navn" placeholder="Navn (valgfritt)" style="flex:1;min-width:0;padding:3px 5px;background:#0a0a0a;border:1px solid #333;color:#ddd;font:11px ui-monospace,monospace">
+              </div>
+              <div style="display:flex;gap:4px;margin-bottom:3px">
+                <input type="number" id="enok72-marker-lat" step="0.000001" placeholder="Lat" style="flex:1;min-width:0;padding:3px 5px;background:#0a0a0a;border:1px solid #333;color:#ddd;font:11px ui-monospace,monospace">
+                <input type="number" id="enok72-marker-lon" step="0.000001" placeholder="Lon" style="flex:1;min-width:0;padding:3px 5px;background:#0a0a0a;border:1px solid #333;color:#ddd;font:11px ui-monospace,monospace">
+              </div>
+              <div style="display:flex;gap:4px">
+                <button type="button" id="enok72-marker-add" style="flex:1;padding:4px 8px;background:#1a3a1a;border:1px solid #2a5a2a;color:#9ec99e;font:11px ui-monospace,monospace;cursor:pointer">Legg til</button>
+                <button type="button" id="enok72-marker-clear-all" style="flex:1;padding:4px 8px;background:#3a1a1a;border:1px solid #5a2a2a;color:#c99e9e;font:11px ui-monospace,monospace;cursor:pointer">Fjern alle manuelle</button>
+              </div>
+              <button type="button" id="enok72-marker-export" style="width:100%;margin-top:4px;padding:4px 8px;background:#1a2a3a;border:1px solid #2a4a6a;color:#9ec0e0;font:11px ui-monospace,monospace;cursor:pointer">Last ned alle markører som CSV</button>
+              <div id="enok72-manual-marker-list" style="margin-top:6px;font-size:10px;line-height:1.3;color:#aaa;max-height:140px;overflow-y:auto;border:1px solid #2a2a2a;padding:5px;background:#0a0a0a"></div>
+            </div>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Norgeskart plassering</div>
+            <div class="norge-range-row">
+              <span>Kart X</span>
+              <input type="range" id="norge-cal-x" min="-2000" max="2000" step="1" value="6">
+              <span id="norge-cal-x-val">6</span>
+            </div>
+            <div class="norge-range-row">
+              <span>Kart Y</span>
+              <input type="range" id="norge-cal-y" min="-2000" max="2000" step="1" value="8">
+              <span id="norge-cal-y-val">8</span>
+            </div>
+            <div class="norge-range-row">
+              <span>Kart scale</span>
+              <input type="range" id="norge-cal-scale" min="20" max="140" step="1" value="104">
+              <span id="norge-cal-scale-val">104%</span>
+            </div>
+            <button id="norge-cal-approx" type="button">Omtrentlig UN-plassering</button>
+            <button id="norge-cal-reset" type="button">Reset kart</button>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Grid / instrumentflate</div>
+            <div class="norge-range-row" title="Forelopig separat zoom for instrument/grid-flaten. Musehjulet styrer Norgeskartet.">
+              <span>Grid zoom</span>
+              <input type="range" id="norge-instrument-zoom" min="25" max="50000" step="1" value="100">
+              <span id="norge-instrument-zoom-val">100%</span>
+            </div>
+            <div class="norge-range-row" title="Flytter grid/instrumentflaten horisontalt, separat fra Norgeskartet.">
+              <span>Grid X</span>
+              <input type="range" id="norge-grid-x" min="-40" max="40" step="0.01" value="0">
+              <span id="norge-grid-x-val">0.00</span>
+            </div>
+            <div class="norge-range-row" title="Flytter grid/instrumentflaten vertikalt, separat fra Norgeskartet.">
+              <span>Grid Y</span>
+              <input type="range" id="norge-grid-y" min="-40" max="40" step="0.01" value="0">
+              <span id="norge-grid-y-val">0.00</span>
+            </div>
+            <label title="Når denne er på flytter mus-drag gridflaten. Når den er av kan Norgeskartet dras som vanlig.">
+              <input type="checkbox" id="norge-mouse-grid"> Mus flytter grid X/Y
+            </label>
+            <button id="norge-grid-reset" type="button">Grid 0</button>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Avstandsmåler</div>
+            <button id="norge-btn-measure" type="button">Start måling</button>
+            <button id="norge-btn-clear" type="button">Tøm</button>
+            <div class="norge-measure-box" id="norge-measure-output">Klikk «Start måling» og deretter to punkter på kartet</div>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Markørposisjon</div>
+            <div class="norge-info-row"><span>Lat</span><span id="norge-info-lat">—</span></div>
+            <div class="norge-info-row"><span>Lon</span><span id="norge-info-lon">—</span></div>
+            <div class="norge-info-row"><span>Zoom</span><span id="norge-info-zoom">—</span></div>
+          </div>
+          <div class="norge-section">
+            <div class="norge-title">Test-byer</div>
+            <div id="norge-city-list">Laster…</div>
+          </div>
+
+          <!-- ANKER-SYSTEM (Steg 2 — 2026-06-01): UI fjernet. Norge ankres permanent
+               til polarsirkelen via koden i app.js (anchorState.polar.active = true alltid). -->
+        </div>
         <div style="padding-left:20px">
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#888;margin:4px 0">
             Map opacity
@@ -1174,23 +1425,18 @@
             <span id="map-rotation-val" style="width:42px;text-align:right;font-family:monospace;color:#c9a247">0°</span>
           </label>
         </div>
-        <label class="layer-toggle" title="Norge-fork: Kartverket topograatone WMTS reprojisert til AE-disken (156 fliser zoom 7).">
-          <input type="checkbox" id="layer-norge-kart" checked>
-          <span class="layer-color" style="background:#5a5a5a"></span>
-          Norgeskart (Kartverket)
-        </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-ports" checked>
+          <input type="checkbox" id="layer-ports">
           <span class="layer-color" style="background:#a08040"></span>
           Ports / measurement points
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-meridians" checked>
+          <input type="checkbox" id="layer-meridians">
           <span class="layer-color" style="background:#404060"></span>
           Meridians
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" id="layer-outerring" checked>
+          <input type="checkbox" id="layer-outerring">
           <span class="layer-color" style="background:#e07a7a"></span>
           Outer ring (Antarctica, 197 421 km)
         </label>
@@ -1200,22 +1446,22 @@
 
       <div class="panel-section">
         <h2>Marker filters</h2>
-        <label class="ctrl"><input type="checkbox" id="filt-equator" checked> Equator (16)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-cancer" checked> Cancer (23)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-capricorn" checked> Capricorn (11)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-arctic" checked> Arctic circle</label>
-        <label class="ctrl"><input type="checkbox" id="filt-port" checked> Ports</label>
-        <label class="ctrl"><input type="checkbox" id="filt-megalithic" checked> Megalithic</label>
-        <label class="ctrl"><input type="checkbox" id="filt-vendekretsmon" checked> Vendekrets-monumenter (17)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-havn-sor" checked> Sørlige havner (EK-01..02)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-mer-110e" checked> Meridian 110°E (EK-03..05)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-mer-150e" checked> Meridian 150°E (EK-06..10)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-mer-149w" checked> Meridian 149.5°W (EK-12..17)</label>
-        <label class="ctrl"><input type="checkbox" id="filt-mer-70w" checked> Meridian 70°W (MR70W-01..12)</label>
-        <label class="ctrl"><input type="checkbox" id="layer-antipodal-axes" checked> Antipodal akser (5 par)</label>
-        <label class="ctrl"><input type="checkbox" id="layer-axis-70w-110e" checked> Akse 70°W &harr; 110°E (Carvajal-Casey)</label>
-        <label class="ctrl"><input type="checkbox" id="layer-antarctica-bases" checked> Antarktis-baser (29)</label>
-        <label class="ctrl"><input type="checkbox" id="layer-norge-test" checked> Norge-test (8 byer)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-equator"> Equator (16)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-cancer"> Cancer (23)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-capricorn"> Capricorn (11)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-arctic"> Arctic circle</label>
+        <label class="ctrl"><input type="checkbox" id="filt-port"> Ports</label>
+        <label class="ctrl"><input type="checkbox" id="filt-megalithic"> Megalithic</label>
+        <label class="ctrl"><input type="checkbox" id="filt-vendekretsmon"> Vendekrets-monumenter (17)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-havn-sor"> Sørlige havner (EK-01..02)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-110e"> Meridian 110°E (EK-03..05)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-150e"> Meridian 150°E (EK-06..10)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-149w"> Meridian 149.5°W (EK-12..17)</label>
+        <label class="ctrl"><input type="checkbox" id="filt-mer-70w"> Meridian 70°W (MR70W-01..12)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-antipodal-axes"> Antipodal akser (5 par)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-axis-70w-110e"> Akse 70°W &harr; 110°E (Carvajal-Casey)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-antarctica-bases"> Antarktis-baser (29)</label>
+        <label class="ctrl"><input type="checkbox" id="layer-norge-test"> Norge-test (8 byer)</label>
         <label class="ctrl"><input type="checkbox" id="show-labels"> Show labels</label>
       </div>
 
@@ -1224,15 +1470,11 @@
     <!-- CENTER: Canvas -->
     <div id="canvas-wrap" style="position:relative">
       <canvas id="cv"></canvas>
+      <!-- (v6.1) #norge-leaflet-map fjernet — Norge tegnes i Three.js-scenen -->
       <div id="tooltip"></div>
       <div id="zoom-indicator">100% · Enoch scale</div>
       <!-- v16.36: Port-progresjons-indikator fjernet etter Jone-Aase 2026-05-28. -->
       <!-- v16.41: Synlig kamera-panel fjernet etter Jone-Aase 2026-05-28. Bruk View-menyen ved siden av Day/night for kamera-kontroll. -->
-      <!-- Norge-fork 2026-05-31: Leaflet Kartverket-kart fra norge.html som iframe-overlegg. Vises bare naar 'Norgeskart (Kartverket)' er paa. -->
-      <div id="norge-iframe-wrap" style="display:none;position:absolute;left:246px;top:230px;width:200px;height:250px;z-index:50;border:2px solid #c9a247;box-shadow:0 4px 16px rgba(0,0,0,0.6);background:#000;pointer-events:auto">
-        <div style="position:absolute;top:-22px;left:0;font-size:11px;color:#c9a247;letter-spacing:0.04em">Norgeskart &middot; Kartverket (zoom 1:5000, sj&oslash;kart)</div>
-        <iframe id="norge-iframe" src="norge.html" style="width:100%;height:100%;border:0;display:block"></iframe>
-      </div>
     </div>
 
     <!-- RIGHT PANEL: Verified numbers, info -->
@@ -1321,7 +1563,7 @@
           Three testable pairs: the sun stands at zenith over the zenith point (12:00 local), and the midnight sun is seen due north/south from the observation point (00:00 local). The straight line between them is the sun's actual line of sight through flat geometry.
         </div>
         <label class="layer-toggle">
-          <input type="checkbox" id="zenith-show" checked>
+          <input type="checkbox" id="zenith-show">
           <span class="layer-color" style="background:#ffd54a"></span>
           Show lines of sight on the map
         </label>
@@ -1448,6 +1690,6 @@
   </div>
 </div>
 
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=norge-tilt-1"></script>
 </body>
 </html>
