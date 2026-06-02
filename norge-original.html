@@ -278,9 +278,9 @@
         data.byer.forEach(by => {
           // Marker
           const marker = L.circleMarker([by.lat, by.lon], {
-            radius: 7,
+            radius: 2,
             color: "#d4af37",
-            weight: 2,
+            weight: 1,
             fillColor: "#ffd76b",
             fillOpacity: 0.9
           });
@@ -326,14 +326,14 @@
     const ankerLayer = L.layerGroup();
     POLAR_ANKER.forEach(p => {
       const m = L.circleMarker([p.lat, p.lon], {
-        radius: 8,
+        radius: 2,
         color: "#d4af37",
-        weight: 2.5,
+        weight: 1,
         fillColor: "#ffd76b",
         fillOpacity: 1.0
       });
       m.bindPopup(`<b>${p.navn}</b><br>Lat ${p.lat.toFixed(4)}° N, Lon ${p.lon.toFixed(4)}° E<br><i>GE: ${p.ge}</i>`);
-      m.bindTooltip(p.navn, { permanent: true, direction: "right", offset: [10, 0], className: "city-label" });
+      // Navn-tooltip fjernet — info ligger i popup ved klikk
       ankerLayer.addLayer(m);
     });
     ankerLayer.addTo(map);
