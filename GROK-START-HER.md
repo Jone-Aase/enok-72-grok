@@ -28,6 +28,10 @@ Du har skrivetilgang via PAT som er gitt deg av prosjekteier Jone Aase.
 
 Hovedinstrumentet er FRYST. Denne kopien (enok-72-grok) kan endres.
 
+## Fase A — aktiv plan
+
+Gjeldende status og milepæler står i: `dokumenter/fase-A-plan.md`. Slå opp der før du starter arbeid. Den oppdateres ved hver milepæl.
+
 ## Status per 2. juni 2026
 
 ### Hva er gjort

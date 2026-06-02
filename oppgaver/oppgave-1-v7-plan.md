@@ -4,6 +4,8 @@ Tildelt: Grok
 Status: Fase 1 (plan) — ingen kode ennå
 Branch når kode starter: `grok/v7-tile-pane-prototype`
 
+Gjeldende fase-A-status og milepæler: `dokumenter/fase-A-plan.md` — slå opp der før du starter.
+
 ## Bakgrunn
 
 Dagens motor (v6) tegner Kartverket-tiles som 3D-mesh inni Three.js-scenen.

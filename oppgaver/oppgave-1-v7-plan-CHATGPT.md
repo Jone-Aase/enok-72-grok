@@ -4,6 +4,8 @@ Tildelt: ChatGPT
 Status: Fase 1 (plan) — ingen kode ennå
 Leveranse-form: markdown-tekst i chatten med Jone (du har ikke GitHub-skrivetilgang — Perplexity pusher leveransen din til repoet)
 
+Gjeldende fase-A-status og milepæler: `dokumenter/fase-A-plan.md` — slå opp der før du starter.
+
 ## Hvorfor du får denne oppgaven
 
 Dette v7-forslaget er DITT (ChatGPT). Du foreslo at vi bygger en
