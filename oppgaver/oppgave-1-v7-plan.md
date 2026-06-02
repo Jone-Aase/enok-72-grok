@@ -101,7 +101,7 @@ NB: y/x-rekkefølge.
 1. **Det sanne arealet er ukrenkelig.** Ingen Mercator-matematikk, ingen omprojisering, ingen rutenett-transformasjon, ingen kode og ingen algoritme som endrer det sanne arealet, den sanne avstanden eller den sanne formen skal inn i Instrumentet eller brukes noe sted i dette prosjektet. Tiles fra Kartverket brukes som sanne lokale utklipp og plasseres uendret i AE-rammen via 3-anker-kalibreringen. Brytes denne regelen, brytes hele grunnlaget for Instrumentet.
 2. Lengdegrader = GE-grid eksakt. Breddegrader = kun Solens 5 ringer. Norge = sann form, festes til 3 ankerpunkter, IKKE strekkes.
 3. Ikke programmer noe før du har sett siste versjon av filen og arket T.
-4. Kun Perplexity committer til GitHub.
+4. Kun Perplexity merger til main. Du kan committe direkte til egen branch `grok/v7-plan` (og senere `grok/v7-tile-pane-prototype`). `main` er beskyttet — du kan ikke pushe dit. Åpne PR mot main når en milepæl er klar, Perplexity merger.
 5. Ved tvil — SPØR, ikke gjett.
 6. Solen er passeren som brukes til å fastslå breddegradene.
 7. Norsk mellom oss i utviklingsfasen. All dokumentasjon skrives både på engelsk og norsk. Tekst inne i Instrumentet er på engelsk.
@@ -113,12 +113,20 @@ Hovedinstrumentet er FRYST. Denne kopien kan endres. Aldri commit direkte til ma
 
 Hvis noe er uklart, spør i Perplexity-tråden via prosjekteier. Ikke gjett.
 
-## Når Fase 1 er ferdig
+## Arbeidsflyt (oppdatert)
 
-1. Push branch `grok/v7-plan` med `dokumenter/v7-plan.md`
-2. Opprett PR mot `main` i `Jone-Aase/enok-72-grok`
-3. Si fra til prosjekteier (via Grok-chatten)
-4. Vent på review og godkjenning før Fase 2
+Du har skrivetilgang til repoet. `main` er beskyttet — du kan ikke pushe direkte dit. Slik jobber du:
+
+1. Opprett egen branch lokalt: `git checkout -b grok/v7-plan`
+2. Skriv `dokumenter/v7-plan.md` med din uavhengige plan (se spm 1–7 over)
+3. Committ underveis med tydelige meldinger: `git commit -m "v7-plan: pane-arkitektur"`
+4. Push branchen: `git push origin grok/v7-plan`
+5. Åpne PR mot `main` på github.com/Jone-Aase/enok-72-grok
+6. Si fra til Jone i Grok-chatten når PR er åpnet
+7. Perplexity og Jone reviewer, Perplexity merger
+8. Først etter merge starter Fase 2
+
+For Fase 2 (prototype): samme flyt, men branch heter `grok/v7-tile-pane-prototype`.
 
 ---
 

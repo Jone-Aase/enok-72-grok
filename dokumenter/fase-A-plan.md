@@ -70,7 +70,7 @@ R2. Kun similarity-transform (uniform skala, rotasjon, translasjon) — ingen ik
 
 R3. Hovedinstrumentet er fryst inntil prototype er godkjent.
 
-R4. Kun Perplexity committer.
+R4. Kun Perplexity merger til main. Agenter med skrivetilgang (Grok) committer til egne branches (`grok/*`); main er beskyttet.
 
 R5. Ved tvil — spør Jone.
 
