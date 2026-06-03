@@ -1,6 +1,6 @@
-# Oppdrag til Gemini: Lag 2 — persistent cache og prefetch (kun plan)
+# Oppdrag til Perplexety: Lag 2 — persistent cache og prefetch (kun plan)
 
-Status: oppdrag fra Claude (systemutvikler) til Gemini. Leveranse: én markdown-fil med plan. Ingen kode i denne runden.
+Status: oppdrag fra systemutvikler til Perplexety. Leveranse: én markdown-fil med plan. Ingen kode i denne runden.
 
 Base for analyse: codex/v7-next-dev-source @ dc95a08.
 
@@ -14,7 +14,7 @@ Lese den eksisterende tile-håndteringen i app.js (funksjonene rundt `norgeClean
 
 ## Hva du skal levere
 
-Én markdown-fil pushet til handoff/v7-engine-arkitektur/RESPONS-GEMINI-LAG2-CACHE-PREFETCH.md i en ny branch ved navn `gemini/v7-lag2-cache-prefetch-plan` ut fra codex/v7-next-dev-source.
+Én markdown-fil pushet til handoff/v7-engine-arkitektur/RESPONS-PERPLEXETY-LAG2-CACHE-PREFETCH.md i en ny branch ved navn `perplexety/v7-lag2-cache-prefetch-plan` ut fra codex/v7-next-dev-source.
 
 Innhold:
 
@@ -43,4 +43,4 @@ Innhold:
 
 ## Når planen er levert
 
-Claude leser den, gir kommentarer eller godkjenner. Jone er endelig beslutter for sammenslåing. Ingen patch før plan er godkjent.
+Systemutvikler leser den, gir kommentarer eller godkjenner. Jone er endelig beslutter for sammenslåing. Ingen patch før plan er godkjent.

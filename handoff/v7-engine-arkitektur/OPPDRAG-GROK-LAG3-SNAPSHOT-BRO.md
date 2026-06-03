@@ -1,6 +1,6 @@
 # Oppdrag til Grok: Lag 3 — Three.js snapshot-bro (kun plan)
 
-Status: oppdrag fra Claude (systemutvikler) til Grok. Leveranse: én markdown-fil med plan. Ingen kode i denne runden.
+Status: oppdrag fra systemutvikler til Grok. Leveranse: én markdown-fil med plan. Ingen kode i denne runden.
 
 Base for analyse: codex/v7-next-dev-source @ dc95a08.
 
@@ -52,4 +52,4 @@ Innhold:
 
 ## Når planen er levert
 
-Claude leser den, gir kommentarer eller godkjenner. Jone er endelig beslutter. Ingen patch før plan er godkjent.
+Systemutvikler leser den, gir kommentarer eller godkjenner. Jone er endelig beslutter. Ingen patch før plan er godkjent.

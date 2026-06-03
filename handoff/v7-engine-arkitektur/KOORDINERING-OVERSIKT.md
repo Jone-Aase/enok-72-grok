@@ -1,11 +1,11 @@
 # Koordineringsoversikt — motor v1
 
-Systemutvikler: Claude (via Perplexity).
+Systemutvikler: systemutvikler.
 Sjef og endelig beslutter: Jone.
 
 ## Spor
 
-Motor-spor (Jone + Claude + Gemini + Grok)
+Motor-spor (Jone + systemutvikler + Perplexety + Grok)
 Kartproduksjon-spor (Jone + ChatGPT) — berøres ikke fra motor-sporet.
 
 ## Branch-modell
@@ -19,10 +19,10 @@ Alle nye planer og patcher tar utgangspunkt i codex/v7-next-dev-source. Sammensl
 
 | Agent | Branch | Type | Status |
 |---|---|---|---|
-| Claude | claude/v7-engine-arkitektur-plan | Plan (arkitektur v1) | Godkjent av Jone |
-| Claude | claude/v7-engine-koordinering | Koordineringsdokumenter | Pushes nå |
-| Claude (planlagt) | claude/v7-engine-modus-toggle-plan | Steg 1-plan | Pushes nå |
-| Gemini (oppdrag) | gemini/v7-lag2-cache-prefetch-plan | Lag 2 cache plus prefetch (plan) | Venter på Gemini |
+| systemutvikler | claude/v7-engine-arkitektur-plan | Plan (arkitektur v1) | Godkjent av Jone |
+| systemutvikler | claude/v7-engine-koordinering | Koordineringsdokumenter | Pushet |
+| systemutvikler | claude/v7-engine-modus-toggle-plan | Steg 1-plan (Mle/Visuell) | Inkludert på koordineringsbranch, venter på godkjenning |
+| Perplexety (oppdrag) | perplexety/v7-lag2-cache-prefetch-plan | Lag 2 cache plus prefetch (plan) | Venter på Perplexety |
 | Grok (oppdrag) | grok/v7-lag3-snapshot-bro-plan | Lag 3 snapshot-bro (plan) | Venter på Grok |
 
 ## Arbeidsregler for alle agenter
@@ -51,15 +51,21 @@ Bryter du dette, blir patchen avvist.
 
 ## Hvordan oppdrag deles ut
 
-Claude skriver oppdrags-MD til handoff/v7-engine-arkitektur/OPPDRAG-<AGENT>-<TEMA>.md, pusher, og gir Jone lenken. Jone limer lenken inn i agentens vindu. Agenten lager sin egen branch med plan-respons og pusher.
+Systemutvikler skriver oppdrags-MD til handoff/v7-engine-arkitektur/OPPDRAG-<AGENT>-<TEMA>.md, pusher, og gir Jone lenken. Jone limer lenken inn i agentens vindu. Agenten lager sin egen branch med plan-respons og pusher.
 
 ## Når en plan-respons kommer inn
 
-1. Claude leser planen.
-2. Claude gir tilbakemelding direkte i en kommentar-MD pushet til samme branch eller som ny MD i handoff/v7-engine-arkitektur/.
+1. Systemutvikler leser planen.
+2. Systemutvikler gir tilbakemelding direkte i en kommentar-MD pushet til samme branch eller som ny MD i handoff/v7-engine-arkitektur/.
 3. Jone er endelig beslutter for om planen godkjennes.
 4. Etter godkjenning lager samme agent ny branch for patch — fortsatt ingen sammenslåing før Jone tester live.
 
+## Identitet i commits
+
+Git-commit-identitet brukt av systemutvikleren er Claude (via Perplexity) / claude@enok-72.local — dette er den tekniske git-identiteten. I tekst og rolle refereres jeg som systemutvikler.
+
+Perplexety, Grok og ChatGPT bruker sine egne commit-identiteter på sine egne branches.
+
 ## Status-rapporter
 
-Claude oppdaterer denne KOORDINERING-OVERSIKT.md ved hver større endring. Tabellen over "Pågående arbeid" er sannhetskilden for hvem som gjør hva.
+Systemutvikler oppdaterer denne KOORDINERING-OVERSIKT.md ved hver større endring. Tabellen over "Pågående arbeid" er sannhetskilden for hvem som gjør hva.
