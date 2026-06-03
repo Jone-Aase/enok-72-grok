@@ -3243,6 +3243,10 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.queueYielded = false;
   norgeCleanTileManager.yieldCount = 0;
   norgeCleanTileManager.lastPumpMs = 0;
+  // Lag 2-tellere (steg 2)
+  norgeCleanTileManager.fromIdb = 0;
+  norgeCleanTileManager.idbWriteFailed = 0;
+  norgeCleanTileManager.idbDecodeFailed = 0;
   refreshNorgeCleanLoadStatus();
 }
 
@@ -3357,6 +3361,14 @@ function processNorgeCleanTileQueue() {
       img.dataset.loadedZ = img.dataset.z || '';
       removeNorgeCleanParentFallback(img);
       rememberNorgeCleanTile(job.src);
+      // Lag 2 steg 2: planlegg IDB-skriving via canvas i idle
+      try {
+        if (lag2State.enabled && lag2State.mode === 'on' && job.sourceKey && job.lag2Key) {
+          lag2ScheduleIdle(() => {
+            lag2WriteTileFromImg(img, job).catch(() => { /* sluk — telleren oppdateres internt */ });
+          });
+        }
+      } catch (_) { /* aldri brekk pipelinen */ }
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
       refreshNorgeCleanLoadStatus();
@@ -3381,7 +3393,7 @@ function processNorgeCleanTileQueue() {
   checkNorgeFreezeWhenLoaded();
 }
 
-function queueNorgeCleanTile(img, src, priority = 0) {
+function queueNorgeCleanTile(img, src, priority = 0, meta = null) {
   if (!src) return;
   img.dataset.src = src;
   if (norgeCleanTileManager.cache.has(src)) {
@@ -3394,13 +3406,53 @@ function queueNorgeCleanTile(img, src, priority = 0) {
     checkNorgeFreezeWhenLoaded();
     return;
   }
+  // Lag 1 (Trinn 2): qualityGap + priorityScore for live-køsortering
   const targetZ = Number(img.dataset.z);
   const availableZ = Number(img.dataset.loadedZ);
   const qualityGap = Number.isFinite(targetZ) && Number.isFinite(availableZ)
     ? Math.max(0, targetZ - availableZ)
     : 0;
-  const job = { img, src, priority, targetZ, availableZ, qualityGap, batch: norgeCleanTileManager.currentBatch };
+  // Lag 2 (steg 2): meta-felter for IDB-cache og prefetch
+  const job = {
+    img,
+    src,
+    priority,
+    targetZ,
+    availableZ,
+    qualityGap,
+    batch: norgeCleanTileManager.currentBatch,
+    sourceKey: meta ? meta.sourceKey : null,
+    z: meta ? meta.z : null,
+    x: meta ? meta.x : null,
+    y: meta ? meta.y : null,
+    lag2Key: null,
+    lag2Excluded: meta ? !!meta.lag2Excluded : false,
+  };
   job.priorityScore = computeNorgeCleanPriorityScore(job);
+  // Lag 2 steg 2: prøv IDB-treff før vi pusher til live-køen
+  if (
+    lag2State.enabled
+    && lag2State.mode === 'on'
+    && !job.lag2Excluded
+    && job.sourceKey
+    && !lag2State.taintedSources.has(job.sourceKey)
+  ) {
+    lag2TryServeFromIdb(job).then((served) => {
+      if (!served) {
+        // Bom — push til live-køen som vanlig
+        if (job.batch === norgeCleanTileManager.currentBatch && img.isConnected && img.dataset.loadedSrc !== src) {
+          norgeCleanTileManager.queue.push(job);
+          processNorgeCleanTileQueue();
+        }
+      }
+    }).catch(() => {
+      if (job.batch === norgeCleanTileManager.currentBatch && img.isConnected && img.dataset.loadedSrc !== src) {
+        norgeCleanTileManager.queue.push(job);
+        processNorgeCleanTileQueue();
+      }
+    });
+    return;
+  }
   norgeCleanTileManager.queue.push(job);
 }
 
@@ -3460,8 +3512,8 @@ function lag2ReadCacheFlag() {
     const v = localStorage.getItem('enok72.lag2.cache');
     if (v === 'off' || v === 'shadow' || v === 'on') return v;
   } catch (_) { /* localStorage utilgjengelig */ }
-  // Steg 1 default: 'shadow'
-  return 'shadow';
+  // Steg 2 default: 'on'
+  return 'on';
 }
 
 function lag2ReadBudgetMb() {
@@ -3818,7 +3870,280 @@ if (typeof document !== 'undefined') {
 }
 
 // =================================================================
-// SLUTT LAG 2 — STEG 1 (IDB-skall)
+// LAG 2 STEG 2: CACHE-INNKOBLING (lese + skrive)
+// =================================================================
+
+function lag2SourceKey(source) {
+  if (!source) return null;
+  return `${source.type || 'unknown'}:${source.layer || ''}`;
+}
+
+function lag2IsSourceExcluded(source) {
+  // NIB ekskludert til CORS er verifisert manuelt (V2 §A.4 + Jone-direktiv)
+  if (!source) return true;
+  if (source.type === 'wms-nib') return true;
+  return false;
+}
+
+function lag2HashStringSync(input) {
+  // Enkel, deterministisk 32-bit FNV-1a + lengde — brukes som rask fallback.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return ('00000000' + h.toString(16)).slice(-8) + ('00000000' + (input.length >>> 0).toString(16)).slice(-8);
+}
+
+async function lag2HashString(input) {
+  try {
+    if (window.crypto && window.crypto.subtle && typeof window.crypto.subtle.digest === 'function') {
+      const buf = new TextEncoder().encode(input);
+      const digest = await window.crypto.subtle.digest('SHA-256', buf);
+      const bytes = new Uint8Array(digest);
+      // base64url-prefiks (16 tegn ≈ 96 bit)
+      let bin = '';
+      for (let i = 0; i < 12; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '').slice(0, 16);
+    }
+  } catch (_) { /* faller tilbake */ }
+  return lag2HashStringSync(input);
+}
+
+async function lag2BuildKey(job) {
+  if (job.lag2Key) return job.lag2Key;
+  const hash = await lag2HashString(job.src);
+  job.lag2Key = `${job.z}/${job.x}/${job.y}|${job.sourceKey}|${hash}`;
+  return job.lag2Key;
+}
+
+function lag2GetTileRow(key) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_TILES_STORE, 'readonly');
+      const store = tx.objectStore(LAG2_TILES_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function lag2PutTileRow(row) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
+      const store = tx.objectStore(LAG2_TILES_STORE);
+      const req = store.put(row);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function lag2DeleteTileRow(key) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
+      const store = tx.objectStore(LAG2_TILES_STORE);
+      const req = store.delete(key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function lag2UpdateLastUsed(key) {
+  // Åpne en egen rwtx for å oppdatere lastUsed/hits — fire and forget.
+  try {
+    const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
+    const store = tx.objectStore(LAG2_TILES_STORE);
+    const req = store.get(key);
+    req.onsuccess = () => {
+      const row = req.result;
+      if (!row) return;
+      row.lastUsed = Date.now();
+      row.hits = (row.hits || 0) + 1;
+      try { store.put(row); } catch (_) { /* noop */ }
+    };
+  } catch (_) { /* noop */ }
+}
+
+async function lag2TryServeFromIdb(job) {
+  if (!lag2State.enabled || lag2State.mode !== 'on') return false;
+  try {
+    await lag2BuildKey(job);
+    const row = await lag2GetTileRow(job.lag2Key);
+    if (!row || !row.blob) return false;
+    if (job.batch !== norgeCleanTileManager.currentBatch) return true; // batch rullet — ikke skriv DOM
+    if (!job.img.isConnected || job.img.dataset.loadedSrc === job.src) return true;
+
+    const blobUrl = URL.createObjectURL(row.blob);
+    const cleanup = () => {
+      try { URL.revokeObjectURL(blobUrl); } catch (_) { /* noop */ }
+    };
+    const onOk = () => {
+      if (job.batch !== norgeCleanTileManager.currentBatch) { cleanup(); return; }
+      job.img.dataset.loadedSrc = job.src;
+      // Paritet 1 mot Lag 1 (Trinn 2): IDB-serverte tiles må også sette loadedZ
+      // slik at qualityGap-beregningen i queueNorgeCleanTile er konsistent.
+      job.img.dataset.loadedZ = job.img.dataset.z || '';
+      rememberNorgeCleanTile(job.src);
+      norgeCleanTileManager.fromIdb += 1;
+      lag2UpdateLastUsed(job.lag2Key);
+      queueMicrotask(cleanup);
+      syncNorgeCleanControls();
+      refreshNorgeCleanLoadStatus();
+    };
+    const onFail = async () => {
+      norgeCleanTileManager.idbDecodeFailed += 1;
+      cleanup();
+      // Korrupt rad — fjern den slik at vi ikke prøver igjen, og fall tilbake til live-køen
+      try { await lag2DeleteTileRow(job.lag2Key); } catch (_) { /* noop */ }
+      if (job.batch === norgeCleanTileManager.currentBatch && job.img.isConnected && job.img.dataset.loadedSrc !== job.src) {
+        norgeCleanTileManager.queue.push(job);
+        processNorgeCleanTileQueue();
+      }
+    };
+
+    // Foretrekk img.decode() der det finnes (V2 §B)
+    if (typeof job.img.decode === 'function') {
+      job.img.src = blobUrl;
+      job.img.decode().then(onOk, onFail);
+    } else {
+      job.img.onload = onOk;
+      job.img.onerror = onFail;
+      job.img.src = blobUrl;
+    }
+    return true;
+  } catch (err) {
+    norgeCleanTileManager.idbDecodeFailed += 1;
+    return false;
+  }
+}
+
+function lag2GetCanvasCtor() {
+  if (typeof OffscreenCanvas !== 'undefined') return 'offscreen';
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') return 'html';
+  return null;
+}
+
+async function lag2BlobFromImg(img, mimeHint) {
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  if (!w || !h) throw new Error('lag2: img has zero dimensions');
+  const canvasKind = lag2GetCanvasCtor();
+  if (!canvasKind) throw new Error('lag2: no canvas available');
+
+  // V2 §B: vent på decode() der det er tilgjengelig, slik at vi ikke leser et halvferdig bilde
+  if (typeof img.decode === 'function') {
+    try { await img.decode(); } catch (_) { /* mange nettlesere kaster om src ble satt før decode kalles — fortsett */ }
+  }
+
+  if (canvasKind === 'offscreen') {
+    const canvas = new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('lag2: 2d-context failed');
+    ctx.drawImage(img, 0, 0);
+    if (typeof canvas.convertToBlob === 'function') {
+      return canvas.convertToBlob({ type: mimeHint, quality: 0.92 });
+    }
+  }
+
+  // HTMLCanvasElement-fallback (Safari < 16.4 m.fl.)
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('lag2: 2d-context failed');
+  ctx.drawImage(img, 0, 0);
+  return new Promise((resolve, reject) => {
+    if (typeof canvas.toBlob !== 'function') {
+      reject(new Error('lag2: toBlob unavailable'));
+      return;
+    }
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('lag2: toBlob returned null'));
+    }, mimeHint, 0.92);
+  });
+}
+
+function lag2GuessMime(src) {
+  if (!src) return 'image/png';
+  const lower = src.toLowerCase();
+  if (lower.includes('format=image%2fjpeg') || lower.includes('format=image/jpeg')) return 'image/jpeg';
+  if (lower.includes('.jpg') || lower.includes('.jpeg')) return 'image/jpeg';
+  if (lower.includes('format=image%2fpng') || lower.includes('format=image/png')) return 'image/png';
+  return 'image/png';
+}
+
+async function lag2WriteTileFromImg(img, job) {
+  if (!lag2State.enabled || lag2State.mode !== 'on') return;
+  if (!job || !job.sourceKey || lag2State.taintedSources.has(job.sourceKey)) return;
+  if (lag2IsSourceExcluded({ type: job.sourceKey.split(':')[0] })) return;
+  try {
+    await lag2BuildKey(job);
+  } catch (_) { return; }
+  const mime = lag2GuessMime(job.src);
+  let blob;
+  try {
+    blob = await lag2BlobFromImg(img, mime);
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    if (msg.includes('Tainted') || msg.includes('SecurityError') || (err && err.name === 'SecurityError')) {
+      lag2State.taintedSources.add(job.sourceKey);
+      console.warn('[v7-lag2] canvas tainted — IDB-skriving av for', job.sourceKey);
+    } else {
+      norgeCleanTileManager.idbWriteFailed += 1;
+    }
+    return;
+  }
+  if (!blob || !blob.size) {
+    norgeCleanTileManager.idbWriteFailed += 1;
+    return;
+  }
+  const row = {
+    key: job.lag2Key,
+    src: job.src,
+    source: job.sourceKey,
+    z: job.z,
+    x: job.x,
+    y: job.y,
+    blob,
+    bytes: blob.size,
+    etag: null,
+    fetchedAt: Date.now(),
+    lastUsed: Date.now(),
+    hits: 0,
+  };
+  try {
+    await lag2PutTileRow(row);
+    lag2State.bytesUsed += blob.size;
+    if (lag2State.bytesUsed > lag2State.bytesBudget * 0.9) {
+      lag2ScheduleIdle(() => sweepTileCache('post-put'));
+    }
+  } catch (err) {
+    norgeCleanTileManager.idbWriteFailed += 1;
+    if (err && err.name === 'QuotaExceededError') {
+      // Prøv én sweep + ett ny prøv
+      try {
+        await sweepTileCache('quota');
+        await lag2PutTileRow(row);
+        lag2State.bytesUsed += blob.size;
+      } catch (_) { /* sluk */ }
+    }
+  }
+}
+
+// =================================================================
+// SLUTT LAG 2 — STEG 2 (cache-innkobling)
 // =================================================================
 
 function cleanNorgeDetailSources() {
@@ -4641,11 +4966,29 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         img.dataset.role = job.source.role;
         img.dataset.clean = '1';
         img.dataset.anchorMode = job.pane.dataset.anchorMode;
+        // Lag 2 steg 2: CORS før src settes (kreves for canvas-eksport).
+        // Kun når Lag 2 er aktivt på; ?lag2=off og shadow-modus bevarer V0-atferd.
+        // NIB ekskludert; for andre kilder ber vi om anonym CORS.
+        if (
+          lag2State.enabled
+          && lag2State.mode === 'on'
+          && !lag2IsSourceExcluded(job.source)
+          && !lag2State.taintedSources.has(lag2SourceKey(job.source))
+        ) {
+          img.crossOrigin = 'anonymous';
+        }
+        // Lag 1 (Trinn 3): parent-tile fallback hvis live-tile ikke er i RAM-cache
         if (!norgeCleanTileManager.cache.has(job.src)) {
           const fallback = addNorgeCleanParentFallback(img, job.source, zoom, job.x, job.y);
           if (fallback) job.pane.appendChild(fallback);
         }
-        queueNorgeCleanTile(img, job.src, job.priority);
+        queueNorgeCleanTile(img, job.src, job.priority, {
+          sourceKey: lag2SourceKey(job.source),
+          z: zoom,
+          x: job.x,
+          y: job.y,
+          lag2Excluded: lag2IsSourceExcluded(job.source),
+        });
         job.pane.appendChild(img);
   }
   norgeCleanTileManager.queue.sort(compareNorgeCleanTileJobs);
