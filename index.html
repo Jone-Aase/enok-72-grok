@@ -315,6 +315,18 @@
     opacity: 1;
     outline: none;
     --tile-bleed: 1.0px;
+    --pane-brightness: 1;
+    --pane-contrast: 1;
+    --pane-saturate: 1;
+    filter:
+      brightness(var(--pane-brightness, 1))
+      contrast(var(--pane-contrast, 1))
+      saturate(var(--pane-saturate, 1));
+  }
+  .norge-clean-pixelflate[data-anchor-mode="iceland"] {
+    --pane-brightness: 1.03;
+    --pane-contrast: 1.02;
+    --pane-saturate: 1.03;
   }
   .norge-clean-diagnostics {
     position: absolute;
