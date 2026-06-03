@@ -3404,6 +3404,423 @@ function queueNorgeCleanTile(img, src, priority = 0) {
   norgeCleanTileManager.queue.push(job);
 }
 
+// =================================================================
+// LAG 2: IDB-CACHE + PREFETCH (steg 1 — IDB-skall, shadow-modus)
+// =================================================================
+//
+// Steg 1 leveranse: åpne IndexedDB, opprette stores, kjøre sweep,
+// nullstille tellere. Ingen lese/skrive-kroker i tile-pipelinen.
+// `enok72.lag2.cache` default = 'shadow' i steg 1.
+// `enok72.lag2.prefetch` ignoreres i steg 1.
+//
+// Regler: ikke rør anker, aeProject, transform, skala, rotasjon,
+// tile-posisjon, GE-grid, solsirkler, kartflatens proporsjoner.
+// Måle-modus skal være pikselidentisk.
+//
+// Se handoff/v7-engine-arkitektur/RESPONS-PERPLEXETY-LAG2-CACHE-PREFETCH-V2.md
+// for fullstendig plan.
+// =================================================================
+
+const LAG2_SCHEMA_VERSION = 1;
+const LAG2_DATA_GENERATION = 1;
+const LAG2_DB_NAME = 'enok72-tiles';
+const LAG2_TILES_STORE = 'tiles';
+const LAG2_META_STORE = 'meta';
+const LAG2_DEFAULT_BUDGET_BYTES = 256 * 1024 * 1024;
+const LAG2_DEFAULT_TTL_DAYS = 30;
+const LAG2_SWEEP_INTERVAL_MS = 60 * 1000;
+
+const lag2State = {
+  enabled: false,
+  mode: 'shadow', // 'off' | 'shadow' | 'on'
+  db: null,
+  openPromise: null,
+  bytesUsed: 0,
+  bytesBudget: LAG2_DEFAULT_BUDGET_BYTES,
+  ttlMs: LAG2_DEFAULT_TTL_DAYS * 24 * 3600 * 1000,
+  lastSweepAt: 0,
+  sweepTimer: null,
+  taintedSources: new Set(),
+  initError: null,
+};
+
+function lag2ReadKillSwitch() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('lag2') === 'off') return true;
+  } catch (_) {
+    // location.href ikke tilgjengelig — la den passere
+  }
+  return false;
+}
+
+function lag2ReadCacheFlag() {
+  if (lag2ReadKillSwitch()) return 'off';
+  try {
+    const v = localStorage.getItem('enok72.lag2.cache');
+    if (v === 'off' || v === 'shadow' || v === 'on') return v;
+  } catch (_) { /* localStorage utilgjengelig */ }
+  // Steg 1 default: 'shadow'
+  return 'shadow';
+}
+
+function lag2ReadBudgetMb() {
+  try {
+    const v = localStorage.getItem('enok72.lag2.cache.budgetMb');
+    if (v) {
+      const n = parseInt(v, 10);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+  } catch (_) { /* noop */ }
+  return null;
+}
+
+function lag2ReadTtlDays() {
+  try {
+    const v = localStorage.getItem('enok72.lag2.cache.ttlDays');
+    if (v) {
+      const n = parseInt(v, 10);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+  } catch (_) { /* noop */ }
+  return LAG2_DEFAULT_TTL_DAYS;
+}
+
+function lag2ShouldPurge() {
+  try {
+    return localStorage.getItem('enok72.lag2.cache.purge') === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+function lag2ClearPurgeFlag() {
+  try {
+    localStorage.removeItem('enok72.lag2.cache.purge');
+  } catch (_) { /* noop */ }
+}
+
+function lag2OpenDb() {
+  if (lag2State.db) return Promise.resolve(lag2State.db);
+  if (lag2State.openPromise) return lag2State.openPromise;
+  if (typeof indexedDB === 'undefined') {
+    lag2State.initError = 'indexedDB unavailable';
+    return Promise.reject(new Error(lag2State.initError));
+  }
+  lag2State.openPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(LAG2_DB_NAME, LAG2_SCHEMA_VERSION);
+    req.onupgradeneeded = (event) => {
+      const db = req.result;
+      const oldVersion = event.oldVersion || 0;
+      if (oldVersion < 1) {
+        const tiles = db.createObjectStore(LAG2_TILES_STORE, { keyPath: 'key' });
+        tiles.createIndex('byLastUsed', 'lastUsed', { unique: false });
+        tiles.createIndex('byFetchedAt', 'fetchedAt', { unique: false });
+        tiles.createIndex('bySource', 'source', { unique: false });
+        tiles.createIndex('byZ', 'z', { unique: false });
+        db.createObjectStore(LAG2_META_STORE, { keyPath: 'id' });
+      }
+      // Fremtidige skjema-bumpene legges til her.
+    };
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => {
+        try { db.close(); } catch (_) { /* noop */ }
+        lag2State.db = null;
+      };
+      resolve(db);
+    };
+    req.onerror = () => reject(req.error || new Error('IDB open failed'));
+    req.onblocked = () => {
+      // En annen fane holder en eldre versjon — ikke fatal, men noter det
+      console.warn('[v7-lag2] IDB open blocked by another tab');
+    };
+  }).then((db) => {
+    lag2State.db = db;
+    return db;
+  }).catch((err) => {
+    lag2State.initError = err && err.message ? err.message : String(err);
+    lag2State.db = null;
+    throw err;
+  });
+  return lag2State.openPromise;
+}
+
+function lag2Tx(storeNames, mode = 'readonly') {
+  if (!lag2State.db) throw new Error('IDB not open');
+  const tx = lag2State.db.transaction(storeNames, mode);
+  return tx;
+}
+
+function lag2MetaGet(id) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_META_STORE, 'readonly');
+      const store = tx.objectStore(LAG2_META_STORE);
+      const req = store.get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function lag2MetaPut(record) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_META_STORE, 'readwrite');
+      const store = tx.objectStore(LAG2_META_STORE);
+      const req = store.put(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function lag2DropAllTiles() {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
+      const store = tx.objectStore(LAG2_TILES_STORE);
+      const req = store.clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function lag2RecomputeBytesUsed() {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = lag2Tx(LAG2_TILES_STORE, 'readonly');
+      const store = tx.objectStore(LAG2_TILES_STORE);
+      const req = store.openCursor();
+      let total = 0;
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) {
+          resolve(total);
+          return;
+        }
+        total += cursor.value && cursor.value.bytes ? cursor.value.bytes : 0;
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+async function lag2ResolveBudget() {
+  const override = lag2ReadBudgetMb();
+  if (override) return override * 1024 * 1024;
+  try {
+    if (navigator.storage && typeof navigator.storage.estimate === 'function') {
+      const est = await navigator.storage.estimate();
+      if (est && typeof est.quota === 'number' && est.quota > 0) {
+        return Math.min(LAG2_DEFAULT_BUDGET_BYTES, Math.floor(est.quota * 0.4));
+      }
+    }
+  } catch (_) { /* estimate ikke støttet */ }
+  return LAG2_DEFAULT_BUDGET_BYTES;
+}
+
+async function sweepTileCache(reason = 'periodic') {
+  if (!lag2State.db) return { dropped: 0, reason: 'no-db' };
+  const now = Date.now();
+  let dropped = 0;
+  try {
+    // Trinn 1: dropp rader eldre enn TTL
+    await new Promise((resolve, reject) => {
+      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
+      const store = tx.objectStore(LAG2_TILES_STORE);
+      const idx = store.index('byFetchedAt');
+      const cutoff = now - lag2State.ttlMs;
+      const range = IDBKeyRange.upperBound(cutoff);
+      const req = idx.openCursor(range);
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) { resolve(); return; }
+        if (cursor.value && cursor.value.lastUsed && cursor.value.lastUsed > now - 60000) {
+          // Beskytt akkurat-brukte tiles
+          cursor.continue();
+          return;
+        }
+        const bytes = (cursor.value && cursor.value.bytes) || 0;
+        cursor.delete();
+        dropped += 1;
+        lag2State.bytesUsed = Math.max(0, lag2State.bytesUsed - bytes);
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+
+    // Trinn 2: LRU hvis vi er over 90% budsjett — ned mot 70%
+    if (lag2State.bytesUsed > lag2State.bytesBudget * 0.9) {
+      const target = Math.floor(lag2State.bytesBudget * 0.7);
+      await new Promise((resolve, reject) => {
+        const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
+        const store = tx.objectStore(LAG2_TILES_STORE);
+        const idx = store.index('byLastUsed');
+        const req = idx.openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (!cursor) { resolve(); return; }
+          if (lag2State.bytesUsed <= target) { resolve(); return; }
+          if (cursor.value && cursor.value.lastUsed && cursor.value.lastUsed > now - 60000) {
+            cursor.continue();
+            return;
+          }
+          const bytes = (cursor.value && cursor.value.bytes) || 0;
+          cursor.delete();
+          dropped += 1;
+          lag2State.bytesUsed = Math.max(0, lag2State.bytesUsed - bytes);
+          cursor.continue();
+        };
+        req.onerror = () => reject(req.error);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    // Trinn 3: re-synk bytesUsed mot virkelighet etter sweep
+    try {
+      lag2State.bytesUsed = await lag2RecomputeBytesUsed();
+    } catch (_) { /* noop */ }
+
+    lag2State.lastSweepAt = now;
+    await lag2MetaPut({
+      id: 'quota',
+      bytesUsed: lag2State.bytesUsed,
+      bytesBudget: lag2State.bytesBudget,
+      lastSweepAt: lag2State.lastSweepAt,
+    });
+  } catch (err) {
+    console.warn('[v7-lag2] sweep failed:', err && err.message ? err.message : err);
+  }
+  return { dropped, reason };
+}
+
+function lag2ScheduleIdle(fn) {
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(fn, { timeout: 2000 });
+  } else {
+    setTimeout(fn, 0);
+  }
+}
+
+function lag2StartPeriodicSweep() {
+  if (lag2State.sweepTimer) return;
+  lag2State.sweepTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    lag2ScheduleIdle(() => sweepTileCache('periodic'));
+  }, LAG2_SWEEP_INTERVAL_MS);
+}
+
+async function lag2InitOnce() {
+  if (lag2State.enabled) return;
+  const mode = lag2ReadCacheFlag();
+  lag2State.mode = mode;
+  if (mode === 'off') {
+    return; // IDB åpnes ikke
+  }
+  try {
+    lag2State.ttlMs = lag2ReadTtlDays() * 24 * 3600 * 1000;
+    lag2State.bytesBudget = await lag2ResolveBudget();
+    await lag2OpenDb();
+
+    // Be om persistent lagring (ikke fatal hvis den feiler / nektes)
+    try {
+      if (navigator.storage && typeof navigator.storage.persist === 'function') {
+        await navigator.storage.persist();
+      }
+    } catch (_) { /* noop */ }
+
+    // Versjons- og generasjonssjekk
+    const versionMeta = await lag2MetaGet('version');
+    const needSchemaReset = !versionMeta || versionMeta.schemaVersion !== LAG2_SCHEMA_VERSION;
+    const needGenerationReset = !versionMeta || versionMeta.dataGeneration !== LAG2_DATA_GENERATION;
+    if (needSchemaReset || needGenerationReset || lag2ShouldPurge()) {
+      await lag2DropAllTiles();
+      lag2State.bytesUsed = 0;
+      lag2ClearPurgeFlag();
+    }
+    await lag2MetaPut({
+      id: 'version',
+      schemaVersion: LAG2_SCHEMA_VERSION,
+      dataGeneration: LAG2_DATA_GENERATION,
+      updatedAt: Date.now(),
+    });
+
+    // Initial bytesUsed
+    try {
+      lag2State.bytesUsed = await lag2RecomputeBytesUsed();
+    } catch (_) { /* noop */ }
+
+    await lag2MetaPut({
+      id: 'quota',
+      bytesUsed: lag2State.bytesUsed,
+      bytesBudget: lag2State.bytesBudget,
+      lastSweepAt: 0,
+    });
+
+    await lag2MetaPut({
+      id: 'flags',
+      cacheMode: mode,
+      prefetchOn: false, // settes av steg 3
+      updatedAt: Date.now(),
+    });
+
+    // Initial sweep + periodisk sweep
+    await sweepTileCache('init');
+    lag2StartPeriodicSweep();
+
+    lag2State.enabled = true;
+    console.info('[v7-lag2] IDB-skall aktivert', {
+      mode,
+      schemaVersion: LAG2_SCHEMA_VERSION,
+      dataGeneration: LAG2_DATA_GENERATION,
+      bytesUsed: lag2State.bytesUsed,
+      bytesBudget: lag2State.bytesBudget,
+    });
+  } catch (err) {
+    lag2State.enabled = false;
+    lag2State.initError = err && err.message ? err.message : String(err);
+    console.warn('[v7-lag2] IDB unavailable, running RAM-only:', lag2State.initError);
+  }
+}
+
+// Nye tellere på norgeCleanTileManager (null-stilles i resetNorgeCleanTileQueue)
+// — settes som egenskaper her slik at de finnes fra første kall.
+norgeCleanTileManager.fromIdb = 0;
+norgeCleanTileManager.idbWriteFailed = 0;
+norgeCleanTileManager.idbDecodeFailed = 0;
+norgeCleanTileManager.prefetched = 0;
+norgeCleanTileManager.prefetchSkipped = 0;
+norgeCleanTileManager.prefetchAborted = 0;
+
+// Trigger init på første DOM-ready (uten å blokkere noe annet).
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { lag2InitOnce(); }, { once: true });
+  } else {
+    // Allerede klar — kjør på neste tick for å unngå å rasere init-rekkefølgen
+    setTimeout(() => { lag2InitOnce(); }, 0);
+  }
+}
+
+// =================================================================
+// SLUTT LAG 2 — STEG 1 (IDB-skall)
+// =================================================================
+
 function cleanNorgeDetailSources() {
   return currentNorgeDetailSources().filter(source => source.type !== 'wms-nib');
 }
