@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Enok Engine v2 POC - Rule 1 Similarity</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; }
+    #container { position: relative; width: 100vw; height: 100vh; }
+    canvas { position: absolute; inset: 0; z-index: 1; }
+    #info {
+      position: absolute; top: 10px; left: 10px; z-index: 10;
+      color: #fff; background: rgba(0,0,0,0.72); padding: 10px;
+      border-radius: 4px; max-width: 560px; line-height: 1.35;
+    }
+    #tools {
+      position: absolute; top: 10px; right: 10px; z-index: 10;
+      display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;
+      max-width: 520px; background: rgba(0,0,0,0.72); padding: 6px; border-radius: 4px;
+    }
+    button {
+      font: 13px Arial, sans-serif; padding: 4px 8px; border: 1px solid #777;
+      background: #f2f2f2; color: #111; border-radius: 3px; cursor: pointer;
+    }
+    button.active { background: #b7d7ff; border-color: #4b83bd; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="container">
+    <canvas id="cv"></canvas>
+  </div>
+  <div id="info">
+    <b>Rule 1 POC:</b> én instrumentflate med skeleton-placeholder.<br>
+    Dette er IKKE fullt Norgeskart ennå. Neste steg er full kildeflate uten synlig Leaflet.<br>
+    Ingen tile-reprojeksjon, ingen Mercator-breddegrader, ingen per-tile-strekking.<br>
+    Scroll = zoom. Venstre-drag = pan.
+  </div>
+  <div id="tools">
+    <button onclick="setLayerMode('normal')" id="mode-normal">Kartflate</button>
+    <button onclick="setLayerMode('solid')" id="mode-solid">Solid</button>
+    <button onclick="setLayerMode('wireframe')" id="mode-wireframe">Ramme</button>
+    <button onclick="setLayerMode('anchors')" id="mode-anchors">Anker</button>
+    <button onclick="flyTo(66.55, 14.0, 2)">Polarsirkelen</button>
+    <button onclick="flyTo(64.5, 17.5, 18)">Hele Norge</button>
+  </div>
+  <script type="module" src="src/poc-main.js?v=rule1-2"></script>
+</body>
+</html>

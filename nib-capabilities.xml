@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes" ?>
+<ServiceExceptionReport version="1.1.0">
+<ServiceException>
+*** HTTP TCP/IP AUT ***
+Applikasjon '/skwms1/wms.nib'
+Bruker kan ikke autentiseres.
+'Ticket request' TCP/IP adresse: 146.70.170.14
+        tjenesteid: wms.nib ikke godkjent av autorisasjons tjener: [7]
+        TCP/IP adresse ikke funnet..
+</ServiceException>
+</ServiceExceptionReport>

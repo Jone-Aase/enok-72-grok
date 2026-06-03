@@ -22,6 +22,7 @@ import os
 import io
 import sys
 import time
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
 import requests
@@ -35,12 +36,14 @@ LAYER = "topograatone"   # Kartverket: gråtone-topokart (lyst, fungerer godt so
 LAT_MIN, LAT_MAX = 57.9, 71.3
 LON_MIN, LON_MAX = 4.0, 32.0
 
-OUT_AE_RADIUS_PX = 4096  # output-bildet er 2*R x 2*R = 8192x8192 px... eller mindre
-# Vi gjør 4096 i radius = 8192x8192 output. Stort men håndterbart.
+OUT_AE_RADIUS_PX = 2048  # første integrerte Layer 1-raster er 2048x2048 px.
+# Oppløsningen kan økes senere; geometri/projeksjon endres ikke av pikseloppløsningen.
 # Vi maskerer ut alt utenfor Norge-omrisset slik at det er transparent ellers.
 
-OUT_PATH = "/home/user/workspace/enok-72-norge/norge-kartverket-ae.webp"
-TILE_DIR = "/tmp/kv_tiles"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUT_PATH = os.path.join(SCRIPT_DIR, "norge-kartverket-ae.webp")
+META_PATH = os.path.join(SCRIPT_DIR, "norge-kartverket-ae.metadata.json")
+TILE_DIR = os.path.join(SCRIPT_DIR, ".kartverket_tiles")
 os.makedirs(TILE_DIR, exist_ok=True)
 
 URL_TEMPLATE = "https://cache.kartverket.no/v1/wmts/1.0.0/{layer}/default/webmercator/{z}/{y}/{x}.png"
@@ -124,8 +127,9 @@ for (x, y), fn in tiles_meta.items():
 print(f"Mosaikk: {MOSAIC_W}x{MOSAIC_H} px")
 
 # Lagre debug-versjon av Mercator-mosaikk
-mosaic.save("/tmp/norge-mercator-mosaic.webp", "WEBP", quality=80)
-print(f"Debug: /tmp/norge-mercator-mosaic.webp ({os.path.getsize('/tmp/norge-mercator-mosaic.webp')//1024} KB)")
+MOSAIC_DEBUG_PATH = os.path.join(SCRIPT_DIR, "norge-mercator-mosaic.debug.webp")
+mosaic.save(MOSAIC_DEBUG_PATH, "WEBP", quality=80)
+print(f"Debug: {MOSAIC_DEBUG_PATH} ({os.path.getsize(MOSAIC_DEBUG_PATH)//1024} KB)")
 
 # ============================================================
 # 3) REPROJISER MERCATOR -> AE
@@ -223,5 +227,36 @@ out_arr[mask_norge] = final_rgba
 print("Lagrer output...")
 out_img = Image.fromarray(out_arr, "RGBA")
 out_img.save(OUT_PATH, "WEBP", quality=88, method=6)
+metadata = {
+    "source": "Kartverket WMTS",
+    "layer": LAYER,
+    "tile_url_template": URL_TEMPLATE,
+    "datum": "WGS84 / EPSG:4326",
+    "tile_projection": "Web Mercator / EPSG:3857",
+    "instrument_projection": "AE chord-unrolled Enok 72 radius mapping",
+    "bbox": {
+        "lat_min": LAT_MIN,
+        "lat_max": LAT_MAX,
+        "lon_min": LON_MIN,
+        "lon_max": LON_MAX,
+    },
+    "zoom": ZOOM,
+    "output": {
+        "path": os.path.basename(OUT_PATH),
+        "width_px": OUT_W,
+        "height_px": OUT_H,
+        "edge_lat": LAT_AT_OUT_EDGE,
+        "radius_px": R_OUT_PX,
+        "center_px": [CENTER_X, CENTER_Y],
+    },
+    "placement_rule": (
+        "Must be loaded as a Layer 1 base map. Do not manually stretch, rotate, "
+        "or align the raster to any grid. Rotation in app.js is only the documented "
+        "image-axis to scene-axis conversion."
+    ),
+}
+with open(META_PATH, "w", encoding="utf-8") as f:
+    json.dump(metadata, f, ensure_ascii=False, indent=2)
 print(f"FERDIG: {OUT_PATH} ({os.path.getsize(OUT_PATH)//1024} KB, {OUT_W}x{OUT_H} px)")
+print(f"Metadata: {META_PATH}")
 print(f"AE-projeksjon: senter = Nordpolen, ytre radius = lat {LAT_AT_OUT_EDGE}° (r_norm={R_NORM_OUT_EDGE:.4f} av full AE)")

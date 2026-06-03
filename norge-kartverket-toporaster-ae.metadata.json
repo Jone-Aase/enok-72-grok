@@ -1,0 +1,16 @@
+{
+  "source": "Kartverket WMTS",
+  "layer": "toporaster",
+  "zoom": 7,
+  "output": {
+    "path": "norge-kartverket-toporaster-ae.webp",
+    "width_px": 2048,
+    "height_px": 2048,
+    "edge_lat": 56.0,
+    "radius_px": 1024,
+    "center_px": [
+      1024,
+      1024
+    ]
+  }
+}

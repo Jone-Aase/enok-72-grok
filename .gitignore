@@ -1,5 +1,8 @@
 .DS_Store
 node_modules/
+.venv/
+.kartverket_tiles/
+norge-mercator-mosaic.debug.webp
 *.log
 .env
 .vercel

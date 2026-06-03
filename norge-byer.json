@@ -65,6 +65,30 @@
       "beskrivelse": "Nordligste punkt pa det europeiske fastlandet",
       "kategori": "landemerke",
       "ge_verifisering": "pending"
+    },
+    {
+      "navn": "Grimsey, Iceland",
+      "lat": 66.545525,
+      "lon": -18.011092,
+      "beskrivelse": "Kontrollpunkt ved polarsirkelen mot Island. Oppgitt: 66°32'43.89\"N, 18°0'39.93\"W",
+      "kategori": "island-polarsirkel",
+      "ge_verifisering": "oppgitt"
+    },
+    {
+      "navn": "Island senter",
+      "lat": 64.9631,
+      "lon": -19.0208,
+      "beskrivelse": "Midlertidig arbeids-senter for å teste sjøkart og kartstrømming over Island.",
+      "kategori": "island-arbeidspunkt",
+      "ge_verifisering": "midlertidig"
+    },
+    {
+      "navn": "Jan Mayen",
+      "lat": 70.98,
+      "lon": -8.53,
+      "beskrivelse": "Arbeidspunkt for sjøkart videre mot Jan Mayen. Midlertidig senterpunkt, byttes med GE-verifisert punkt når Jone gir nøyaktig posisjon.",
+      "kategori": "jan-mayen-arbeidspunkt",
+      "ge_verifisering": "midlertidig"
     }
   ]
 }

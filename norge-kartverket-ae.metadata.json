@@ -1,0 +1,27 @@
+{
+  "source": "Kartverket WMTS",
+  "layer": "topograatone",
+  "tile_url_template": "https://cache.kartverket.no/v1/wmts/1.0.0/{layer}/default/webmercator/{z}/{y}/{x}.png",
+  "datum": "WGS84 / EPSG:4326",
+  "tile_projection": "Web Mercator / EPSG:3857",
+  "instrument_projection": "AE chord-unrolled Enok 72 radius mapping",
+  "bbox": {
+    "lat_min": 57.9,
+    "lat_max": 71.3,
+    "lon_min": 4.0,
+    "lon_max": 32.0
+  },
+  "zoom": 7,
+  "output": {
+    "path": "norge-kartverket-ae.webp",
+    "width_px": 2048,
+    "height_px": 2048,
+    "edge_lat": 56.0,
+    "radius_px": 1024,
+    "center_px": [
+      1024,
+      1024
+    ]
+  },
+  "placement_rule": "Must be loaded as a Layer 1 base map. Do not manually stretch, rotate, or align the raster to any grid. Rotation in app.js is only the documented image-axis to scene-axis conversion."
+}

@@ -388,10 +388,6 @@ scene.fog = new THREE.Fog(0x050505, 120, 300);
 const camera = new THREE.PerspectiveCamera(50, cw / ch, 0.1, 2000);
 camera.position.set(0, 100, 0.001);
 camera.lookAt(0, 0, 0);
-// v17.00 (2026-06-01 anker-system): eksponer camera + renderer på window
-// slik at anker-systemet kan projisere AE-koordinater til skjerm-pixels.
-window.camera   = camera;
-window.renderer = renderer;
 
 // Belysning — flat farger, men en dim ambient for stjernerne
 scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -432,10 +428,11 @@ const camState = {
 function applyCamera() {
   const tiltRad = camState.tilt * Math.PI / 180;
   const rotRad  = camState.rot  * Math.PI / 180;
-  // (Steg 1 — 2026-06-01) Hook for at andre systemer skal kunne reagere
-  // på kameraendringer. Vi setter et flagg og trigger callbacks på slutten
-  // av funksjonen. window.__cameraChangeListeners er en array av funksjoner.
-
+  const desiredNear = Math.max(0.000001, Math.min(0.1, camState.dist * 0.001));
+  if (Math.abs(camera.near - desiredNear) > desiredNear * 0.01) {
+    camera.near = desiredNear;
+    camera.updateProjectionMatrix();
+  }
   // sfærisk -> kartesisk (offset fra target, ikke fra origo —
   // slik at pan blir en ren translasjon og ikke endrer synsvinkel)
   const r = camState.dist;
@@ -456,15 +453,7 @@ function applyCamera() {
     camera.up.set(0, 1, 0);
   }
   camera.lookAt(camState.target);
-  // (Steg 1) Kjør alle registrerte kameraendrings-callbacks (f.eks. anker-system).
-  if (Array.isArray(window.__cameraChangeListeners)) {
-    for (const cb of window.__cameraChangeListeners) {
-      try { cb(); } catch (e) { console.error('camera listener error', e); }
-    }
-  }
 }
-window.applyCamera = applyCamera;
-window.camState = camState;
 applyCamera();
 
 // =================================================================
@@ -490,8 +479,7 @@ const subMap = {
   daynight: new THREE.Group(),
   clockSol: new THREE.Group(),   // Sol-klokke (Enok-tid, drives av sunLonAngle)
   clockAtom: new THREE.Group(),  // Atom-klokke (sann tid, drives av Date)
-  norgeKart: new THREE.Group(),       // Dynamisk zoom-laget (Three.js-tiles ved kameraets aktuelle zoom-nivaa)
-  norgeKartBase: new THREE.Group(),   // Permanent bakgrunns-lag (alltid z=5, hele Norge synlig uansett zoom-niva)
+  norgeKart: new THREE.Group(),  // Beholdes tom for bakoverkompatibilitet; Norgeskart rendres som Leaflet i instrumentflaten.
 };
 Object.values(subMap).forEach(g => grpMap.add(g));
 
@@ -800,8 +788,10 @@ function makeRing(radius, color, opacity = 1.0, segments = 256) {
     pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
   }
   const geom = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat  = new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity });
-  return new THREE.Line(geom, mat);
+  const mat  = new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity, depthTest: false });
+  const ring = new THREE.Line(geom, mat);
+  ring.renderOrder = 20;
+  return ring;
 }
 
 function makeLatGrid(stepDeg, color, opacity) {
@@ -1092,13 +1082,8 @@ subMap.equator.add(makeRing(latToR(0), 0xc9a247, 0.85));  // v16.38: latToR(0) =
 // Krepsens og Steinbukkens vendekrets ved 23.7° (Enoks port-yttergrenser, master-kalender Ark T H212)
 subMap.cancer.add(makeRing(latToR(23.7), 0xe0c060, 0.85));
 subMap.capricorn.add(makeRing(latToR(-23.7), 0xc08040, 0.85));
-// v17.00 (2026-06-01 anker-system): Polarsirkel-ringene gjøres dynamiske.
-// Lagres på window.anchorSystem.polarRings så de kan oppdateres når slider beveges.
-const _polarArcticRing = makeRing(latToR(66.5634), 0x7090c0, 0.85);
-const _polarAntarRing  = makeRing(latToR(-66.5634), 0x7090c0, 0.85);
-subMap.polarcircles.add(_polarArcticRing);
-subMap.polarcircles.add(_polarAntarRing);
-window.__polarRings = { arctic: _polarArcticRing, antar: _polarAntarRing };
+subMap.polarcircles.add(makeRing(latToR(66.5634), 0x7090c0, 0.85));
+subMap.polarcircles.add(makeRing(latToR(-66.5634), 0x7090c0, 0.85));
 
 // Sol (v16.25: redusert til størrelsen på ark-T-sol-bane-prikken, 0.18)
 const sunMesh = new THREE.Mesh(
@@ -2421,7 +2406,7 @@ document.querySelectorAll('[data-cam]').forEach(btn => {
 
 // Mus: venstre-drag = roter kamera, høyre-drag (eller Shift+venstre) = pan, hjul = zoom
 // Google Earth-stil: zoom helt ned til overflaten, og forskyv kartet i vinduet.
-const CAM_DIST_MIN = 0.1;   // kalibrering: tillater ekstrem nærzoom på gridflaten
+const CAM_DIST_MIN = 0.0002; // kalibrering: tillater ekstrem nærzoom på gridflaten
 const CAM_DIST_MAX = 400;
 const PAN_RADIUS_MAX = R_OUTER_KM * SCALE * 1.5; // ikke pan lenger ut enn 1.5× disken
 
@@ -2442,20 +2427,22 @@ function updateZoomReadout() {
   const gridYVal = document.getElementById('norge-grid-y-val');
   const pct = Math.round(100 / camState.dist * 100);
   if (el) el.textContent = pct + '%';
-  if (norgeZoom) norgeZoom.value = String(Math.max(25, Math.min(50000, pct)));
+  if (norgeZoom) norgeZoom.value = String(Math.max(25, Math.min(50000000, pct)));
   if (norgeZoomVal) norgeZoomVal.textContent = pct + '%';
   if (gridX) gridX.value = String(camState.target.x);
   if (gridY) gridY.value = String(camState.target.z);
   if (gridXVal) gridXVal.textContent = camState.target.x.toFixed(2);
   if (gridYVal) gridYVal.textContent = camState.target.z.toFixed(2);
-  // (v6.1) Leaflet er borte — ingen applyNorgePlacement() lenger
+  if (norgeSurface || norgeLeaflet) applyNorgePlacement();
+  if (norgeSurface) syncNorgeDetailPaneToCamera();
+  if (norgeSurface) scheduleNorgeDetailTiles();
   if (ind) ind.textContent = pct + '% · ' + currentModeLabel();
 }
 
 // Pan: forskyv camState.target i kamera-planet (høyre + opp relativt til kamera),
 // projisert ned i XZ-planet slik at vi følger kartet — som i Google Earth.
 function setInstrumentZoomPercent(percent) {
-  const pct = Math.max(25, Math.min(50000, percent));
+  const pct = Math.max(25, Math.min(50000000, percent));
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, 10000 / pct));
   applyCamera();
   updateZoomReadout();
@@ -2473,7 +2460,12 @@ function isNorgeMouseGridMode() {
 }
 
 function syncNorgeMouseMode() {
-  // (v6.1) Leaflet er borte — ingen mus-modus å synkronisere lenger. No-op.
+  if (!norgeLeaflet) return;
+  if (isNorgeRule1SurfaceMode() || isNorgeMouseGridMode()) {
+    norgeLeaflet.map.dragging.disable();
+  } else {
+    norgeLeaflet.map.dragging.enable();
+  }
 }
 
 function focusBaseMap(selected) {
@@ -2481,7 +2473,9 @@ function focusBaseMap(selected) {
   camState.rot = 0;
   camState.height = 0;
   if (selected === 'norge') {
-    return;
+    const p = aeProject(66.55, 14.0);
+    camState.target.set(p.x, 0, p.z);
+    camState.dist = 4;
   } else {
     camState.target.set(0, 0, 0);
     camState.dist = 100;
@@ -2548,17 +2542,47 @@ window.addEventListener('mousemove', (e) => {
   applyCamera();
 });
 
-function zoomInstrumentOverlay(deltaY) {
+function screenToMapWorld(clientX, clientY) {
+  const rect = wrap.getBoundingClientRect();
+  const ndc = new THREE.Vector2(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -(((clientY - rect.top) / rect.height) * 2 - 1)
+  );
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(ndc, camera);
+  if (Math.abs(raycaster.ray.direction.y) < 0.000001) return null;
+  const t = (Y_MAP - raycaster.ray.origin.y) / raycaster.ray.direction.y;
+  if (!Number.isFinite(t)) return null;
+  const point = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(t));
+  return { x: point.x, z: point.z };
+}
+
+function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
   // Adaptiv zoom: multiplikativ. Mindre følsom enn før.
+  const before = anchorEvent ? screenToMapWorld(anchorEvent.clientX, anchorEvent.clientY) : null;
   const factor = Math.pow(1.0008, deltaY);
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camState.dist * factor));
   applyCamera();
+  if (before && anchorEvent) {
+    const after = screenToMapWorld(anchorEvent.clientX, anchorEvent.clientY);
+    if (after) {
+      camState.target.x += before.x - after.x;
+      camState.target.z += before.z - after.z;
+      const rTarget = Math.hypot(camState.target.x, camState.target.z);
+      if (rTarget > PAN_RADIUS_MAX) {
+        const k = PAN_RADIUS_MAX / rTarget;
+        camState.target.x *= k;
+        camState.target.z *= k;
+      }
+      applyCamera();
+    }
+  }
   updateZoomReadout();
 }
 
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  zoomInstrumentOverlay(e.deltaY);
+  zoomInstrumentOverlay(e.deltaY, e);
 }, { passive: false });
 
 // Touch-støtte: en finger = roter, to fingre = pinch-zoom + pan
@@ -2615,569 +2639,2053 @@ canvas.addEventListener('dblclick', (e) => {
 });
 
 // =================================================================
-// NORGESKART SOM THREE.JS-TILES (v6.1, 2026-06-02)
+// NORGESKART I SAMME INSTRUMENTFLATE
 // =================================================================
-// Erstatter den tidligere Leaflet-overlegg-blokken. Hele Norge er n\u00e5
-// en Three.js-gruppe (subMap.norgeKart) som inneholder FLATE Kartverket-
-// tiles i sin naturlige Web Mercator-form. Hele gruppen blir festet
-// til AE-disken via similarity-transform fra 3 ankerpunkter
-// (Sels\u00f8y, Kveitanosen, Arctic Circle Center) \u2014 samme matematikk som
-// hovedinstrumentet brukte mot Leaflet, men anvendt p\u00e5 Three.js-mesh
-// i stedet for CSS-matrix.
-//
-// Fordeler:
-//   - Norge kan tiltes med 3D-kameraet
-//   - Adaptive tiles laster skarpere n\u00e5r kameraet zoomer inn
-//   - Ingen Leaflet, ingen CSS-matrix, ingen DOM-overlegg
-// =================================================================
-
-// ---- Norges grenser (brukes som ytre clip for tile-utvalg) ----
-const NORGE_BOUNDS = {
-  latMin: 57.5, latMax: 71.5,
-  lonMin: 4.0,  lonMax: 31.5,
+let norgeLeaflet = null;
+let norgeSurface = null;
+let norgeSurfaceCities = [];
+let norgeSurfaceMeasureMode = false;
+let norgeSurfaceMeasurePoints = [];
+let norgeDetailTimer = null;
+let norgeDetailKey = '';
+let norgeCleanDetailKey = '';
+let norgeCleanLastContext = null;
+const norgeCleanLabSamples = [];
+const norgeCleanTileManager = {
+  active: 0,
+  maxConcurrent: 24,
+  queue: [],
+  cache: new Map(),
+  cacheLimit: 2600,
+  currentBatch: 0,
+  requested: 0,
+  loaded: 0,
+  cached: 0,
+  failed: 0,
+};
+let norgeAppliedPan = { x: 0, y: 0 };
+const LOCKED_NORGE_VIEW = {
+  center: [65.0, 15.0],
+  zoom: 4,
+  placement: { x: 0, y: 0, scale: 1, rotation: 0 },
+};
+const norgePlacement = {
+  ...LOCKED_NORGE_VIEW.placement,
 };
 
-// ---- 3 ankerpunkter (uendret fra hovedinstrumentet) ----
-const arcticCalibrationPoints = [
-  { name: 'Sels\u00f8y g\u00e5rden / Polarsirkelen',        lat: 66.5502, lon: 12.8462 },
-  { name: 'Kveitanosen / Enganveien S\u00f8rnes\u00f8ya',   lat: 66.5500, lon: 12.6383 },
-  { name: 'Arctic Circle Center',                lat: 66.5500, lon: 15.3266 },
-];
+function isNorgeRule1SurfaceMode() {
+  return !!document.getElementById('norge-surface-map') || !!document.getElementById('norge-rule1-surface')?.checked;
+}
 
-// ---- Tile-cache (LRU) ----
-const TILE_CACHE_MAX = 500;
-const norgeTileCache = {
-  textures: new Map(),    // key "z/x/y" -> { texture, lastAccess }
-  meshes:   new Map(),    // key "z/x/y" -> { mesh, lastAccess }
-  loading:  new Map(),    // key "z/x/y" -> Promise
-  tileKey(z, x, y) { return `${z}/${x}/${y}`; },
-  getTexture(z, x, y) {
-    const key = this.tileKey(z, x, y);
-    if (this.textures.has(key)) {
-      const e = this.textures.get(key); e.lastAccess = Date.now(); return e.texture;
-    }
-    if (this.loading.has(key)) return this.loading.get(key);
-    const url = `https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/${z}/${y}/${x}.png`;
-    const p = new THREE.TextureLoader().loadAsync(url).then(tex => {
-      this.textures.set(key, { texture: tex, lastAccess: Date.now() });
-      this.loading.delete(key);
-      this._evict();
-      return tex;
-    }).catch(err => { this.loading.delete(key); throw err; });
-    this.loading.set(key, p);
-    return p;
-  },
-  getMesh(z, x, y) {
-    const key = this.tileKey(z, x, y);
-    if (this.meshes.has(key)) { const e = this.meshes.get(key); e.lastAccess = Date.now(); return e.mesh; }
-    return null;
-  },
-  setMesh(z, x, y, mesh) {
-    this.meshes.set(this.tileKey(z, x, y), { mesh, lastAccess: Date.now() });
-    this._evict();
-  },
-  _evict() {
-    if (this.textures.size > TILE_CACHE_MAX) {
-      const arr = [...this.textures.entries()].sort((a, b) => a[1].lastAccess - b[1].lastAccess);
-      for (const [k, e] of arr.slice(0, arr.length - TILE_CACHE_MAX)) {
-        e.texture.dispose(); this.textures.delete(k);
+function getNorgeMapElement() {
+  return document.getElementById('norge-surface-map') || document.getElementById('norge-leaflet-map');
+}
+
+function isNorgeSurfaceVerticallyFlipped() {
+  return !!document.getElementById('norge-surface-map');
+}
+
+function applyNorgePlacement() {
+  const mapEl = getNorgeMapElement();
+  if (!mapEl) return;
+  syncNorgeSurfaceToInstrument();
+  const rule1Mode = isNorgeRule1SurfaceMode();
+  mapEl.classList.toggle('norge-rule1-surface', rule1Mode);
+  mapEl.style.setProperty('--norge-map-x', rule1Mode ? `${norgePlacement.x}px` : '0px');
+  mapEl.style.setProperty('--norge-map-y', rule1Mode ? `${norgePlacement.y}px` : '0px');
+  mapEl.style.setProperty('--norge-map-scale', String(norgePlacement.scale));
+  mapEl.style.setProperty('--norge-map-flip-y', isNorgeSurfaceVerticallyFlipped() ? '-1' : '1');
+  mapEl.style.setProperty('--norge-map-rotation', `${norgePlacement.rotation || 0}deg`);
+  const xVal = document.getElementById('norge-cal-x-val');
+  const yVal = document.getElementById('norge-cal-y-val');
+  const scaleVal = document.getElementById('norge-cal-scale-val');
+  const rotationVal = document.getElementById('norge-cal-rotation-val');
+  if (xVal) xVal.textContent = String(norgePlacement.x);
+  if (yVal) yVal.textContent = String(norgePlacement.y);
+  if (scaleVal) scaleVal.textContent = `${Math.round(norgePlacement.scale * 100)}%`;
+  if (rotationVal) rotationVal.textContent = `${(norgePlacement.rotation || 0).toFixed(1)}°`;
+  if (norgeLeaflet) {
+    if (rule1Mode) {
+      if (norgeAppliedPan.x || norgeAppliedPan.y) {
+        norgeLeaflet.map.panBy([norgeAppliedPan.x, norgeAppliedPan.y], { animate: false });
+        norgeAppliedPan = { x: 0, y: 0 };
+      }
+    } else {
+      const dx = norgePlacement.x - norgeAppliedPan.x;
+      const dy = norgePlacement.y - norgeAppliedPan.y;
+      if (dx || dy) {
+        norgeLeaflet.map.panBy([-dx, -dy], { animate: false });
+        norgeAppliedPan = { x: norgePlacement.x, y: norgePlacement.y };
       }
     }
-    if (this.meshes.size > TILE_CACHE_MAX * 2) {
-      const arr = [...this.meshes.entries()].sort((a, b) => a[1].lastAccess - b[1].lastAccess);
-      for (const [k, e] of arr.slice(0, arr.length - TILE_CACHE_MAX * 2)) {
-        if (e.mesh.geometry) e.mesh.geometry.dispose();
-        if (e.mesh.material) e.mesh.material.dispose();
-        this.meshes.delete(k);
-      }
-    }
-  },
-};
-
-// ---- Web Mercator-konvertering ----
-function latLonToTileXY(lat, lon, z) {
-  const n = Math.pow(2, z);
-  const x = (lon + 180) / 360 * n;
-  const latRad = lat * Math.PI / 180;
-  const y = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n;
-  return { x, y };
-}
-function tileToLatLon(z, x, y) {
-  const n = Math.pow(2, z);
-  const lon = x / n * 360 - 180;
-  const latRad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)));
-  return { lat: latRad * 180 / Math.PI, lon };
+    setTimeout(() => norgeLeaflet.map.invalidateSize(), 0);
+  }
+  requestAnimationFrame(updateNorgeCalibrationStatus);
 }
 
-// ---- Velg zoom basert p\u00e5 kameraets avstand til scenen (camState.dist) ----
-// Hovedinstrumentet bruker camState.dist (avstand fra target). dist=100 = standard.
-// dist < 50  -> zoom inn  (z=7)
-// dist < 25  -> z=8
-// dist < 10  -> z=10
-// dist < 4   -> z=11
-function chooseNorgeZoom(dist) {
-  if (dist > 80) return 5;
-  if (dist > 40) return 6;
-  if (dist > 18) return 7;
-  if (dist > 8)  return 8;
-  if (dist > 3)  return 10;
-  return 11;
+function setNorgePlacement({
+  x = norgePlacement.x,
+  y = norgePlacement.y,
+  scale = norgePlacement.scale,
+  rotation = norgePlacement.rotation || 0,
+}) {
+  norgePlacement.x = x;
+  norgePlacement.y = y;
+  norgePlacement.scale = scale;
+  norgePlacement.rotation = rotation;
+  const xSlider = document.getElementById('norge-cal-x');
+  const ySlider = document.getElementById('norge-cal-y');
+  const scaleSlider = document.getElementById('norge-cal-scale');
+  const rotationSlider = document.getElementById('norge-cal-rotation');
+  if (xSlider) xSlider.value = String(x);
+  if (ySlider) ySlider.value = String(y);
+  if (scaleSlider) scaleSlider.value = String(Math.round(scale * 100));
+  if (rotationSlider) rotationSlider.value = String(rotation);
+  applyNorgePlacement();
 }
 
-// ---- Tile-Y \u2192 verdens-Z konvertering: vi vil ha NORD opp i AE-rom ----
-// I Web Mercator \u00f8ker tile-Y mot s\u00f8r. I AE-projeksjonen \u00f8ker world-Z mot s\u00f8r ogs\u00e5
-// (fordi `aeProject(0, 0)` har positiv Z = nedover skjermen). Vi bruker derfor
-// world.x = tile.x og world.z = tile.y direkte \u2014 men HELE gruppen blir transformert
-// av similarity slik at retningene stemmer uansett. Konstantene 0.5 sentrerer tilen.
-
-// ---- Bygg \u00e9n tile-mesh ----
-async function buildNorgeTileMesh(z, x, y) {
-  const cached = norgeTileCache.getMesh(z, x, y);
-  if (cached) return cached;
-  const geometry = new THREE.PlaneGeometry(1, 1, 1, 1);
-  geometry.rotateX(-Math.PI / 2);
-  let material;
-  try {
-    const texture = await norgeTileCache.getTexture(z, x, y);
-    material = new THREE.MeshBasicMaterial({
-      map: texture, side: THREE.DoubleSide, transparent: true, opacity: 0.95,
+function bindNorgePlacementControls() {
+  const xSlider = document.getElementById('norge-cal-x');
+  const ySlider = document.getElementById('norge-cal-y');
+  const scaleSlider = document.getElementById('norge-cal-scale');
+  const rotationSlider = document.getElementById('norge-cal-rotation');
+  const rule1Toggle = document.getElementById('norge-rule1-surface');
+  const instrumentZoomSlider = document.getElementById('norge-instrument-zoom');
+  const gridXSlider = document.getElementById('norge-grid-x');
+  const gridYSlider = document.getElementById('norge-grid-y');
+  const mouseGridToggle = document.getElementById('norge-mouse-grid');
+  if (xSlider) xSlider.addEventListener('input', () => setNorgePlacement({ x: parseInt(xSlider.value, 10) || 0 }));
+  if (ySlider) ySlider.addEventListener('input', () => setNorgePlacement({ y: parseInt(ySlider.value, 10) || 0 }));
+  if (scaleSlider) scaleSlider.addEventListener('input', () => setNorgePlacement({ scale: (parseInt(scaleSlider.value, 10) || 100) / 100 }));
+  if (rotationSlider) rotationSlider.addEventListener('input', () => setNorgePlacement({ rotation: parseFloat(rotationSlider.value) || 0 }));
+  if (rule1Toggle) {
+    rule1Toggle.addEventListener('change', () => {
+      applyNorgePlacement();
+      syncNorgeMouseMode();
     });
-  } catch (err) {
-    return null;
   }
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x + 0.5, 0, y + 0.5);
-  mesh.userData = { z, x, y };
-  norgeTileCache.setMesh(z, x, y, mesh);
-  return mesh;
-}
-
-// ---- Finn alle tile-kandidater innenfor NORGE_BOUNDS ved gitt zoom ----
-function tilesForNorge(zoom) {
-  const tl = latLonToTileXY(NORGE_BOUNDS.latMax, NORGE_BOUNDS.lonMin, zoom);
-  const br = latLonToTileXY(NORGE_BOUNDS.latMin, NORGE_BOUNDS.lonMax, zoom);
-  const xMin = Math.floor(tl.x), xMax = Math.floor(br.x);
-  const yMin = Math.floor(tl.y), yMax = Math.floor(br.y);
-  const tiles = [];
-  for (let x = xMin; x <= xMax; x++) {
-    for (let y = yMin; y <= yMax; y++) {
-      tiles.push({ z: zoom, x, y });
+  if (instrumentZoomSlider) {
+    instrumentZoomSlider.addEventListener('input', () => {
+      setInstrumentZoomPercent(parseInt(instrumentZoomSlider.value, 10) || 100);
+    });
+  }
+  if (gridXSlider) {
+    gridXSlider.addEventListener('input', () => {
+      setInstrumentGridOffset({ x: parseFloat(gridXSlider.value) || 0 });
+    });
+  }
+  if (gridYSlider) {
+    gridYSlider.addEventListener('input', () => {
+      setInstrumentGridOffset({ y: parseFloat(gridYSlider.value) || 0 });
+    });
+  }
+  if (mouseGridToggle) {
+    mouseGridToggle.addEventListener('change', syncNorgeMouseMode);
+  }
+  document.getElementById('norge-cal-approx')?.addEventListener('click', () => {
+    if (norgeLeaflet) {
+      norgeLeaflet.map.setView([64.7, 14.5], 5);
+      norgeAppliedPan = { x: 0, y: 0 };
     }
-  }
-  return tiles;
+    setNorgePlacement({ x: 165, y: -215, scale: 0.42, rotation: 0 });
+  });
+  document.getElementById('norge-cal-reset')?.addEventListener('click', () => {
+    if (norgeLeaflet) {
+      norgeLeaflet.map.setView(LOCKED_NORGE_VIEW.center, LOCKED_NORGE_VIEW.zoom);
+      norgeAppliedPan = { x: 0, y: 0 };
+    }
+    setNorgePlacement(LOCKED_NORGE_VIEW.placement);
+  });
+  document.getElementById('norge-grid-reset')?.addEventListener('click', () => {
+    setInstrumentGridOffset({ x: 0, y: 0 });
+  });
+  applyNorgePlacement();
+  updateZoomReadout();
 }
 
-// ---- Viewport-culling (v6-stil: AE-region fra kamera-frustum) ----
-// 1) Skyt str\u00e5ler fra kameraet gjennom NDC-rutenett (9 punkter) ned p\u00e5 Y=0-planet.
-//    Skj\u00e6ringspunktene danner et AE-rektangel som dekker hele kamerasynsfeltet.
-// 2) For hver tile-kandidat: beregn dens AE-bounding-box ved \u00e5 transformere
-//    de 4 tile-hj\u00f8rnene gjennom anker-matrisen M (samme matrise som tegner
-//    tiles i scenen). Inkluder hvis bbox overlapper synsfelt-rektangelet.
-//
-// Hard sikkerhets-cap MAX_TILES_PER_UPDATE som siste l\u00e5s; tiles sorteres etter
-// avstand fra synsfelt-senteret (AE-rom) f\u00f8r cap anvendes.
-const MAX_TILES_PER_UPDATE = 200;
+const NORGE_SURFACE_META = {
+  width: 2048,
+  height: 2048,
+  centerX: 1024,
+  centerY: 1024,
+  radiusPx: 1024,
+  edgeLat: 56.0,
+};
+const NORGE_MAP_NORTH_SHIFT_DEG = 0.0135;
+const NORGE_SURFACE_CONTROL_POINTS = [
+  {
+    id: 'selsoy',
+    name: 'Selsøy gården / polarsirkelen',
+    geLat: 66.550003,
+    geLon: 12.848411,
+    mapLat: 66.5506,
+    mapLon: 12.8472,
+    ge: `GE: 66°33'0.01"N, 12°50'54.28"E`,
+    map: 'Norgeskart: 66.5506° N, 12.8472° E',
+    info: 'Polarsirkelanker for låsing av Norgeskartet mot GE-gridet.',
+  },
+  {
+    id: 'kveitanosen',
+    name: 'Kveitanosen / polarsirkelen',
+    geLat: 66.55,
+    geLon: 12.638303,
+    mapLat: 66.55,
+    mapLon: 12.6384,
+    ge: `GE: 66°33'0.00"N, 12°38'17.89"E`,
+    map: 'Norgeskart: 66.5500° N, 12.6384° E',
+    info: 'Polarsirkelanker ved Kveitanosen/Enganveien for kontroll av samme breddegrad.',
+  },
+  {
+    id: 'arctic-center',
+    name: 'Arctic Circle Center',
+    geLat: 66.550008,
+    geLon: 15.327011,
+    mapLat: 66.55,
+    mapLon: 15.3266,
+    ge: `GE: 66°33'0.03"N, 15°19'37.24"E`,
+    map: 'Norgeskart: 66.5500° N, 15.3266° E',
+    info: 'Polarsirkelanker ved Arctic Circle Center.',
+  },
+];
+const NORGE_SURFACE_DETAIL = {
+  maxTiles: 24000,
+  minZoom: 7,
+  maxZoom: 18,
+  tileSize: 256,
+  bounds: { latMin: 55.0, latMax: 72.5, lonMin: -30.0, lonMax: 32.2 },
+};
+const GRIMSEY_CONTROL_POINT = {
+  name: 'Grimsey, Iceland',
+  lat: 66.545525,
+  lon: -18.011092,
+};
+const ICELAND_CONTROL_POINT = {
+  name: 'Island senter',
+  lat: 64.9631,
+  lon: -19.0208,
+};
+const JAN_MAYEN_CONTROL_POINT = {
+  name: 'Jan Mayen',
+  lat: 70.98,
+  lon: -8.53,
+};
 
-function computeVisibleAERegion() {
-  const cam = window.camera;
-  if (!cam) return null;
-  cam.updateMatrixWorld();
-  cam.updateProjectionMatrix();
+function norgeSurfacePxPerUnit() {
+  return NORGE_SURFACE_META.radiusPx / latToR(NORGE_SURFACE_META.edgeLat);
+}
 
-  // 9 NDC-punkter (4 hj\u00f8rner + 4 midt-kanter + senter)
-  const ndcPoints = [
-    [-1, -1], [1, -1], [1, 1], [-1, 1],
-    [0, -1], [1, 0], [0, 1], [-1, 0], [0, 0],
-  ];
-  const aePoints = [];
-  const v = new THREE.Vector3();
-  const dir = new THREE.Vector3();
-  for (const [nx, ny] of ndcPoints) {
-    v.set(nx, ny, 0.5).unproject(cam);
-    dir.copy(v).sub(cam.position).normalize();
-    if (Math.abs(dir.y) < 1e-6) continue;
-    const t = -cam.position.y / dir.y;
-    if (t < 0) continue;
-    const hit = new THREE.Vector3().copy(cam.position).addScaledVector(dir, t);
-    aePoints.push({ x: hit.x, z: hit.z });
-  }
-  if (aePoints.length === 0) return null;
-
-  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-  for (const p of aePoints) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.z < minZ) minZ = p.z;
-    if (p.z > maxZ) maxZ = p.z;
-  }
-  const dx = maxX - minX, dz = maxZ - minZ;
+function projectNorgeSurfacePoint(lat, lon) {
+  const p = aeProject(lat, lon);
+  const pxPerUnit = norgeSurfacePxPerUnit();
   return {
-    minX: minX - dx * 0.2, maxX: maxX + dx * 0.2,
-    minZ: minZ - dz * 0.2, maxZ: maxZ + dz * 0.2,
-    cx: (minX + maxX) / 2,
-    cz: (minZ + maxZ) / 2,
+    x: NORGE_SURFACE_META.centerX + p.x * pxPerUnit,
+    y: NORGE_SURFACE_META.centerY - p.z * pxPerUnit,
   };
 }
 
-function cullTilesByViewport(tiles, M) {
-  if (!M) return tiles.slice(0, MAX_TILES_PER_UPDATE);
-  const region = computeVisibleAERegion();
-  if (!region) return tiles.slice(0, MAX_TILES_PER_UPDATE);
+function worldToCanvasPoint(x, z) {
+  const v = new THREE.Vector3(x, Y_MAP, z);
+  v.project(camera);
+  return {
+    x: (v.x + 1) * 0.5 * cw,
+    y: (-v.y + 1) * 0.5 * ch,
+  };
+}
 
-  const visible = [];
-  const c1 = new THREE.Vector3();
-  const c2 = new THREE.Vector3();
-  const c3 = new THREE.Vector3();
-  const c4 = new THREE.Vector3();
-  for (const t of tiles) {
-    // 4 tile-hj\u00f8rner i tile-rom, transformer til AE-rom via anker-matrisen
-    c1.set(t.x,       0, t.y      ).applyMatrix4(M);
-    c2.set(t.x + 1.0, 0, t.y      ).applyMatrix4(M);
-    c3.set(t.x,       0, t.y + 1.0).applyMatrix4(M);
-    c4.set(t.x + 1.0, 0, t.y + 1.0).applyMatrix4(M);
-    const tileMinX = Math.min(c1.x, c2.x, c3.x, c4.x);
-    const tileMaxX = Math.max(c1.x, c2.x, c3.x, c4.x);
-    const tileMinZ = Math.min(c1.z, c2.z, c3.z, c4.z);
-    const tileMaxZ = Math.max(c1.z, c2.z, c3.z, c4.z);
-    // Overlapp-test mot synsfelt-rektangelet
-    if (tileMaxX < region.minX || tileMinX > region.maxX) continue;
-    if (tileMaxZ < region.minZ || tileMinZ > region.maxZ) continue;
-    const tcx = (tileMinX + tileMaxX) / 2;
-    const tcz = (tileMinZ + tileMaxZ) / 2;
-    const d = Math.hypot(tcx - region.cx, tcz - region.cz);
-    visible.push({ tile: t, d });
+function syncNorgeSurfaceToInstrument() {
+  const mapEl = document.getElementById('norge-surface-map');
+  if (!mapEl) return;
+  const center = worldToCanvasPoint(0, 0);
+  const edgeWorld = aeProject(NORGE_SURFACE_META.edgeLat, 0);
+  const edge = worldToCanvasPoint(edgeWorld.x, edgeWorld.z);
+  const radius = Math.hypot(edge.x - center.x, edge.y - center.y);
+  if (!Number.isFinite(radius) || radius < 2) return;
+  mapEl.style.setProperty('--norge-map-left', `${center.x.toFixed(2)}px`);
+  mapEl.style.setProperty('--norge-map-top', `${center.y.toFixed(2)}px`);
+  mapEl.style.setProperty('--norge-map-size', `${(radius * 2).toFixed(2)}px`);
+  const renderedScale = Math.max(0.001, (radius * 2 * norgePlacement.scale) / NORGE_SURFACE_META.width);
+  const markerScale = Math.max(0.18, Math.min(1.4, 1 / renderedScale));
+  mapEl.style.setProperty('--norge-surface-marker-scale', markerScale.toFixed(4));
+}
+
+function unprojectNorgeSurfacePoint(x, y) {
+  const pxPerUnit = norgeSurfacePxPerUnit();
+  const worldX = (x - NORGE_SURFACE_META.centerX) / pxPerUnit;
+  const worldZ = (NORGE_SURFACE_META.centerY - y) / pxPerUnit;
+  return worldPointToLatLon(worldX, worldZ);
+}
+
+function worldPointToLatLon(worldX, worldZ) {
+  const r = Math.hypot(worldX, worldZ);
+  const lat = 90 - (r / R_OUTER) * 180;
+  const a = Math.atan2(worldX, -worldZ);
+  let compassDeg = (a * 180 / Math.PI) % 360;
+  if (compassDeg < 0) compassDeg += 360;
+  let lon = 180 - compassDeg;
+  if (lon > 180) lon -= 360;
+  if (lon < -180) lon += 360;
+  return { lat, lon };
+}
+
+function lonLatToTile(lon, lat, zoom) {
+  const latRad = lat * Math.PI / 180;
+  const n = 2 ** zoom;
+  return {
+    x: (lon + 180) / 360 * n,
+    y: (1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * n,
+  };
+}
+
+function calibratedNorgeMapLat(point) {
+  return point.mapLat + (point.mapLatAdjustDeg || 0);
+}
+
+function tileYToLat(y, zoom) {
+  const n = 2 ** zoom;
+  return Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+}
+
+function tileBounds(x, y, zoom) {
+  const n = 2 ** zoom;
+  return {
+    west: x / n * 360 - 180,
+    east: (x + 1) / n * 360 - 180,
+    north: tileYToLat(y, zoom),
+    south: tileYToLat(y + 1, zoom),
+  };
+}
+
+function currentNorgeDetailSources() {
+  const selectedBase = document.querySelector('input[name="norge-base"]:checked')?.value || 'sjokartraster';
+  const sources = [];
+  if (selectedBase === 'osm') sources.push({ type: 'osm', layer: 'osm', role: 'base' });
+  else if (selectedBase === 'iceland-sjokart') {
+    sources.push({ type: 'wms-iceland-sjokart', layer: 'Sjomaelingar:Sjokort_Sjomaelinga', role: 'base' });
   }
-  visible.sort((a, b) => a.d - b.d);
-  return visible.slice(0, MAX_TILES_PER_UPDATE).map(o => o.tile);
-}
-
-// Beregn anker-matrise UTEN \u00e5 anvende den (brukes til viewport-culling før mesh-bygg)
-function computeAnchorMatrix(zoom) {
-  if (!anchorState.polar.active) return null;
-  const src = anchorState.polar.points.map(p => {
-    const t = latLonToTileXY(p.lat, p.lon, zoom);
-    return [t.x, t.y];
-  });
-  const dst = anchorState.polar.points.map(p => {
-    const ae = aeProject(p.lat, p.lon);
-    return [ae.x, ae.z];
-  });
-  const lonSenter = anchorState.polar.points.reduce((s, p) => s + p.lon, 0) / anchorState.polar.points.length;
-  // Rotasjons-tegn: +lon_senter (verifisert ved residual-test mot Oslo/Bergen/Tromsoe/Nordkapp,
-  // residualene faller fra ~500 km til ~50-150 km. Three.js makeRotationY(theta) roterer
-  // (x,z) -> (x*cos + z*sin, -x*sin + z*cos), som krever +lon_senter for at tile-nord (0,-1)
-  // skal mappe til AE-nord (mot origo) korrekt.)
-  const rotRad = lonSenter * Math.PI / 180;
-  const sim = solveSimilarity(src, dst);
-  if (!sim) return null;
-  const { srcC, dstC, scale } = sim;
-  const T1 = new THREE.Matrix4().makeTranslation(-srcC[0], 0, -srcC[1]);
-  const S  = new THREE.Matrix4().makeScale(scale, 1, scale);
-  const Ry = new THREE.Matrix4().makeRotationY(rotRad);
-  const T2 = new THREE.Matrix4().makeTranslation(dstC[0], 0, dstC[1]);
-  return new THREE.Matrix4().multiplyMatrices(T2, Ry).multiply(S).multiply(T1);
-}
-
-// ---- Anker-system ----
-const anchorState = {
-  polar: {
-    points: arcticCalibrationPoints,
-    lat:    66.5634,
-    km:     0,
-    active: true,
-    lastMatrix: null,
-  },
-};
-window.anchorState = anchorState;
-
-// ---- Polarsirkel-ring oppdatering (Three.js-scenen, samme som f\u00f8r) ----
-function updatePolarRing(ring, lat, kmOffset) {
-  if (!ring) return;
-  const rKm = R_OUTER_KM * (90 - Math.abs(lat)) / 180 + kmOffset;
-  const r = rKm * SCALE;
-  const pts = [];
-  const segs = 256;
-  for (let i = 0; i <= segs; i++) {
-    const a = (i / segs) * Math.PI * 2;
-    pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
-  }
-  ring.geometry.dispose();
-  ring.geometry = new THREE.BufferGeometry().setFromPoints(pts);
-}
-function refreshPolarRings() {
-  if (!window.__polarRings) return;
-  updatePolarRing(window.__polarRings.arctic,  anchorState.polar.lat,  anchorState.polar.km);
-  updatePolarRing(window.__polarRings.antar,  -anchorState.polar.lat,  anchorState.polar.km);
-}
-
-// ---- L\u00f8s SIMILARITY TRANSFORM (samme som hovedinstrumentet) ----
-function solveSimilarity(srcPts, dstPts) {
-  if (srcPts.length < 2 || dstPts.length < 2) return null;
-  const srcC = srcPts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]).map(v => v / srcPts.length);
-  const dstC = dstPts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]).map(v => v / dstPts.length);
-  let srcRms = 0, dstRms = 0;
-  for (let i = 0; i < srcPts.length; i++) {
-    const dx = srcPts[i][0] - srcC[0], dy = srcPts[i][1] - srcC[1];
-    srcRms += dx*dx + dy*dy;
-    const dx2 = dstPts[i][0] - dstC[0], dy2 = dstPts[i][1] - dstC[1];
-    dstRms += dx2*dx2 + dy2*dy2;
-  }
-  srcRms = Math.sqrt(srcRms / srcPts.length);
-  dstRms = Math.sqrt(dstRms / dstPts.length);
-  if (srcRms < 1e-9) return null;
-  return { srcC, dstC, scale: dstRms / srcRms };
-}
-
-// ---- Gjeldende tile-zoom (settes av updateNorgeLayer) ----
-let currentNorgeZoom = 5;
-
-// ---- Anvend ankertransform p\u00e5 subMap.norgeKart (Three.js Group) ----
-// Source = ankerpunktenes tile-koordinater ved currentNorgeZoom
-// Destination = ankerpunktenes AE world-koordinater (fra aeProject)
-// Resultatet er en Matrix4 som flytter, roterer, og skalerer hele gruppen.
-function applyAnchorTransform() {
-  const grp = subMap.norgeKart;
-  if (!grp) return;
-  if (!anchorState.polar.active) {
-    grp.matrixAutoUpdate = true;
-    grp.position.set(0, 0, 0);
-    grp.rotation.set(0, 0, 0);
-    grp.scale.set(1, 1, 1);
-    anchorState.polar.lastMatrix = null;
-    const status = document.getElementById('anchor-status');
-    if (status) status.textContent = 'Anker AV \u2014 Norge ligger i tile-koordinater.';
-    return;
-  }
-
-  // Source: tile-koordinater (x, y) for hvert ankerpunkt
-  const src = anchorState.polar.points.map(p => {
-    const t = latLonToTileXY(p.lat, p.lon, currentNorgeZoom);
-    return [t.x, t.y];
-  });
-  // Destination: AE world-koordinater (x, z) for hvert ankerpunkt
-  const dst = anchorState.polar.points.map(p => {
-    const ae = aeProject(p.lat, p.lon);
-    return [ae.x, ae.z];
-  });
-
-  // Deterministisk rotasjon = +lon_senter (se kommentar i computeAnchorMatrix)
-  const lonSenter = anchorState.polar.points.reduce((s, p) => s + p.lon, 0) / anchorState.polar.points.length;
-  const rotDeg = lonSenter;
-  const rotRad = rotDeg * Math.PI / 180;
-  const cosR = Math.cos(rotRad), sinR = Math.sin(rotRad);
-
-  const sim = solveSimilarity(src, dst);
-  if (!sim) return;
-  const { srcC, dstC, scale } = sim;
-
-  // Matrix-form for 2D similarity (mapping (x, y) i tile -> (x, z) i world):
-  //   x' = scale * (cos*(x - srcC.x) - sin*(y - srcC.y)) + dstC.x
-  //   z' = scale * (sin*(x - srcC.x) + cos*(y - srcC.y)) + dstC.y
-  // I Three.js bruker vi grp.position + grp.rotation.y + grp.scale (uniform).
-  // For at rotasjonsorigo skal v\u00e6re srcC (i tile-rom), m\u00e5 vi bruke
-  // Matrix4 manuelt.
-  grp.matrixAutoUpdate = false;
-  const T1 = new THREE.Matrix4().makeTranslation(-srcC[0], 0, -srcC[1]); // origin til srcC
-  const S  = new THREE.Matrix4().makeScale(scale, 1, scale);
-  // Rotasjon rundt Y-aksen: positiv vinkel roterer +X mot -Z i Three.js.
-  // Vi vil ha: tilrom (x \u00f8st, y s\u00f8r) \u2192 world (X \u00f8st-ish, Z s\u00f8r-ish) etter rotasjon -lon_senter.
-  const Ry = new THREE.Matrix4().makeRotationY(rotRad);
-  const T2 = new THREE.Matrix4().makeTranslation(dstC[0], 0, dstC[1]);
-  // M = T2 * Ry * S * T1
-  const M = new THREE.Matrix4().multiplyMatrices(T2, Ry).multiply(S).multiply(T1);
-  grp.matrix.copy(M);
-  grp.matrixWorldNeedsUpdate = true;
-  anchorState.polar.lastMatrix = M.elements.slice();
-
-  // Verifikasjon: m\u00e5l maks residual mellom forventet og oppn\u00e5dd destinasjon
-  let maxResidual = 0;
-  for (let i = 0; i < src.length; i++) {
-    const v = new THREE.Vector3(src[i][0], 0, src[i][1]).applyMatrix4(M);
-    const ex = dst[i][0], ez = dst[i][1];
-    const r = Math.hypot(v.x - ex, v.z - ez);
-    if (r > maxResidual) maxResidual = r;
-  }
-
-  const status = document.getElementById('anchor-status');
-  if (status) {
-    status.textContent =
-      `Anker P\u00c5 \u2014 polarsirkel lat=${anchorState.polar.lat.toFixed(4)}\u00b0, km=${anchorState.polar.km}. ` +
-      `Rotasjon=${rotDeg.toFixed(3)}\u00b0 (+lon_senter, lon_senter=${lonSenter.toFixed(4)}\u00b0E). ` +
-      `Skala=${scale.toFixed(4)}. Tile-zoom=${currentNorgeZoom}. ` +
-      `Maks-residual=${maxResidual.toFixed(4)} AE-enheter.`;
-  }
-}
-
-// ---- BASE-LAG: permanent z=5 bakgrunn (alltid synlig n\u00e5r Norgeskart er p\u00e5) ----
-// Tegnes \u00e9n gang, holdes statisk. Sikrer at Norge er synlig selv n\u00e5r kameraet
-// zoomer langt inn p\u00e5 origo og dynamisk-laget skulle blitt cullet bort.
-const NORGE_BASE_ZOOM = 5;
-let norgeBaseLoaded = false;
-let norgeBaseLoading = false;
-async function updateNorgeBaseLayer() {
-  const grp = subMap.norgeKartBase;
-  if (!grp) return;
-  if (norgeBaseLoading) return;
-  norgeBaseLoading = true;
-
-  const tiles = tilesForNorge(NORGE_BASE_ZOOM);
-  const meshes = await Promise.all(
-    tiles.map(t => buildNorgeTileMesh(t.z, t.x, t.y).catch(() => null))
-  );
-
-  // T\u00f8m gruppen (cache eier meshes \u2014 ikke dispose)
-  while (grp.children.length) grp.remove(grp.children[0]);
-  for (const m of meshes) if (m) grp.add(m);
-
-  applyBaseAnchorTransform();
-  norgeBaseLoaded = true;
-  norgeBaseLoading = false;
-}
-
-// Anker-transform for base-laget (egen matrise basert p\u00e5 NORGE_BASE_ZOOM)
-function applyBaseAnchorTransform() {
-  const grp = subMap.norgeKartBase;
-  if (!grp) return;
-  const M = computeAnchorMatrix(NORGE_BASE_ZOOM);
-  if (!M) {
-    grp.matrixAutoUpdate = true;
-    grp.position.set(0, 0, 0);
-    grp.rotation.set(0, 0, 0);
-    grp.scale.set(1, 1, 1);
-    return;
-  }
-  grp.matrixAutoUpdate = false;
-  grp.matrix.copy(M);
-  grp.matrixWorldNeedsUpdate = true;
-}
-
-// ---- Last og bytt ut Norge-tiles ved gjeldende zoom ----
-let norgeUpdatePending = false;
-let norgeRequestId = 0;
-async function updateNorgeLayer() {
-  norgeUpdatePending = false;
-  const grp = subMap.norgeKart;
-  if (!grp) return;
-  const requestId = ++norgeRequestId;
-
-  const dist = (window.camState && isFinite(window.camState.dist)) ? window.camState.dist : 100;
-  const zoom = chooseNorgeZoom(dist);
-  currentNorgeZoom = zoom;
-
-  // Multi-zoom: base-laget dekker z=5. Hopp over dynamisk render n\u00e5r zoom==BASE.
-  if (zoom === NORGE_BASE_ZOOM) {
-    while (grp.children.length) grp.remove(grp.children[0]);
-    applyAnchorTransform();
-    return;
-  }
-
-  // Viewport-culling: bygg matrisen forh\u00e5ndsvis og behold bare synlige tiles
-  const candidateTiles = tilesForNorge(zoom);
-  const M = computeAnchorMatrix(zoom);
-  const tiles = M ? cullTilesByViewport(candidateTiles, M) : candidateTiles.slice(0, MAX_TILES_PER_UPDATE);
-
-  const meshes = await Promise.all(
-    tiles.map(t => buildNorgeTileMesh(t.z, t.x, t.y).catch(() => null))
-  );
-  if (requestId !== norgeRequestId) return;
-
-  // T\u00f8m gruppen (men IKKE dispose, fordi cache eier meshes)
-  while (grp.children.length) grp.remove(grp.children[0]);
-  for (const m of meshes) if (m) grp.add(m);
-
-  applyAnchorTransform();
-}
-function scheduleNorgeUpdate() {
-  if (norgeUpdatePending) return;
-  norgeUpdatePending = true;
-  requestAnimationFrame(updateNorgeLayer);
-}
-
-// ---- Koble til kamera-listener (samme mekanikk som anker-systemet) ----
-if (!Array.isArray(window.__cameraChangeListeners)) {
-  window.__cameraChangeListeners = [];
-}
-window.__cameraChangeListeners.push(scheduleNorgeUpdate);
-
-// ---- UI-bindinger (Anker-slider + reset) ----
-function bindNorgeAnchorUI() {
-  const anchorLatSlider = document.getElementById('anchor-polar-lat');
-  const anchorKmSlider  = document.getElementById('anchor-polar-km');
-  const anchorLatVal    = document.getElementById('anchor-polar-lat-val');
-  const anchorKmVal     = document.getElementById('anchor-polar-km-val');
-  const anchorToggle    = document.getElementById('anchor-norge-toggle');
-  const anchorReset     = document.getElementById('anchor-reset');
-
-  function onAnchorChange() {
-    if (anchorLatSlider) anchorState.polar.lat = parseFloat(anchorLatSlider.value) || 66.5634;
-    if (anchorKmSlider)  anchorState.polar.km  = parseFloat(anchorKmSlider.value)  || 0;
-    if (anchorLatVal) anchorLatVal.textContent = `${anchorState.polar.lat.toFixed(4)}\u00b0`;
-    if (anchorKmVal)  anchorKmVal.textContent  = `${anchorState.polar.km} km`;
-    refreshPolarRings();
-    if (anchorState.polar.active) {
-      applyAnchorTransform();
-      applyBaseAnchorTransform();
+  else sources.push({ type: 'kartverket', layer: selectedBase, role: 'base' });
+  if (document.getElementById('norge-layer-both-seacharts')?.checked) {
+    if (!sources.some(source => source.type === 'wms-iceland-sjokart')) {
+      sources.push({ type: 'wms-iceland-sjokart', layer: 'Sjomaelingar:Sjokort_Sjomaelinga', role: 'overlay' });
+    }
+    if (!sources.some(source => source.type === 'kartverket' && source.layer === 'sjokartraster')) {
+      sources.push({ type: 'kartverket', layer: 'sjokartraster', role: 'overlay' });
     }
   }
-  if (anchorLatSlider) anchorLatSlider.addEventListener('input', onAnchorChange);
-  if (anchorKmSlider)  anchorKmSlider.addEventListener('input',  onAnchorChange);
-  if (anchorToggle) {
-    anchorToggle.addEventListener('change', () => {
-      anchorState.polar.active = anchorToggle.checked;
-      applyAnchorTransform();
-      applyBaseAnchorTransform();
-    });
+  if (document.getElementById('norge-layer-sjokart')?.checked) {
+    sources.push({ type: 'kartverket', layer: 'sjokartraster', role: 'overlay' });
   }
-  if (anchorReset) {
-    anchorReset.addEventListener('click', () => {
-      if (anchorLatSlider) anchorLatSlider.value = '66.5634';
-      if (anchorKmSlider)  anchorKmSlider.value  = '0';
-      onAnchorChange();
-    });
+  if (document.getElementById('norge-layer-nib')?.checked) {
+    sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
   }
-  onAnchorChange();
-}
-bindNorgeAnchorUI();
-
-// ---- Eksponer for debugging ----
-window.anchorSystem = {
-  state: anchorState,
-  refreshRings: refreshPolarRings,
-  apply: applyAnchorTransform,
-  solveSimilarity,
-};
-window.norgeTiles = {
-  update: updateNorgeLayer,
-  updateBase: updateNorgeBaseLayer,
-  applyBaseAnchor: applyBaseAnchorTransform,
-  cache: norgeTileCache,
-  bounds: NORGE_BOUNDS,
-  anchors: arcticCalibrationPoints,
-  baseGroup: subMap.norgeKartBase,
-  dynamicGroup: subMap.norgeKart,
-  baseZoom: NORGE_BASE_ZOOM,
-};
-
-// ---- Aktivere/deaktivere Norge-modus (kobles fra base-map-norge-checkboxen) ----
-// Norges senter ETTER anker-transform (faktisk world-posisjon hvor tiles tegnes).
-// Vi kan ikke bare bruke aeProject(senter-lat, senter-lon) fordi anker-matrisen
-// flytter tiles fra tile-rom til AE-rom basert p\u00e5 ankerpunktene (lat\u224866.55\u00b0N),
-// ikke generelt fra lat/lon. Vi m\u00e5 transformere Norge-senter i tile-rom gjennom M.
-function norgeAESenter() {
-  const cLat = (NORGE_BOUNDS.latMin + NORGE_BOUNDS.latMax) / 2;
-  const cLon = (NORGE_BOUNDS.lonMin + NORGE_BOUNDS.lonMax) / 2;
-  const M = computeAnchorMatrix(NORGE_BASE_ZOOM);
-  if (!M) {
-    // Anker av: fall tilbake til ren AE-projeksjon
-    return aeProject(cLat, cLon);
-  }
-  const t = latLonToTileXY(cLat, cLon, NORGE_BASE_ZOOM);
-  const v = new THREE.Vector3(t.x, 0, t.y).applyMatrix4(M);
-  return { x: v.x, z: v.z };
+  return sources;
 }
 
-// Lagre forrige target slik at vi kan gjenopprette n\u00e5r modus skrus av
-let __norgeSavedTarget = null;
+function mercatorMeters(lon, lat) {
+  const r = 6378137;
+  const clampedLat = Math.max(-85.05112878, Math.min(85.05112878, lat));
+  return {
+    x: r * lon * Math.PI / 180,
+    y: r * Math.log(Math.tan(Math.PI / 4 + clampedLat * Math.PI / 360)),
+  };
+}
+
+function webMercatorTileBbox(x, y, z) {
+  const world = 20037508.342789244;
+  const tiles = 2 ** z;
+  const span = (world * 2) / tiles;
+  const minX = -world + x * span;
+  const maxX = minX + span;
+  const maxY = world - y * span;
+  const minY = maxY - span;
+  return { minX, minY, maxX, maxY };
+}
+
+function detailTileUrl(source, z, x, y, bounds) {
+  if (source.type === 'osm') return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  if (source.type === 'wms-iceland-sjokart') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://gis.natt.is/mapcache/sjokort/web-mercator/wmst?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
+  if (source.type === 'wms-nib') {
+    const sw = mercatorMeters(bounds.west, bounds.south);
+    const ne = mercatorMeters(bounds.east, bounds.north);
+    const token = localStorage.getItem('norgeibilder-token') || window.NORGEIBILDER_TOKEN || '';
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return 'https://services.norgeibilder.no/wms/ortofoto?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      '&LAYERS=ortofoto&FORMAT=image/jpeg&CRS=EPSG:3857' +
+      `&BBOX=${sw.x},${sw.y},${ne.x},${ne.y}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}` +
+      tokenParam;
+  }
+  return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
+}
+
+function cleanDetailTileUrl(source, z, x, y) {
+  if (source.type === 'osm') return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  if (source.type === 'wms-iceland-sjokart') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://gis.natt.is/mapcache/sjokort/web-mercator/wmst?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
+  if (source.type === 'wms-nib') return '';
+  return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
+}
+
+function resetNorgeCleanTileQueue() {
+  norgeCleanTileManager.queue = [];
+  norgeCleanTileManager.active = 0;
+  norgeCleanTileManager.currentBatch += 1;
+  norgeCleanTileManager.requested = 0;
+  norgeCleanTileManager.loaded = 0;
+  norgeCleanTileManager.cached = 0;
+  norgeCleanTileManager.failed = 0;
+  refreshNorgeCleanLoadStatus();
+}
+
+function rememberNorgeCleanTile(src) {
+  if (!src) return;
+  if (norgeCleanTileManager.cache.has(src)) norgeCleanTileManager.cache.delete(src);
+  norgeCleanTileManager.cache.set(src, Date.now());
+  while (norgeCleanTileManager.cache.size > norgeCleanTileManager.cacheLimit) {
+    const oldest = norgeCleanTileManager.cache.keys().next().value;
+    norgeCleanTileManager.cache.delete(oldest);
+  }
+}
+
+function processNorgeCleanTileQueue() {
+  while (norgeCleanTileManager.active < norgeCleanTileManager.maxConcurrent && norgeCleanTileManager.queue.length) {
+    const job = norgeCleanTileManager.queue.shift();
+    const img = job.img;
+    if (job.batch !== norgeCleanTileManager.currentBatch) continue;
+    if (!img.isConnected || img.dataset.loadedSrc === job.src) continue;
+    norgeCleanTileManager.active += 1;
+    norgeCleanTileManager.requested += 1;
+    refreshNorgeCleanLoadStatus();
+    img.onload = () => {
+      if (job.batch !== norgeCleanTileManager.currentBatch) return;
+      norgeCleanTileManager.active = Math.max(0, norgeCleanTileManager.active - 1);
+      norgeCleanTileManager.loaded += 1;
+      img.dataset.loadedSrc = job.src;
+      rememberNorgeCleanTile(job.src);
+      processNorgeCleanTileQueue();
+      syncNorgeCleanControls();
+      refreshNorgeCleanLoadStatus();
+    };
+    img.onerror = () => {
+      if (job.batch !== norgeCleanTileManager.currentBatch) return;
+      norgeCleanTileManager.active = Math.max(0, norgeCleanTileManager.active - 1);
+      norgeCleanTileManager.failed += 1;
+      img.remove();
+      processNorgeCleanTileQueue();
+      syncNorgeCleanControls();
+      refreshNorgeCleanLoadStatus();
+    };
+    img.src = job.src;
+  }
+}
+
+function queueNorgeCleanTile(img, src, priority = 0) {
+  if (!src) return;
+  img.dataset.src = src;
+  if (norgeCleanTileManager.cache.has(src)) {
+    img.src = src;
+    img.dataset.loadedSrc = src;
+    norgeCleanTileManager.cached += 1;
+    rememberNorgeCleanTile(src);
+    refreshNorgeCleanLoadStatus();
+    return;
+  }
+  norgeCleanTileManager.queue.push({ img, src, priority, batch: norgeCleanTileManager.currentBatch });
+}
+
+function cleanNorgeDetailSources() {
+  return currentNorgeDetailSources().filter(source => source.type !== 'wms-nib');
+}
+
+function cleanSourceAnchorMode(source) {
+  return source?.type === 'wms-iceland-sjokart' ? 'iceland' : 'norway';
+}
+
+function primaryCleanAnchorMode() {
+  return document.querySelector('input[name="norge-base"]:checked')?.value === 'iceland-sjokart'
+    ? 'iceland'
+    : 'norway';
+}
+
+function cleanTileLocalPoint(lat, lon, zoom, originX, originY) {
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const tile = lonLatToTile(lon, lat, zoom);
+  return {
+    x: tile.x * tileSize - originX,
+    y: tile.y * tileSize - originY,
+  };
+}
+
+function applyCleanTransformPoint(transform, point) {
+  return {
+    x: transform.a * point.x + transform.c * point.y + transform.tx,
+    y: transform.b * point.x + transform.d * point.y + transform.ty,
+  };
+}
+
+function solveCleanSimilarity(srcPts, dstPts) {
+  if (srcPts.length !== dstPts.length || srcPts.length < 2) return null;
+  const n = srcPts.length;
+  const srcCenter = srcPts.reduce((acc, p) => ({ x: acc.x + p.x / n, y: acc.y + p.y / n }), { x: 0, y: 0 });
+  const dstCenter = dstPts.reduce((acc, p) => ({ x: acc.x + p.x / n, y: acc.y + p.y / n }), { x: 0, y: 0 });
+  let sxx = 0;
+  let sxy = 0;
+  let denom = 0;
+  for (let i = 0; i < n; i++) {
+    const sx = srcPts[i].x - srcCenter.x;
+    const sy = srcPts[i].y - srcCenter.y;
+    const dx = dstPts[i].x - dstCenter.x;
+    const dy = dstPts[i].y - dstCenter.y;
+    sxx += sx * dx + sy * dy;
+    sxy += sx * dy - sy * dx;
+    denom += sx * sx + sy * sy;
+  }
+  if (denom < 1e-9) return null;
+  const a = sxx / denom;
+  const b = sxy / denom;
+  const c = -b;
+  const d = a;
+  const tx = dstCenter.x - (a * srcCenter.x + c * srcCenter.y);
+  const ty = dstCenter.y - (b * srcCenter.x + d * srcCenter.y);
+  let maxResidual = 0;
+  let sumSq = 0;
+  const residuals = srcPts.map((src, i) => {
+    const x = a * src.x + c * src.y + tx;
+    const y = b * src.x + d * src.y + ty;
+    const r = Math.hypot(x - dstPts[i].x, y - dstPts[i].y);
+    maxResidual = Math.max(maxResidual, r);
+    sumSq += r * r;
+    return r;
+  });
+  return {
+    a,
+    b,
+    c,
+    d,
+    tx,
+    ty,
+    css: `matrix(${a.toFixed(10)}, ${b.toFixed(10)}, ${c.toFixed(10)}, ${d.toFixed(10)}, ${tx.toFixed(2)}, ${ty.toFixed(2)})`,
+    maxResidual,
+    rmsResidual: Math.sqrt(sumSq / n),
+    residuals,
+  };
+}
+
+function withNorgeNorthShift(transform, srcPts, dstPts, zoom, originX, originY) {
+  if (!transform || !NORGE_MAP_NORTH_SHIFT_DEG) return transform;
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const ref = NORGE_SURFACE_CONTROL_POINTS[0];
+  const baseMapLat = calibratedNorgeMapLat(ref);
+  const baseTile = lonLatToTile(ref.mapLon, baseMapLat, zoom);
+  const northTile = lonLatToTile(ref.mapLon, baseMapLat + NORGE_MAP_NORTH_SHIFT_DEG, zoom);
+  const base = {
+    x: baseTile.x * tileSize - originX,
+    y: baseTile.y * tileSize - originY,
+  };
+  const north = {
+    x: northTile.x * tileSize - originX,
+    y: northTile.y * tileSize - originY,
+  };
+  const apply = p => ({
+    x: transform.a * p.x + transform.c * p.y + transform.tx,
+    y: transform.b * p.x + transform.d * p.y + transform.ty,
+  });
+  const baseScreen = apply(base);
+  const northScreen = apply(north);
+  const tx = transform.tx + (northScreen.x - baseScreen.x);
+  const ty = transform.ty + (northScreen.y - baseScreen.y);
+  const shifted = {
+    ...transform,
+    tx,
+    ty,
+    css: `matrix(${transform.a.toFixed(10)}, ${transform.b.toFixed(10)}, ${transform.c.toFixed(10)}, ${transform.d.toFixed(10)}, ${tx.toFixed(2)}, ${ty.toFixed(2)})`,
+    northShiftDeg: NORGE_MAP_NORTH_SHIFT_DEG,
+  };
+  if (srcPts && dstPts && srcPts.length === dstPts.length) {
+    let maxResidual = 0;
+    let sumSq = 0;
+    const residuals = srcPts.map((src, index) => {
+      const p = {
+        x: shifted.a * src.x + shifted.c * src.y + shifted.tx,
+        y: shifted.b * src.x + shifted.d * src.y + shifted.ty,
+      };
+      const r = Math.hypot(p.x - dstPts[index].x, p.y - dstPts[index].y);
+      maxResidual = Math.max(maxResidual, r);
+      sumSq += r * r;
+      return r;
+    });
+    shifted.maxResidual = maxResidual;
+    shifted.rmsResidual = Math.sqrt(sumSq / srcPts.length);
+    shifted.residuals = residuals;
+  }
+  return shifted;
+}
+
+function lockCleanTransformToGrimsey(transform, zoom, originX, originY) {
+  if (!transform) return transform;
+  const src = cleanTileLocalPoint(GRIMSEY_CONTROL_POINT.lat, GRIMSEY_CONTROL_POINT.lon, zoom, originX, originY);
+  const current = applyCleanTransformPoint(transform, src);
+  const dstWorld = aeProject(GRIMSEY_CONTROL_POINT.lat, GRIMSEY_CONTROL_POINT.lon);
+  const dst = worldToCanvasPoint(dstWorld.x, dstWorld.z);
+  const dx = dst.x - current.x;
+  const dy = dst.y - current.y;
+  const tx = transform.tx + dx;
+  const ty = transform.ty + dy;
+  const shifted = {
+    ...transform,
+    tx,
+    ty,
+    css: `matrix(${transform.a.toFixed(10)}, ${transform.b.toFixed(10)}, ${transform.c.toFixed(10)}, ${transform.d.toFixed(10)}, ${tx.toFixed(2)}, ${ty.toFixed(2)})`,
+    anchorLock: {
+      id: 'grimsey',
+      name: GRIMSEY_CONTROL_POINT.name,
+      lat: GRIMSEY_CONTROL_POINT.lat,
+      lon: GRIMSEY_CONTROL_POINT.lon,
+      dx,
+      dy,
+    },
+  };
+  const locked = applyCleanTransformPoint(shifted, src);
+  const residual = Math.hypot(locked.x - dst.x, locked.y - dst.y);
+  shifted.maxResidual = residual;
+  shifted.rmsResidual = residual;
+  shifted.residuals = [residual];
+  return shifted;
+}
+
+function cleanNorgeTransform(zoom, originX, originY, anchorMode = primaryCleanAnchorMode()) {
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const srcPts = NORGE_SURFACE_CONTROL_POINTS.map(point => {
+    const tile = lonLatToTile(point.mapLon, calibratedNorgeMapLat(point), zoom);
+    return {
+      x: tile.x * tileSize - originX,
+      y: tile.y * tileSize - originY,
+    };
+  });
+  const dstPts = NORGE_SURFACE_CONTROL_POINTS.map(point => {
+    const target = aeProject(point.geLat, point.geLon);
+    return worldToCanvasPoint(target.x, target.z);
+  });
+  const baseTransform = withNorgeNorthShift(solveCleanSimilarity(srcPts, dstPts), srcPts, dstPts, zoom, originX, originY);
+  return anchorMode === 'iceland'
+    ? lockCleanTransformToGrimsey(baseTransform, zoom, originX, originY)
+    : baseTransform;
+}
+
+function syncNorgeCleanControls() {
+  const layer = document.getElementById('norge-clean-detail-layer');
+  const baselineLayer = document.getElementById('norge-screen-detail-layer');
+  const surfaceOverlay = document.getElementById('norge-surface-overlay');
+  const baseRasters = document.querySelectorAll('#norge-surface-map .norge-surface-raster');
+  const surfaceDetailLayer = document.getElementById('norge-surface-detail-layer');
+  const cleanOverlay = document.querySelector('#norge-clean-detail-layer .norge-clean-map-overlay');
+  const visibleToggle = document.getElementById('norge-clean-visible');
+  const hideBaselineToggle = document.getElementById('norge-clean-hide-baseline');
+  const opacityInput = document.getElementById('norge-clean-opacity');
+  const opacityVal = document.getElementById('norge-clean-opacity-val');
+  const panes = document.querySelectorAll('.norge-clean-pixelflate');
+  const visible = visibleToggle?.checked !== false;
+  const hideBaseline = hideBaselineToggle?.checked === true;
+  const opacity = Math.max(0, Math.min(100, Number(opacityInput?.value || 52))) / 100;
+  if (layer) layer.style.display = visible ? '' : 'none';
+  if (baselineLayer) baselineLayer.style.visibility = hideBaseline ? 'hidden' : '';
+  if (surfaceOverlay) surfaceOverlay.style.visibility = hideBaseline ? 'hidden' : '';
+  if (surfaceDetailLayer) surfaceDetailLayer.style.visibility = hideBaseline ? 'hidden' : '';
+  if (cleanOverlay) cleanOverlay.style.display = visible && hideBaseline ? '' : 'none';
+  baseRasters.forEach(img => {
+    img.style.visibility = hideBaseline ? 'hidden' : '';
+  });
+  panes.forEach(pane => {
+    pane.style.opacity = String(opacity);
+  });
+  if (opacityVal) opacityVal.textContent = `${Math.round(opacity * 100)}%`;
+}
+
+function norgeCleanLoadLine() {
+  const manager = norgeCleanTileManager;
+  window.__norgeCleanTileManager = {
+    active: manager.active,
+    requested: manager.requested,
+    loaded: manager.loaded,
+    cached: manager.cached,
+    failed: manager.failed,
+    queued: manager.queue.length,
+    cacheSize: manager.cache.size,
+    maxConcurrent: manager.maxConcurrent,
+    currentBatch: manager.currentBatch,
+  };
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed`;
+}
+
+function setNorgeCleanStatus(baseText) {
+  const status = document.getElementById('norge-clean-status');
+  if (!status) return;
+  status.dataset.baseText = baseText;
+  status.textContent = `${baseText}\n${norgeCleanLoadLine()}`;
+}
+
+function refreshNorgeCleanLoadStatus() {
+  const status = document.getElementById('norge-clean-status');
+  if (!status || !status.dataset.baseText) {
+    norgeCleanLoadLine();
+    return;
+  }
+  status.textContent = `${status.dataset.baseText}\n${norgeCleanLoadLine()}`;
+}
+
+function updateNorgeCleanStatusLegacy(transform, tileCount, sources, zoom) {
+  const status = document.getElementById('norge-clean-status');
+  if (!status) return;
+  if (!transform) {
+    setNorgeCleanStatus('Clean lab: ingen transform');
+    return;
+  }
+  const worst = norgeCleanLabSamples.reduce((max, sample) => Math.max(max, sample.maxResidual), transform.maxResidual);
+  const lockLine = transform.anchorLock
+    ? `Anchor lock: ${transform.anchorLock.name} (${transform.anchorLock.lat.toFixed(6)}, ${transform.anchorLock.lon.toFixed(6)})\n`
+    : '';
+  status.textContent =
+    `Clean lab z${zoom}\n` +
+    `Tiles: ${tileCount} (${sources.map(source => source.layer).join(' + ')})\n` +
+    `North shift: ${(transform.northShiftDeg || 0).toFixed(4)}°\n` +
+    `Max residual: ${transform.maxResidual.toFixed(3)} px\n` +
+    `RMS residual: ${transform.rmsResidual.toFixed(3)} px\n` +
+    `Samples: ${norgeCleanLabSamples.length} · worst ${worst.toFixed(3)} px`;
+}
+
+function updateNorgeCleanStatus(transform, tileCount, sources, zoom) {
+  const status = document.getElementById('norge-clean-status');
+  if (!status) return;
+  if (!transform) {
+    setNorgeCleanStatus('Clean lab: ingen transform');
+    return;
+  }
+  const worst = norgeCleanLabSamples.reduce((max, sample) => Math.max(max, sample.maxResidual), transform.maxResidual);
+  const lockLine = transform.anchorLock
+    ? `Anchor lock: ${transform.anchorLock.name} (${transform.anchorLock.lat.toFixed(6)}, ${transform.anchorLock.lon.toFixed(6)})\n`
+    : '';
+  setNorgeCleanStatus(
+    `Clean lab z${zoom}\n` +
+    `Tiles: ${tileCount} (${sources.map(source => source.layer).join(' + ')})\n` +
+    lockLine +
+    `North shift: ${(transform.northShiftDeg || 0).toFixed(4)}°\n` +
+    `Max residual: ${transform.maxResidual.toFixed(3)} px\n` +
+    `RMS residual: ${transform.rmsResidual.toFixed(3)} px\n` +
+    `Samples: ${norgeCleanLabSamples.length} - worst ${worst.toFixed(3)} px`
+  );
+}
+
+function recordNorgeCleanLabSample(transform, tileCount, sources, zoom) {
+  const sample = {
+    zoom,
+    tileCount,
+    layers: sources.map(source => source.layer).join('+'),
+    maxResidual: Number(transform.maxResidual.toFixed(3)),
+    rmsResidual: Number(transform.rmsResidual.toFixed(3)),
+    cameraDist: Number(camState.dist.toFixed(6)),
+    targetX: Number(camState.target.x.toFixed(3)),
+    targetZ: Number(camState.target.z.toFixed(3)),
+    time: Date.now(),
+  };
+  const last = norgeCleanLabSamples[norgeCleanLabSamples.length - 1];
+  const same =
+    last &&
+    last.zoom === sample.zoom &&
+    last.tileCount === sample.tileCount &&
+    last.layers === sample.layers &&
+    Math.abs(last.cameraDist - sample.cameraDist) < 0.000001 &&
+    Math.abs(last.targetX - sample.targetX) < 0.001 &&
+    Math.abs(last.targetZ - sample.targetZ) < 0.001;
+  if (!same) {
+    norgeCleanLabSamples.push(sample);
+    if (norgeCleanLabSamples.length > 24) norgeCleanLabSamples.shift();
+  }
+  window.__norgeCleanLabSamples = norgeCleanLabSamples;
+}
+
+function addNorgeCleanDiagnostics(cleanLayer, transform, zoom, originX, originY) {
+  const old = cleanLayer.querySelector('.norge-clean-diagnostics');
+  if (old) old.remove();
+  const diag = document.createElement('div');
+  diag.className = 'norge-clean-diagnostics';
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+
+  const marker = (point, cls, title, controlPoint, kind) => {
+    const el = document.createElement('div');
+    el.className = `norge-clean-anchor ${cls}`;
+    el.style.left = `${point.x.toFixed(2)}px`;
+    el.style.top = `${point.y.toFixed(2)}px`;
+    el.title = title;
+    if (controlPoint) {
+      el.dataset.id = controlPoint.id;
+      el.dataset.anchorLayer = kind;
+      el.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        reportNorgeAnchorOffset(controlPoint, kind);
+      });
+    }
+    diag.appendChild(el);
+  };
+  const line = (a, b) => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const length = Math.hypot(dx, dy);
+    const el = document.createElement('div');
+    el.className = 'norge-clean-residual-line';
+    el.style.left = `${a.x.toFixed(2)}px`;
+    el.style.top = `${a.y.toFixed(2)}px`;
+    el.style.width = `${length.toFixed(2)}px`;
+    el.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+    diag.appendChild(el);
+  };
+
+  NORGE_SURFACE_CONTROL_POINTS.forEach(point => {
+    const srcTile = lonLatToTile(point.mapLon, calibratedNorgeMapLat(point), zoom);
+    const srcLocal = {
+      x: srcTile.x * tileSize - originX,
+      y: srcTile.y * tileSize - originY,
+    };
+    const cleanScreen = {
+      x: transform.a * srcLocal.x + transform.c * srcLocal.y + transform.tx,
+      y: transform.b * srcLocal.x + transform.d * srcLocal.y + transform.ty,
+    };
+    const dstWorld = aeProject(point.geLat, point.geLon);
+    const dstScreen = worldToCanvasPoint(dstWorld.x, dstWorld.z);
+    marker(dstScreen, 'src norge-anchor-object', `${point.name}\nGoogle Earth\n${point.ge || ''}`, point, 'Google Earth');
+    marker(cleanScreen, 'dst norge-anchor-object', `${point.name}\nNorgeskart\n${point.map || ''}`, point, 'Norgeskart');
+  });
+  cleanLayer.appendChild(diag);
+}
+
+function reportNorgeAnchorOffset(point, layerName = 'Underlag') {
+  const wrapRect = wrap?.getBoundingClientRect?.();
+  const targetWorld = aeProject(point.geLat, point.geLon);
+  const targetCanvas = worldToCanvasPoint(targetWorld.x, targetWorld.z);
+  const targetScreen = wrapRect ? {
+    x: wrapRect.left + targetCanvas.x,
+    y: wrapRect.top + targetCanvas.y,
+  } : null;
+  const surfaceMarker = document.querySelector(`#norge-surface-control-points [data-id="${point.id}"]`);
+  const cleanPoint = norgeCleanLastContext && wrapRect
+    ? projectNorgeCleanScreenPoint(
+        calibratedNorgeMapLat(point),
+        point.mapLon,
+        norgeCleanLastContext.zoom,
+        norgeCleanLastContext.originX,
+        norgeCleanLastContext.originY,
+        norgeCleanLastContext.transform
+      )
+    : null;
+  const cleanScreenActual = cleanPoint && wrapRect
+    ? { x: wrapRect.left + cleanPoint.x, y: wrapRect.top + cleanPoint.y }
+    : null;
+  const rows = [
+    `${point.name}`,
+    point.ge || '',
+    point.map || '',
+    point.info || '',
+    `Lag: ${layerName}`,
+  ].filter(Boolean);
+  const addOffset = (label, screen) => {
+    if (!screen || !targetScreen) return;
+    const dx = screen.x - targetScreen.x;
+    const dy = screen.y - targetScreen.y;
+    rows.push(`${label} → GE/AE: dx ${dx.toFixed(2)} px, dy ${dy.toFixed(2)} px, avstand ${Math.hypot(dx, dy).toFixed(2)} px`);
+  };
+  const surfaceScreenActual = surfaceMarker ? (() => {
+    const rect = surfaceMarker.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  })() : null;
+  addOffset('Underlag', surfaceScreenActual);
+  addOffset('Clean', cleanScreenActual);
+  const out = document.getElementById('norge-measure-output');
+  if (out) out.textContent = rows.join('\n');
+  updateNorgeCalibrationStatus();
+}
+
+function projectNorgeCleanScreenPoint(lat, lon, zoom, originX, originY, transform) {
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const srcTile = lonLatToTile(lon, lat, zoom);
+  const x = srcTile.x * tileSize - originX;
+  const y = srcTile.y * tileSize - originY;
+  return {
+    x: transform.a * x + transform.c * y + transform.tx,
+    y: transform.b * x + transform.d * y + transform.ty,
+  };
+}
+
+function focusNorgeSurfaceLatLon(lat, lon, label = '') {
+  const target = aeProject(lat, lon);
+  camState.target.set(target.x, 0, target.z);
+  camState.dist = Math.min(camState.dist, 4);
+  applyCamera();
+  updateZoomReadout();
+  scheduleNorgeDetailTiles();
+  renderNorgeSurfaceLayers();
+  const out = document.getElementById('norge-measure-output');
+  if (out) {
+    out.textContent = `${label || 'Punkt'}\nLat: ${lat.toFixed(6)}\nLon: ${lon.toFixed(6)}`;
+  }
+}
+
+function selectNorgeBaseMap(value) {
+  const input = document.querySelector(`input[name="norge-base"][value="${value}"]`);
+  if (!input) return;
+  input.checked = true;
+  updateNorgeSurfaceRasters();
+  scheduleNorgeDetailTiles();
+}
+
+function addNorgeCleanMapOverlay(cleanLayer, transform, zoom, originX, originY) {
+  cleanLayer.querySelector('.norge-clean-map-overlay')?.remove();
+  const svg = svgEl('svg', {
+    class: 'norge-clean-map-overlay',
+    viewBox: `0 0 ${cw} ${ch}`,
+    preserveAspectRatio: 'none',
+    'aria-hidden': 'true',
+  });
+
+  NORGE_SURFACE_CONTROL_POINTS.forEach(point => {
+    const p = projectNorgeCleanScreenPoint(calibratedNorgeMapLat(point), point.mapLon, zoom, originX, originY, transform);
+    const marker = svgEl('circle', {
+      cx: p.x.toFixed(2),
+      cy: p.y.toFixed(2),
+      r: 5,
+      class: 'clean-control',
+      'data-id': point.id,
+    });
+    marker.appendChild(svgEl('title'));
+    marker.querySelector('title').textContent = `${point.name}\n${point.map || ''}`;
+    marker.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      reportNorgeAnchorOffset(point, 'Clean');
+    });
+    svg.appendChild(marker);
+  });
+
+  if (document.getElementById('norge-layer-cities')?.checked) {
+    norgeSurfaceCities.forEach(city => {
+      const p = projectNorgeCleanScreenPoint(city.lat, city.lon, zoom, originX, originY, transform);
+      const marker = svgEl('circle', {
+        cx: p.x.toFixed(2),
+        cy: p.y.toFixed(2),
+        r: 6,
+        class: 'clean-city',
+        'data-name': city.navn,
+      });
+      marker.appendChild(svgEl('title'));
+      marker.querySelector('title').textContent = `${city.navn}\n${city.lat.toFixed(4)} N, ${city.lon.toFixed(4)} E`;
+      marker.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        focusNorgeSurfaceLatLon(city.lat, city.lon, city.navn);
+      });
+      svg.appendChild(marker);
+    });
+  }
+
+  cleanLayer.appendChild(svg);
+}
+
+function refreshNorgeCleanMapOverlay() {
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (!cleanLayer || !norgeCleanLastContext) return;
+  addNorgeCleanMapOverlay(
+    cleanLayer,
+    norgeCleanLastContext.transform,
+    norgeCleanLastContext.zoom,
+    norgeCleanLastContext.originX,
+    norgeCleanLastContext.originY
+  );
+  syncNorgeCleanControls();
+}
+
+function syncNorgeDetailPaneToCamera() {
+  if (!norgeCleanLastContext) return;
+  const panes = [...document.querySelectorAll('.norge-clean-pixelflate')];
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (!panes.length || !cleanLayer) return;
+  const { zoom, originX, originY } = norgeCleanLastContext;
+  let primary = null;
+  let tileCount = 0;
+  panes.forEach(pane => {
+    const anchorMode = pane.dataset.anchorMode || primaryCleanAnchorMode();
+    const transform = cleanNorgeTransform(zoom, originX, originY, anchorMode);
+    if (!transform) return;
+    pane.style.transform = transform.css;
+    pane.dataset.maxResidual = transform.maxResidual.toFixed(3);
+    pane.dataset.rmsResidual = transform.rmsResidual.toFixed(3);
+    tileCount += pane.querySelectorAll('img').length;
+    if (pane.dataset.primary === '1' || !primary) primary = { transform, anchorMode };
+  });
+  if (!primary) return;
+  norgeCleanLastContext = { transform: primary.transform, zoom, originX, originY };
+  addNorgeCleanDiagnostics(cleanLayer, primary.transform, zoom, originX, originY);
+  addNorgeCleanMapOverlay(cleanLayer, primary.transform, zoom, originX, originY);
+  updateNorgeCleanStatus(primary.transform, tileCount, cleanNorgeDetailSources(), zoom);
+  syncNorgeCleanControls();
+}
+
+function estimateDetailTileScreenSize(bounds, zoom) {
+  const centerLat = (bounds.latMin + bounds.latMax) / 2;
+  const centerLon = (bounds.lonMin + bounds.lonMax) / 2;
+  const tile = lonLatToTile(centerLon, centerLat, zoom);
+  const b = tileBounds(Math.floor(tile.x), Math.floor(tile.y), zoom);
+  const corners = [
+    aeProject(b.north, b.west),
+    aeProject(b.north, b.east),
+    aeProject(b.south, b.west),
+    aeProject(b.south, b.east),
+  ].map(p => worldToCanvasPoint(p.x, p.z));
+  const width = Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x));
+  const height = Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y));
+  return Math.max(width, height);
+}
+
+function currentNorgeDetailZoom(bounds) {
+  const minTilePx = 54;
+  for (let z = NORGE_SURFACE_DETAIL.maxZoom; z >= NORGE_SURFACE_DETAIL.minZoom; z--) {
+    if (estimateDetailTileScreenSize(bounds, z) >= minTilePx) return z;
+  }
+  return NORGE_SURFACE_DETAIL.minZoom;
+}
+
+function visibleNorgeSourceBounds() {
+  const mapEl = document.getElementById('norge-surface-map');
+  if (!mapEl || !wrap) return null;
+  const wrapRect = wrap.getBoundingClientRect();
+
+  // Leaflet-lignende utsnitt: beregn synlig kartflate fra kamera/vindu,
+  // ikke fra den store DOM-flaten. Ved ekstrem zoom kan DOM-flaten ligge
+  // langt utenfor skjermen selv om kameraet ser Norge korrekt.
+  const screenPad = 48;
+  const worldPts = [
+    screenToMapWorld(wrapRect.left - screenPad, wrapRect.top - screenPad),
+    screenToMapWorld(wrapRect.right + screenPad, wrapRect.top - screenPad),
+    screenToMapWorld(wrapRect.left - screenPad, wrapRect.bottom + screenPad),
+    screenToMapWorld(wrapRect.right + screenPad, wrapRect.bottom + screenPad),
+    screenToMapWorld(wrapRect.left + wrapRect.width / 2, wrapRect.top + wrapRect.height / 2),
+  ].filter(Boolean).map(p => worldPointToLatLon(p.x, p.z));
+  if (worldPts.length >= 3) {
+    const latMin = Math.max(NORGE_SURFACE_DETAIL.bounds.latMin, Math.min(...worldPts.map(p => p.lat)));
+    const latMax = Math.min(NORGE_SURFACE_DETAIL.bounds.latMax, Math.max(...worldPts.map(p => p.lat)));
+    const lonMin = Math.max(NORGE_SURFACE_DETAIL.bounds.lonMin, Math.min(...worldPts.map(p => p.lon)));
+    const lonMax = Math.min(NORGE_SURFACE_DETAIL.bounds.lonMax, Math.max(...worldPts.map(p => p.lon)));
+    if (latMax > latMin && lonMax > lonMin) return { latMin, latMax, lonMin, lonMax };
+  }
+
+  const mapRect = mapEl.getBoundingClientRect();
+  const left = Math.max(mapRect.left, wrapRect.left);
+  const right = Math.min(mapRect.right, wrapRect.right);
+  const top = Math.max(mapRect.top, wrapRect.top);
+  const bottom = Math.min(mapRect.bottom, wrapRect.bottom);
+  if (right <= left || bottom <= top || !mapRect.width || !mapRect.height) return null;
+
+  const screenToSource = (sx, sy) => {
+    const x = (sx - mapRect.left) / mapRect.width * NORGE_SURFACE_META.width;
+    const yVisual = (sy - mapRect.top) / mapRect.height * NORGE_SURFACE_META.height;
+    return {
+      x: Math.max(0, Math.min(NORGE_SURFACE_META.width, x)),
+      y: Math.max(0, Math.min(NORGE_SURFACE_META.height, NORGE_SURFACE_META.height - yVisual)),
+    };
+  };
+
+  const pct = Math.max(100, Math.round(100 / camState.dist * 100));
+  const pad = pct >= 1000 ? 0 : 120;
+  const pts = [
+    screenToSource(left - pad, top - pad),
+    screenToSource(right + pad, top - pad),
+    screenToSource(left - pad, bottom + pad),
+    screenToSource(right + pad, bottom + pad),
+  ].map(p => unprojectNorgeSurfacePoint(p.x, p.y));
+  return {
+    latMin: Math.max(NORGE_SURFACE_DETAIL.bounds.latMin, Math.min(...pts.map(p => p.lat))),
+    latMax: Math.min(NORGE_SURFACE_DETAIL.bounds.latMax, Math.max(...pts.map(p => p.lat))),
+    lonMin: Math.max(NORGE_SURFACE_DETAIL.bounds.lonMin, Math.min(...pts.map(p => p.lon))),
+    lonMax: Math.min(NORGE_SURFACE_DETAIL.bounds.lonMax, Math.max(...pts.map(p => p.lon))),
+  };
+}
+
+function fitTileRangeToBudget(tileRange, sourcesLength) {
+  const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.maxTiles / Math.max(1, sourcesLength)));
+  if (tileRange.count <= maxTilesPerSource) return tileRange;
+  const width = tileRange.xMax - tileRange.xMin + 1;
+  const height = tileRange.yMax - tileRange.yMin + 1;
+  const centerX = Math.round((tileRange.xMin + tileRange.xMax) / 2);
+  const centerY = Math.round((tileRange.yMin + tileRange.yMax) / 2);
+  const aspect = Math.max(0.25, Math.min(4, width / Math.max(1, height)));
+  const fittedWidth = Math.max(1, Math.min(width, Math.floor(Math.sqrt(maxTilesPerSource * aspect))));
+  const fittedHeight = Math.max(1, Math.min(height, Math.floor(maxTilesPerSource / fittedWidth)));
+  const xMin = Math.max(tileRange.xMin, centerX - Math.floor(fittedWidth / 2));
+  const yMin = Math.max(tileRange.yMin, centerY - Math.floor(fittedHeight / 2));
+  return {
+    xMin,
+    xMax: Math.min(tileRange.xMax, xMin + fittedWidth - 1),
+    yMin,
+    yMax: Math.min(tileRange.yMax, yMin + fittedHeight - 1),
+    count: fittedWidth * fittedHeight,
+    clipped: true,
+  };
+}
+
+function expandNorgeTileRange(tileRange, zoom) {
+  const pad = zoom >= 14 ? 16 : zoom >= 11 ? 12 : 8;
+  const worldTiles = 2 ** zoom;
+  const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
+  const seLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMax, NORGE_SURFACE_DETAIL.bounds.latMin, zoom);
+  const limit = {
+    xMin: Math.max(0, Math.floor(Math.min(nwLimit.x, seLimit.x))),
+    xMax: Math.min(worldTiles - 1, Math.floor(Math.max(nwLimit.x, seLimit.x))),
+    yMin: Math.max(0, Math.floor(Math.min(nwLimit.y, seLimit.y))),
+    yMax: Math.min(worldTiles - 1, Math.floor(Math.max(nwLimit.y, seLimit.y))),
+  };
+  const expanded = {
+    xMin: Math.max(limit.xMin, tileRange.xMin - pad),
+    xMax: Math.min(limit.xMax, tileRange.xMax + pad),
+    yMin: Math.max(limit.yMin, tileRange.yMin - pad),
+    yMax: Math.min(limit.yMax, tileRange.yMax + pad),
+    overscan: pad,
+  };
+  expanded.count = (expanded.xMax - expanded.xMin + 1) * (expanded.yMax - expanded.yMin + 1);
+  return expanded;
+}
+
+function updateNorgeDetailTiles() {
+  const detailLayer = document.getElementById('norge-screen-detail-layer');
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  const legacyDetailLayer = document.getElementById('norge-surface-detail-layer');
+  if (legacyDetailLayer) legacyDetailLayer.replaceChildren();
+  if (!cleanLayer || !norgeSurface) return;
+  const bounds = visibleNorgeSourceBounds();
+  if (!bounds || bounds.latMax <= bounds.latMin || bounds.lonMax <= bounds.lonMin) {
+    if (detailLayer) detailLayer.replaceChildren();
+    if (cleanLayer) cleanLayer.replaceChildren();
+    norgeDetailKey = '';
+    norgeCleanDetailKey = '';
+    return;
+  }
+
+  const sources = currentNorgeDetailSources();
+  if (!sources.length) {
+    if (detailLayer) detailLayer.replaceChildren();
+    if (cleanLayer) cleanLayer.replaceChildren();
+    norgeDetailKey = '';
+    norgeCleanDetailKey = '';
+    return;
+  }
+  let zoom = currentNorgeDetailZoom(bounds);
+  let tileRange = null;
+  const nw = lonLatToTile(bounds.lonMin, bounds.latMax, zoom);
+  const se = lonLatToTile(bounds.lonMax, bounds.latMin, zoom);
+  const xMin = Math.max(0, Math.floor(Math.min(nw.x, se.x)));
+  const xMax = Math.floor(Math.max(nw.x, se.x));
+  const yMin = Math.max(0, Math.floor(Math.min(nw.y, se.y)));
+  const yMax = Math.floor(Math.max(nw.y, se.y));
+  const count = (xMax - xMin + 1) * (yMax - yMin + 1);
+  tileRange = expandNorgeTileRange({ xMin, xMax, yMin, yMax, count }, zoom);
+  tileRange = fitTileRangeToBudget(tileRange, sources.length);
+  if (!tileRange) return;
+
+  const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
+  const screenKey = `${camState.dist.toExponential(3)}:${camState.target.x.toFixed(3)}:${camState.target.z.toFixed(3)}:${Math.round(cw)}x${Math.round(ch)}`;
+  const key = `${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}`;
+  if (key === norgeDetailKey) return;
+  norgeDetailKey = key;
+
+  if (detailLayer) {
+    detailLayer.replaceChildren();
+  }
+  updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey });
+  const zoomEl = document.getElementById('norge-info-zoom');
+  if (zoomEl) zoomEl.textContent = `surface z${zoom}${sources.length > 1 ? ` (${sources.length} lag)` : ''}${tileRange.clipped ? ' center' : ''}`;
+}
+
+function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  const detailLayer = document.getElementById('norge-screen-detail-layer');
+  if (!cleanLayer) return;
+  const sources = cleanNorgeDetailSources();
+  if (!sources.length) {
+    cleanLayer.replaceChildren();
+    norgeCleanDetailKey = '';
+    updateNorgeCleanStatus(null, 0, sources, zoom);
+    return;
+  }
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const tileBleed = 0.6;
+  const originX = tileRange.xMin * tileSize;
+  const originY = tileRange.yMin * tileSize;
+  const groupedSources = new Map();
+  sources.forEach(source => {
+    const anchorMode = cleanSourceAnchorMode(source);
+    if (!groupedSources.has(anchorMode)) groupedSources.set(anchorMode, []);
+    groupedSources.get(anchorMode).push(source);
+  });
+  const paneConfigs = [...groupedSources.entries()].map(([anchorMode, groupSources]) => ({
+    anchorMode,
+    sources: groupSources,
+    transform: cleanNorgeTransform(zoom, originX, originY, anchorMode),
+  })).filter(config => config.transform);
+  if (!paneConfigs.length) {
+    cleanLayer.replaceChildren();
+    norgeCleanDetailKey = '';
+    updateNorgeCleanStatus(null, 0, sources, zoom);
+    return;
+  }
+  const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
+  const transformKey = paneConfigs.map(config => `${config.anchorMode}:${config.transform.css}`).join('|');
+  const key = `clean:${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}:${transformKey}`;
+  if (key === norgeCleanDetailKey) return;
+  norgeCleanDetailKey = key;
+
+  resetNorgeCleanTileQueue();
+  const centerX = (tileRange.xMin + tileRange.xMax) / 2;
+  const centerY = (tileRange.yMin + tileRange.yMax) / 2;
+  const primaryMode = primaryCleanAnchorMode();
+  const panes = [];
+  const paneSize = {
+    width: `${(tileRange.xMax - tileRange.xMin + 1) * tileSize}px`,
+    height: `${(tileRange.yMax - tileRange.yMin + 1) * tileSize}px`,
+  };
+  const tileJobs = [];
+  paneConfigs.forEach((config, index) => {
+    const pane = document.createElement('div');
+    pane.className = 'norge-clean-pixelflate';
+    pane.style.width = paneSize.width;
+    pane.style.height = paneSize.height;
+    pane.style.transform = config.transform.css;
+    pane.dataset.zoom = String(zoom);
+    pane.dataset.anchorMode = config.anchorMode;
+    pane.dataset.primary = config.anchorMode === primaryMode || (!paneConfigs.some(item => item.anchorMode === primaryMode) && index === 0) ? '1' : '0';
+    pane.dataset.sourceLayers = config.sources.map(source => source.layer).join('+');
+    pane.dataset.maxResidual = config.transform.maxResidual.toFixed(3);
+    pane.dataset.rmsResidual = config.transform.rmsResidual.toFixed(3);
+    pane.dataset.overscan = String(tileRange.overscan || 0);
+    panes.push({ pane, ...config });
+
+    for (const source of config.sources) {
+      for (let x = tileRange.xMin; x <= tileRange.xMax; x++) {
+        for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
+          const src = cleanDetailTileUrl(source, zoom, x, y);
+          if (!src) continue;
+          const layerPriority = source.role === 'overlay' ? 0.2 : 0;
+          const anchorPriority = config.anchorMode === primaryMode ? 0 : 0.05;
+          const priority = Math.hypot(x - centerX, y - centerY) + layerPriority + anchorPriority;
+          tileJobs.push({ source, x, y, src, priority, pane });
+        }
+      }
+    }
+  });
+
+  tileJobs.sort((a, b) => a.priority - b.priority);
+  for (const job of tileJobs) {
+        const img = document.createElement('img');
+        img.className = `norge-detail-tile${job.source.role === 'overlay' ? ' overlay' : ''}`;
+        img.loading = 'eager';
+        img.decoding = 'async';
+        img.style.left = `${(job.x - tileRange.xMin) * tileSize}px`;
+        img.style.top = `${(job.y - tileRange.yMin) * tileSize}px`;
+        img.style.width = `${tileSize + tileBleed}px`;
+        img.style.height = `${tileSize + tileBleed}px`;
+        img.dataset.z = String(zoom);
+        img.dataset.layer = job.source.layer;
+        img.dataset.role = job.source.role;
+        img.dataset.clean = '1';
+        img.dataset.anchorMode = job.pane.dataset.anchorMode;
+        queueNorgeCleanTile(img, job.src, job.priority);
+        job.pane.appendChild(img);
+  }
+  norgeCleanTileManager.queue.sort((a, b) => a.priority - b.priority);
+  const fragment = document.createDocumentFragment();
+  panes.forEach(config => fragment.appendChild(config.pane));
+  if (detailLayer) {
+    detailLayer.replaceChildren(fragment);
+    cleanLayer.replaceChildren();
+  } else {
+    cleanLayer.replaceChildren(fragment);
+  }
+  processNorgeCleanTileQueue();
+  const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
+  const primaryTransform = primaryPane.transform;
+  const tileCount = panes.reduce((sum, config) => sum + config.pane.querySelectorAll('img').length, 0);
+  norgeCleanLastContext = { transform: primaryTransform, zoom, originX, originY };
+  addNorgeCleanDiagnostics(cleanLayer, primaryTransform, zoom, originX, originY);
+  addNorgeCleanMapOverlay(cleanLayer, primaryTransform, zoom, originX, originY);
+  syncNorgeCleanControls();
+  recordNorgeCleanLabSample(primaryTransform, tileCount, sources, zoom);
+  updateNorgeCleanStatus(primaryTransform, tileCount, sources, zoom);
+  console.info('[v7-clean-lab] DOM/CSS pixelflate', {
+    zoom,
+    tiles: tileCount,
+    panes: panes.map(config => ({
+      anchorMode: config.anchorMode,
+      layers: config.sources.map(source => source.layer),
+      tiles: config.pane.querySelectorAll('img').length,
+      maxResidualPx: Number(config.transform.maxResidual.toFixed(3)),
+      rmsResidualPx: Number(config.transform.rmsResidual.toFixed(3)),
+    })),
+    maxResidualPx: Number(primaryTransform.maxResidual.toFixed(3)),
+    rmsResidualPx: Number(primaryTransform.rmsResidual.toFixed(3)),
+    layers: sources.map(source => source.layer),
+  });
+}
+
+function scheduleNorgeDetailTiles() {
+  clearTimeout(norgeDetailTimer);
+  norgeDetailTimer = setTimeout(updateNorgeDetailTiles, 120);
+}
+
+function norgeSurfacePointerToImage(e) {
+  const mapEl = document.getElementById('norge-surface-map');
+  if (!mapEl) return null;
+  const rect = mapEl.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const x = (e.clientX - rect.left) / rect.width * NORGE_SURFACE_META.width;
+  let y = (e.clientY - rect.top) / rect.height * NORGE_SURFACE_META.height;
+  if (isNorgeSurfaceVerticallyFlipped()) y = NORGE_SURFACE_META.height - y;
+  return { x, y };
+}
+
+function svgEl(name, attrs = {}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+  Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, String(value)));
+  return el;
+}
+
+function norgeSurfacePath(points) {
+  return points.map((p, i) => `${i ? 'L' : 'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+}
+
+function addNorgeSurfaceGrid(overlay, square = false) {
+  const group = svgEl('g', { id: square ? 'norge-surface-square-grid' : 'norge-surface-geo-grid' });
+  const color = square ? '#d6d6d6' : '#d4af37';
+  const opacity = square ? '0.38' : '0.62';
+  const dash = square ? '10 14' : '';
+  for (let lat = 56; lat <= 72; lat += 1) {
+    const pts = [];
+    for (let lon = 4; lon <= 32; lon += 0.5) pts.push(projectNorgeSurfacePoint(lat, lon));
+    group.appendChild(svgEl('path', {
+      d: norgeSurfacePath(pts),
+      class: 'norge-surface-line',
+      stroke: color,
+      'stroke-width': lat % 5 === 0 ? 2 : 1,
+      'stroke-opacity': opacity,
+      'stroke-dasharray': dash,
+    }));
+  }
+  for (let lon = 4; lon <= 32; lon += 1) {
+    const pts = [];
+    for (let lat = 56; lat <= 72; lat += 0.5) pts.push(projectNorgeSurfacePoint(lat, lon));
+    group.appendChild(svgEl('path', {
+      d: norgeSurfacePath(pts),
+      class: 'norge-surface-line',
+      stroke: color,
+      'stroke-width': lon % 5 === 0 ? 2 : 1,
+      'stroke-opacity': opacity,
+      'stroke-dasharray': dash,
+    }));
+  }
+  overlay.appendChild(group);
+}
+
+function addNorgeSurfaceCities(overlay) {
+  const group = svgEl('g', { id: 'norge-surface-cities' });
+  norgeSurfaceCities.forEach(city => {
+    const p = projectNorgeSurfacePoint(city.lat, city.lon);
+    const marker = svgEl('circle', {
+      cx: p.x,
+      cy: p.y,
+      r: 7,
+      class: 'norge-surface-marker',
+      fill: '#ffd76b',
+      'fill-opacity': '0.9',
+      stroke: '#111',
+      'stroke-width': 2,
+    });
+    marker.appendChild(svgEl('title'));
+    marker.querySelector('title').textContent = `${city.navn}\n${city.lat.toFixed(4)} N, ${city.lon.toFixed(4)} E`;
+    marker.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      focusNorgeSurfaceLatLon(city.lat, city.lon, city.navn);
+    });
+    group.appendChild(marker);
+  });
+  overlay.appendChild(group);
+}
+
+function addNorgeSurfaceControlPoints(overlay) {
+  const group = svgEl('g', { id: 'norge-surface-control-points' });
+  NORGE_SURFACE_CONTROL_POINTS.forEach(point => {
+    const p = projectNorgeSurfacePoint(calibratedNorgeMapLat(point), point.mapLon);
+    const marker = svgEl('circle', {
+      cx: p.x,
+      cy: p.y,
+      r: 0.32,
+      'data-id': point.id,
+      class: 'norge-surface-marker norge-anchor-underlay',
+      fill: '#ff50dc',
+      'fill-opacity': '0.95',
+      stroke: '#050505',
+      'stroke-width': 2,
+    });
+    marker.appendChild(svgEl('title'));
+    marker.querySelector('title').textContent = `${point.name}\n${point.map || ''}`;
+    marker.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      reportNorgeAnchorOffset(point, 'Underlag');
+    });
+    group.appendChild(marker);
+  });
+  overlay.appendChild(group);
+}
+
+function addNorgeSurfaceMeasure(overlay) {
+  if (!norgeSurfaceMeasurePoints.length) return;
+  const group = svgEl('g', { id: 'norge-surface-measure' });
+  norgeSurfaceMeasurePoints.forEach(point => {
+    const p = projectNorgeSurfacePoint(point.lat, point.lon);
+    group.appendChild(svgEl('circle', {
+      cx: p.x,
+      cy: p.y,
+      r: 9,
+      fill: '#ff6b6b',
+      stroke: '#111',
+      'stroke-width': 3,
+      class: 'norge-surface-marker',
+    }));
+  });
+  if (norgeSurfaceMeasurePoints.length === 2) {
+    group.appendChild(svgEl('path', {
+      d: norgeSurfacePath(norgeSurfaceMeasurePoints.map(p => projectNorgeSurfacePoint(p.lat, p.lon))),
+      class: 'norge-surface-line',
+      stroke: '#ff6b6b',
+      'stroke-width': 3,
+      'stroke-opacity': '0.95',
+    }));
+  }
+  overlay.appendChild(group);
+}
+
+function renderNorgeSurfaceLayers() {
+  const overlay = document.getElementById('norge-surface-overlay');
+  if (overlay) {
+    overlay.replaceChildren();
+    addNorgeSurfaceControlPoints(overlay);
+    addNorgeSurfaceMeasure(overlay);
+  }
+  refreshNorgeCleanMapOverlay();
+  requestAnimationFrame(updateNorgeCalibrationStatus);
+}
+
+function updateNorgeSurfaceRasters() {
+  const selectedBase = document.querySelector('input[name="norge-base"]:checked')?.value || 'sjokartraster';
+  document.querySelectorAll('.norge-surface-raster').forEach(img => {
+    const layer = img.dataset.layer;
+    const isBase = layer === selectedBase;
+    const isSjokart = layer === 'sjokart' && !!document.getElementById('norge-layer-sjokart')?.checked;
+    const isNib = layer === 'nib' && !!document.getElementById('norge-layer-nib')?.checked;
+    img.classList.toggle('active', isBase || isSjokart || isNib);
+  });
+  norgeDetailKey = '';
+  scheduleNorgeDetailTiles();
+}
+
+function updateNorgeCalibrationStatus() {
+  const status = document.getElementById('norge-cal-status');
+  const wrapRect = wrap?.getBoundingClientRect?.();
+  if (!status || !wrapRect) return;
+  if (document.getElementById('norge-screen-detail-layer')) {
+    status.textContent =
+      `Kalibrering mot polarsirkelpunkter\n` +
+      NORGE_SURFACE_CONTROL_POINTS.map(point => `${point.name.split(' / ')[0]}: 0.00 px (AE-låst)`).join('\n') +
+      `\nMaks: 0.00 px · Snitt: 0.00 px`;
+    return;
+  }
+
+  const rows = [];
+  let max = 0;
+  let sum = 0;
+  NORGE_SURFACE_CONTROL_POINTS.forEach(point => {
+    const marker = document.querySelector(`#norge-surface-control-points [data-id="${point.id}"]`);
+    if (!marker) return;
+    const markerRect = marker.getBoundingClientRect();
+    const surfaceScreen = {
+      x: markerRect.left + markerRect.width / 2,
+      y: markerRect.top + markerRect.height / 2,
+    };
+    const targetWorld = aeProject(point.geLat, point.geLon);
+    const targetCanvas = worldToCanvasPoint(targetWorld.x, targetWorld.z);
+    const targetScreen = {
+      x: wrapRect.left + targetCanvas.x,
+      y: wrapRect.top + targetCanvas.y,
+    };
+    const dx = surfaceScreen.x - targetScreen.x;
+    const dy = surfaceScreen.y - targetScreen.y;
+    const dist = Math.hypot(dx, dy);
+    max = Math.max(max, dist);
+    sum += dist;
+    rows.push(`${point.name.split(' / ')[0]}: ${dist.toFixed(2)} px`);
+  });
+
+  if (!rows.length) {
+    status.textContent = 'Kalibrering: kontrollpunkter ikke synlige';
+    return;
+  }
+  status.textContent =
+    `Kalibrering mot polarsirkelpunkter\n` +
+    rows.join('\n') +
+    `\nMaks: ${max.toFixed(2)} px · Snitt: ${(sum / rows.length).toFixed(2)} px`;
+}
+
+function updateNorgeSurfaceCityList() {
+  const cityList = document.getElementById('norge-city-list');
+  if (!cityList) return;
+  if (!norgeSurfaceCities.length) {
+    cityList.textContent = 'Laster...';
+    return;
+  }
+  cityList.innerHTML = '';
+  norgeSurfaceCities.forEach(city => {
+    const item = document.createElement('div');
+    item.className = 'norge-city-item';
+    item.innerHTML = `<b>${city.navn}</b><br><span class="norge-city-coord">${city.lat.toFixed(4)}° N, ${city.lon.toFixed(4)}° E</span>`;
+    item.addEventListener('click', () => focusNorgeSurfaceLatLon(city.lat, city.lon, city.navn));
+    cityList.appendChild(item);
+  });
+}
+
+function clearNorgeSurfaceMeasure() {
+  norgeSurfaceMeasureMode = false;
+  norgeSurfaceMeasurePoints = [];
+  const out = document.getElementById('norge-measure-output');
+  if (out) out.textContent = 'Klikk «Start måling» og deretter to punkter på kartet';
+  renderNorgeSurfaceLayers();
+}
+
+function updateNorgeSurfaceMeasureOutput() {
+  const out = document.getElementById('norge-measure-output');
+  if (!out) return;
+  if (norgeSurfaceMeasurePoints.length === 0) {
+    out.textContent = 'Klikk PUNKT 1 på kartet';
+    return;
+  }
+  if (norgeSurfaceMeasurePoints.length === 1) {
+    out.textContent = 'Klikk PUNKT 2 på kartet';
+    return;
+  }
+  const [p1, p2] = norgeSurfaceMeasurePoints;
+  const dx = (p2.lon - p1.lon) * 110.593 * Math.cos(((p1.lat + p2.lat) / 2) * Math.PI / 180);
+  const dy = (p2.lat - p1.lat) * 110.593;
+  const flatKm = Math.hypot(dx, dy);
+  out.textContent =
+    `PUNKT 1: ${p1.lat.toFixed(4)}, ${p1.lon.toFixed(4)}\n` +
+    `PUNKT 2: ${p2.lat.toFixed(4)}, ${p2.lon.toFixed(4)}\n\n` +
+    `Flat GE-skala (110.593 km/°): ${flatKm.toFixed(2)} km`;
+}
+
+function bindNorgeSurfaceEngine() {
+  const mapEl = document.getElementById('norge-surface-map');
+  if (!mapEl || mapEl.dataset.bound === '1') return;
+  mapEl.dataset.bound = '1';
+
+  ['norge-layer-geo-grid', 'norge-layer-square-grid', 'norge-layer-cities', 'norge-layer-both-seacharts'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      renderNorgeSurfaceLayers();
+      scheduleNorgeDetailTiles();
+    });
+  });
+  document.getElementById('norge-clean-visible')?.addEventListener('change', syncNorgeCleanControls);
+  document.getElementById('norge-clean-hide-baseline')?.addEventListener('change', syncNorgeCleanControls);
+  document.getElementById('norge-clean-opacity')?.addEventListener('input', syncNorgeCleanControls);
+
+  document.getElementById('norge-btn-measure')?.addEventListener('click', () => {
+    norgeSurfaceMeasureMode = true;
+    norgeSurfaceMeasurePoints = [];
+    updateNorgeSurfaceMeasureOutput();
+    renderNorgeSurfaceLayers();
+  });
+  document.getElementById('norge-btn-clear')?.addEventListener('click', clearNorgeSurfaceMeasure);
+  document.getElementById('norge-focus-grimsey')?.addEventListener('click', () => {
+    selectNorgeBaseMap('iceland-sjokart');
+    focusNorgeSurfaceLatLon(GRIMSEY_CONTROL_POINT.lat, GRIMSEY_CONTROL_POINT.lon, GRIMSEY_CONTROL_POINT.name);
+  });
+  document.getElementById('norge-focus-iceland')?.addEventListener('click', () => {
+    selectNorgeBaseMap('iceland-sjokart');
+    focusNorgeSurfaceLatLon(ICELAND_CONTROL_POINT.lat, ICELAND_CONTROL_POINT.lon, ICELAND_CONTROL_POINT.name);
+  });
+  document.getElementById('norge-focus-jan-mayen')?.addEventListener('click', () => {
+    selectNorgeBaseMap('osm');
+    focusNorgeSurfaceLatLon(JAN_MAYEN_CONTROL_POINT.lat, JAN_MAYEN_CONTROL_POINT.lon, JAN_MAYEN_CONTROL_POINT.name);
+  });
+
+  mapEl.addEventListener('mousemove', e => {
+    const imagePoint = norgeSurfacePointerToImage(e);
+    if (!imagePoint) return;
+    const p = unprojectNorgeSurfacePoint(imagePoint.x, imagePoint.y);
+    const latEl = document.getElementById('norge-info-lat');
+    const lonEl = document.getElementById('norge-info-lon');
+    if (latEl) latEl.textContent = p.lat.toFixed(4) + '°';
+    if (lonEl) lonEl.textContent = p.lon.toFixed(4) + '°';
+  });
+
+  mapEl.addEventListener('click', e => {
+    if (!norgeSurfaceMeasureMode) return;
+    const imagePoint = norgeSurfacePointerToImage(e);
+    if (!imagePoint) return;
+    const p = unprojectNorgeSurfacePoint(imagePoint.x, imagePoint.y);
+    norgeSurfaceMeasurePoints.push(p);
+    if (norgeSurfaceMeasurePoints.length >= 2) norgeSurfaceMeasureMode = false;
+    updateNorgeSurfaceMeasureOutput();
+    renderNorgeSurfaceLayers();
+  });
+  mapEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomInstrumentOverlay(e.deltaY, e);
+  }, { passive: false });
+
+  let gridDrag = null;
+  mapEl.addEventListener('mousedown', e => {
+    if (e.button !== 0 || norgeSurfaceMeasureMode) return;
+    gridDrag = { x: e.clientX, y: e.clientY };
+    mapEl.classList.add('dragging');
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!gridDrag) return;
+    const dx = e.clientX - gridDrag.x;
+    const dy = e.clientY - gridDrag.y;
+    gridDrag = { x: e.clientX, y: e.clientY };
+    panCameraTarget(dx, dy);
+    applyCamera();
+    updateZoomReadout();
+    e.preventDefault();
+  }, true);
+  window.addEventListener('mouseup', () => {
+    mapEl.classList.remove('dragging');
+    gridDrag = null;
+  }, true);
+}
+
+function initNorgeSurfaceMap() {
+  if (norgeSurface) return norgeSurface;
+
+  const mapEl = document.getElementById('norge-surface-map');
+  const imageEl = document.getElementById('norge-surface-image');
+  const status = document.getElementById('norge-map-status');
+  if (!mapEl || !imageEl) {
+    if (status) status.textContent = 'Norgeskart-flaten kunne ikke lastes';
+    return null;
+  }
+
+  imageEl.draggable = false;
+  norgeSurface = { element: mapEl, image: imageEl };
+  const rule1Toggle = document.getElementById('norge-rule1-surface');
+  if (rule1Toggle) {
+    rule1Toggle.checked = true;
+    rule1Toggle.disabled = true;
+    rule1Toggle.title = 'Ny Norgeskart-motor bruker alltid én låst kartflate';
+  }
+  const mouseGridToggle = document.getElementById('norge-mouse-grid');
+  if (mouseGridToggle) {
+    mouseGridToggle.checked = true;
+    mouseGridToggle.disabled = true;
+    mouseGridToggle.title = 'Ny motor: venstre-drag panorerer alltid som Google Earth';
+  }
+  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-both-seacharts')
+    .forEach(el => {
+      el.disabled = false;
+      el.title = '';
+      el.addEventListener('change', () => {
+        updateNorgeSurfaceRasters();
+        scheduleNorgeDetailTiles();
+      });
+    });
+  const nibToggle = document.getElementById('norge-layer-nib');
+  if (nibToggle) {
+    nibToggle.checked = false;
+    nibToggle.disabled = false;
+    nibToggle.title = 'Norge i bilder WMS krever autorisert tilgang fra denne IP-en. Bygges inn når flyfoto-kilde er tilgjengelig.';
+  }
+  document.querySelectorAll('#norge-layer-geo-grid, #norge-layer-square-grid, #norge-layer-cities')
+    .forEach(el => {
+      el.disabled = false;
+      el.title = '';
+    });
+  [
+    'norge-layer-geo-grid',
+    'norge-layer-square-grid',
+    'norge-layer-cities',
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = true;
+  });
+  const zoomEl = document.getElementById('norge-info-zoom');
+  if (zoomEl) zoomEl.textContent = 'surface';
+  bindNorgeSurfaceEngine();
+  updateNorgeSurfaceRasters();
+  fetch('norge-byer.json')
+    .then(r => r.json())
+    .then(data => {
+      norgeSurfaceCities = data.byer || [];
+      updateNorgeSurfaceCityList();
+      renderNorgeSurfaceLayers();
+      norgeCleanDetailKey = '';
+      scheduleNorgeDetailTiles();
+    })
+    .catch(err => {
+      const cityList = document.getElementById('norge-city-list');
+      if (cityList) cityList.innerHTML = `<span style="color:#f66">Feil ved lasting: ${err}</span>`;
+    });
+  renderNorgeSurfaceLayers();
+  if (status) {
+    status.textContent = 'Ny Norgeskart-motor aktiv: låst til AE-grid, Leaflet er ikke startet';
+  }
+  scheduleNorgeDetailTiles();
+  return norgeSurface;
+}
+
+function initNorgeLeafletMap() {
+  if (norgeLeaflet) return norgeLeaflet;
+
+  const L = window.L;
+  const mapEl = document.getElementById('norge-leaflet-map');
+  if (!L || !mapEl) {
+    const status = document.getElementById('norge-map-status');
+    if (status) status.textContent = 'Leaflet/Kartverket kunne ikke lastes';
+    return null;
+  }
+
+  const KV_BASE = 'https://cache.kartverket.no/v1/wmts/1.0.0';
+  const WORLD_BOUNDS = [[-85.05112878, -180], [85.05112878, 180]];
+  const kvLayer = (layerName, opts = {}) => L.tileLayer(
+    `${KV_BASE}/${layerName}/default/webmercator/{z}/{y}/{x}.png`,
+    Object.assign({
+      attribution: '© Kartverket CC BY 4.0',
+      maxZoom: 20,
+      noWrap: true,
+      bounds: WORLD_BOUNDS,
+      tileSize: 256,
+    }, opts)
+  );
+
+  const baseLayers = {
+    topograatone: kvLayer('topograatone'),
+    topo: kvLayer('topo'),
+    toporaster: kvLayer('toporaster'),
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap-bidragsytere',
+      maxZoom: 19,
+      noWrap: true,
+      bounds: WORLD_BOUNDS,
+    }),
+  };
+
+  const sjokartLayer = kvLayer('sjokartraster', { opacity: 0.85 });
+  const nibLayer = L.tileLayer.wms('https://wms.geonorge.no/skwms1/wms.nib', {
+    layers: 'ortofoto',
+    format: 'image/jpeg',
+    transparent: false,
+    attribution: '© Norge i bilder / Kartverket',
+    opacity: 0.85,
+    maxZoom: 20,
+    noWrap: true,
+    bounds: WORLD_BOUNDS,
+  });
+
+  const map = L.map(mapEl, {
+    center: LOCKED_NORGE_VIEW.center,
+    zoom: LOCKED_NORGE_VIEW.zoom,
+    minZoom: 0,
+    maxZoom: 19,
+    zoomControl: false,
+    worldCopyJump: false,
+    layers: [baseLayers.topograatone],
+  });
+
+  const geoGridLayer = L.layerGroup();
+  function buildGeoGrid() {
+    geoGridLayer.clearLayers();
+    const style = { color: '#d4af37', weight: 0.6, opacity: 0.5, interactive: false };
+    const axisStyle = { color: '#ffd76b', weight: 1.2, opacity: 0.85, interactive: false };
+    for (let lat = -85; lat <= 85; lat += 5) {
+      const pts = [];
+      for (let lon = -180; lon <= 180; lon += 2) pts.push([lat, lon]);
+      L.polyline(pts, lat === 0 ? axisStyle : style).addTo(geoGridLayer);
+    }
+    for (let lon = -180; lon <= 180; lon += 5) {
+      const pts = [];
+      for (let lat = -85; lat <= 85; lat += 2) pts.push([lat, lon]);
+      L.polyline(pts, lon === 0 ? axisStyle : style).addTo(geoGridLayer);
+    }
+  }
+  buildGeoGrid();
+  geoGridLayer.addTo(map);
+
+  const squareGridLayer = L.layerGroup();
+  function buildSquareGrid() {
+    squareGridLayer.clearLayers();
+    const style = { color: '#888', weight: 0.4, opacity: 0.4, interactive: false, dashArray: '2,4' };
+    for (let lat = -85; lat <= 85; lat += 1) {
+      const pts = [];
+      for (let lon = -180; lon <= 180; lon += 5) pts.push([lat, lon]);
+      L.polyline(pts, style).addTo(squareGridLayer);
+    }
+    for (let lon = -180; lon <= 180; lon += 1) {
+      const pts = [];
+      for (let lat = -85; lat <= 85; lat += 5) pts.push([lat, lon]);
+      L.polyline(pts, style).addTo(squareGridLayer);
+    }
+  }
+  buildSquareGrid();
+
+  const arcticCalibrationLayer = L.layerGroup();
+  const arcticCalibrationPoints = [
+    {
+      name: 'Selsøy gården / Polarsirkelen',
+      ge: `GE: 66°33'0.01"N, 12°50'54.28"E`,
+      lat: 66.5502,
+      lon: 12.8462,
+    },
+    {
+      name: 'Kveitanosen / Enganveien Sørnesøya',
+      ge: `GE: 66°33'0.00"N, 12°38'17.89"E`,
+      lat: 66.5500,
+      lon: 12.8462,
+    },
+    {
+      name: 'Arctic Circle Center',
+      ge: `GE: 66°33'0.03"N, 15°19'37.24"E`,
+      lat: 66.5500,
+      lon: 15.3266,
+    },
+  ];
+  L.polyline(
+    arcticCalibrationPoints.map(p => [p.lat, p.lon]),
+    { color: '#ffef6e', weight: 2, opacity: 0.9, interactive: false }
+  ).addTo(arcticCalibrationLayer);
+  arcticCalibrationPoints.forEach(p => {
+    L.circleMarker([p.lat, p.lon], {
+      radius: 6,
+      color: '#111',
+      weight: 1,
+      fillColor: '#ffef6e',
+      fillOpacity: 0.95,
+    })
+      .bindPopup(`<b>${p.name}</b><br>${p.ge}<br>Norgeskart: ${p.lat.toFixed(4)}° N, ${p.lon.toFixed(4)}° E`)
+      .addTo(arcticCalibrationLayer);
+  });
+
+  const cityLayer = L.layerGroup();
+  const cityMarkers = [];
+  const cityList = document.getElementById('norge-city-list');
+  function updateNorgeCityMarkerVisibility() {
+    const visible = map.getZoom() >= 7;
+    cityMarkers.forEach(marker => {
+      if (visible) {
+        if (!cityLayer.hasLayer(marker)) cityLayer.addLayer(marker);
+      } else {
+        if (cityLayer.hasLayer(marker)) cityLayer.removeLayer(marker);
+      }
+    });
+  }
+  fetch('norge-byer.json')
+    .then(r => r.json())
+    .then(data => {
+      if (cityList) cityList.innerHTML = '';
+      data.byer.forEach(by => {
+        const marker = L.circleMarker([by.lat, by.lon], {
+          radius: 3,
+          color: '#d4af37',
+          weight: 1,
+          fillColor: '#ffd76b',
+          fillOpacity: 0.75,
+        });
+        marker.bindPopup(`<b>${by.navn}</b><br>${by.lat.toFixed(4)}° N, ${by.lon.toFixed(4)}° E<br><i>${by.beskrivelse}</i>`);
+        cityMarkers.push(marker);
+
+        if (cityList) {
+          const item = document.createElement('div');
+          item.className = 'norge-city-item';
+          item.innerHTML = `<b>${by.navn}</b><br><span class="norge-city-coord">${by.lat.toFixed(4)}° N, ${by.lon.toFixed(4)}° E</span>`;
+          item.addEventListener('click', () => {
+            map.setView([by.lat, by.lon], 12);
+            marker.openPopup();
+          });
+          cityList.appendChild(item);
+        }
+      });
+      cityLayer.addTo(map);
+      updateNorgeCityMarkerVisibility();
+    })
+    .catch(err => {
+      if (cityList) cityList.innerHTML = `<span style="color:#f66">Feil ved lasting: ${err}</span>`;
+    });
+
+  const setLayer = (checkboxId, layer, onChange) => {
+    const el = document.getElementById(checkboxId);
+    if (!el) return;
+    const apply = () => {
+      if (onChange) onChange(el.checked);
+      else if (el.checked) layer.addTo(map);
+      else map.removeLayer(layer);
+    };
+    el.addEventListener('change', apply);
+    apply();
+  };
+
+  document.querySelectorAll('input[name="norge-base"]').forEach(radio => {
+    radio.addEventListener('change', e => {
+      Object.values(baseLayers).forEach(layer => map.removeLayer(layer));
+      baseLayers[e.target.value].addTo(map);
+      if (document.getElementById('norge-layer-sjokart')?.checked) sjokartLayer.bringToFront();
+      if (document.getElementById('norge-layer-nib')?.checked) nibLayer.bringToFront();
+    });
+  });
+
+  setLayer('norge-layer-sjokart', sjokartLayer);
+  setLayer('norge-layer-nib', nibLayer);
+  setLayer('norge-layer-geo-grid', geoGridLayer);
+  setLayer('norge-layer-square-grid', squareGridLayer);
+  setLayer('norge-layer-cities', cityLayer);
+
+  let measureMode = false;
+  let measurePoints = [];
+  let measureLine = null;
+  let measureMarkers = [];
+  const measureOut = document.getElementById('norge-measure-output');
+
+  function clearMeasure() {
+    measurePoints = [];
+    if (measureLine) {
+      map.removeLayer(measureLine);
+      measureLine = null;
+    }
+    measureMarkers.forEach(m => map.removeLayer(m));
+    measureMarkers = [];
+    if (measureOut) measureOut.textContent = 'Klikk «Start måling» og deretter to punkter på kartet';
+  }
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  function flatKm(lat1, lon1, lat2, lon2) {
+    const dLat = (lat2 - lat1) * 110.593;
+    const meanLat = (lat1 + lat2) / 2;
+    const dLon = (lon2 - lon1) * 110.593 * Math.cos(meanLat * Math.PI / 180);
+    return Math.sqrt(dLat * dLat + dLon * dLon);
+  }
+
+  document.getElementById('norge-btn-measure')?.addEventListener('click', () => {
+    clearMeasure();
+    measureMode = true;
+    if (measureOut) measureOut.textContent = 'Klikk PUNKT 1 på kartet';
+  });
+  document.getElementById('norge-btn-clear')?.addEventListener('click', clearMeasure);
+
+  map.on('click', e => {
+    if (!measureMode) return;
+    measurePoints.push([e.latlng.lat, e.latlng.lng]);
+    const marker = L.circleMarker(e.latlng, {
+      radius: 5,
+      color: '#ff6b6b',
+      fillColor: '#ff6b6b',
+      fillOpacity: 1,
+      weight: 2,
+    }).addTo(map);
+    measureMarkers.push(marker);
+
+    if (measurePoints.length === 1) {
+      if (measureOut) measureOut.textContent = 'Klikk PUNKT 2 på kartet';
+      return;
+    }
+
+    if (measurePoints.length === 2) {
+      measureLine = L.polyline(measurePoints, { color: '#ff6b6b', weight: 2 }).addTo(map);
+      const [p1, p2] = measurePoints;
+      const kmSphere = haversineKm(p1[0], p1[1], p2[0], p2[1]);
+      const kmFlat = flatKm(p1[0], p1[1], p2[0], p2[1]);
+      const diff = Math.abs(kmSphere - kmFlat);
+      const pct = (diff / kmSphere * 100).toFixed(2);
+      if (measureOut) {
+        measureOut.textContent =
+          `PUNKT 1: ${p1[0].toFixed(4)}, ${p1[1].toFixed(4)}\n` +
+          `PUNKT 2: ${p2[0].toFixed(4)}, ${p2[1].toFixed(4)}\n\n` +
+          `Sfærisk (Haversine R=6371): ${kmSphere.toFixed(2)} km\n` +
+          `Flat (110.593 km/° GE):     ${kmFlat.toFixed(2)} km\n` +
+          `Differanse:                  ${diff.toFixed(2)} km (${pct} %)`;
+      }
+      measureMode = false;
+    }
+  });
+
+  map.on('mousemove', e => {
+    const latEl = document.getElementById('norge-info-lat');
+    const lonEl = document.getElementById('norge-info-lon');
+    if (latEl) latEl.textContent = e.latlng.lat.toFixed(4) + '°';
+    if (lonEl) lonEl.textContent = e.latlng.lng.toFixed(4) + '°';
+  });
+  map.on('zoomend', () => {
+    const zoomEl = document.getElementById('norge-info-zoom');
+    if (zoomEl) zoomEl.textContent = map.getZoom();
+    updateNorgeCityMarkerVisibility();
+  });
+  const zoomEl = document.getElementById('norge-info-zoom');
+  if (zoomEl) zoomEl.textContent = map.getZoom();
+  let gridDrag = null;
+  mapEl.addEventListener('mousedown', e => {
+    if (e.button !== 0 || !isNorgeMouseGridMode()) return;
+    gridDrag = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+  window.addEventListener('mousemove', e => {
+    if (!gridDrag) return;
+    const dx = e.clientX - gridDrag.x;
+    const dy = e.clientY - gridDrag.y;
+    gridDrag = { x: e.clientX, y: e.clientY };
+    panCameraTarget(dx, dy);
+    applyCamera();
+    updateZoomReadout();
+    e.preventDefault();
+  }, true);
+  window.addEventListener('mouseup', () => {
+    gridDrag = null;
+  }, true);
+
+  norgeLeaflet = { map };
+  syncNorgeMouseMode();
+  return norgeLeaflet;
+}
 
 function applyNorgeInstrumentMode(active) {
   const wrap = document.getElementById('canvas-wrap');
@@ -3188,44 +4696,15 @@ function applyNorgeInstrumentMode(active) {
   renderer.setClearColor(0x050505, active ? 0 : 1);
   if (status) {
     status.textContent = active
-      ? 'Norgeskart aktivt (Three.js-tiles, multi-zoom, kamera-target=Norge)'
-      : 'Norgeskart skjult';
+      ? 'Ny Norgeskart-motor aktiv i samme instrumentflate'
+      : 'Norgeskart ligger klart i instrumentflaten';
   }
-  subMap.norgeKart.visible = active;
-  subMap.norgeKartBase.visible = active;
-
   if (active) {
-    // Lagre n\u00e5v\u00e6rende target og flytt kamera-target til Norges senter
-    if (!__norgeSavedTarget && window.camState) {
-      __norgeSavedTarget = {
-        x: window.camState.target.x,
-        y: window.camState.target.y,
-        z: window.camState.target.z,
-      };
-      const c = norgeAESenter();
-      window.camState.target.set(c.x, 0, c.z);
-      if (typeof window.applyCamera === 'function') window.applyCamera();
-    }
-    if (!norgeBaseLoaded) updateNorgeBaseLayer();
-    else applyBaseAnchorTransform();
-    scheduleNorgeUpdate();
-  } else {
-    // Gjenopprett tidligere target
-    if (__norgeSavedTarget && window.camState) {
-      window.camState.target.set(__norgeSavedTarget.x, __norgeSavedTarget.y, __norgeSavedTarget.z);
-      __norgeSavedTarget = null;
-      if (typeof window.applyCamera === 'function') window.applyCamera();
-    }
+    focusBaseMap('norge');
+    initNorgeSurfaceMap();
+    applyNorgePlacement();
   }
 }
-
-// ---- Initial last n\u00e5r DOM er klar ----
-setTimeout(() => {
-  subMap.norgeKart.visible = false; // styres av base-map-norge-checkbox
-  subMap.norgeKartBase.visible = false;
-  scheduleNorgeUpdate();
-}, 200);
-
 
 // Layer-togglers
 function bindToggle(id, group, prop = 'visible') {
@@ -3256,7 +4735,7 @@ function bindToggle(id, group, prop = 'visible') {
 bindToggle('layer-square-grid', subMap.squareGrid);
 bindToggle('layer-meridians', subMap.meridians);
 bindToggle('layer-latcircles', subMap.latcircles);
-// Layer 1-basiskart: UN AE og Norgeskart kan vises uavhengig eller samtidig.
+// Layer 1-basiskart: UN AE og Norgeskart er gjensidig eksklusive.
 {
   const unEl = document.getElementById('base-map-un');
   const norgeEl = document.getElementById('base-map-norge');
@@ -3269,8 +4748,15 @@ bindToggle('layer-latcircles', subMap.latcircles);
     if (!showNorge) focusBaseMap('un');
   };
   if (unEl || norgeEl) {
-    unEl?.addEventListener('change', apply);
-    norgeEl?.addEventListener('change', apply);
+    unEl?.addEventListener('change', () => {
+      if (unEl.checked && norgeEl) norgeEl.checked = false;
+      apply();
+    });
+    norgeEl?.addEventListener('change', () => {
+      if (norgeEl.checked && unEl) unEl.checked = false;
+      apply();
+    });
+    if (unEl?.checked && norgeEl?.checked) unEl.checked = false;
     apply();
   }
 }
@@ -3822,40 +5308,19 @@ document.getElementById('toggle-right').addEventListener('click', () => {
 vmLeft.addEventListener('change', applyPanelVisibility);
 vmRight.addEventListener('change', applyPanelVisibility);
 
-// View-meny: fjernet i Steg 2 (2026-06-01). Beholder no-op her i tilfelle annen kode
-// refererer til viewMenuBtn / viewMenu — begge vil bare være null og koden hopper over.
+// View-meny: toggle dropdown
 const viewMenuBtn = document.getElementById('view-menu-btn');
 const viewMenu    = document.getElementById('view-menu');
-if (viewMenuBtn && viewMenu) {
-  viewMenuBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    viewMenu.classList.toggle('open');
-    viewMenuBtn.classList.toggle('active', viewMenu.classList.contains('open'));
-  });
-  document.addEventListener('click', (e) => {
-    if (!viewMenu.contains(e.target) && e.target !== viewMenuBtn) {
-      viewMenu.classList.remove('open');
-      viewMenuBtn.classList.remove('active');
-    }
-  });
-}
-
-// (Steg 2 — 2026-06-01) Bind +/−/⦿ knappene i topp-toolbar til kamera-zoom.
-// Funksjonen zoomInstrumentOverlay(deltaY) bruker samme matematikk som musehjul:
-// camState.dist *= 1.0008^deltaY. Vi bruker deltaY = ±300 for ett klikk ≈ 28% endring.
-const _btnZoomIn  = document.getElementById('btn-zoom-in');
-const _btnZoomOut = document.getElementById('btn-zoom-out');
-const _btnZoomRst = document.getElementById('btn-zoom-reset');
-if (_btnZoomIn)  _btnZoomIn.addEventListener('click',  () => zoomInstrumentOverlay(-300));
-if (_btnZoomOut) _btnZoomOut.addEventListener('click', () => zoomInstrumentOverlay( 300));
-if (_btnZoomRst) _btnZoomRst.addEventListener('click', () => {
-  camState.target.set(0, 0, 0);
-  camState.tilt = 90;
-  camState.rot  = 0;
-  camState.height = 0;
-  camState.dist = 100;
-  applyCamera();
-  if (typeof updateZoomReadout === 'function') updateZoomReadout();
+viewMenuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  viewMenu.classList.toggle('open');
+  viewMenuBtn.classList.toggle('active', viewMenu.classList.contains('open'));
+});
+document.addEventListener('click', (e) => {
+  if (!viewMenu.contains(e.target) && e.target !== viewMenuBtn) {
+    viewMenu.classList.remove('open');
+    viewMenuBtn.classList.remove('active');
+  }
 });
 
 // Modus
@@ -3891,7 +5356,8 @@ function onResize() {
   camera.aspect = cw / ch;
   camera.updateProjectionMatrix();
   renderer.setSize(cw, ch, false);
-  // (v6.1) Leaflet er borte
+  if (norgeSurface || norgeLeaflet) applyNorgePlacement();
+  if (norgeSurface) scheduleNorgeDetailTiles();
 }
 window.addEventListener('resize', onResize);
 
@@ -4499,13 +5965,21 @@ document.getElementById('enok72-modal-backdrop').addEventListener('click', (e) =
 document.getElementById('cal-info').style.cursor = 'pointer';
 document.getElementById('cal-info').title = 'Click to read Enoch 72 text for today\'s gate';
 document.getElementById('cal-info').addEventListener('click', openEnok72Modal);
-// (v6.1) bindNorgePlacementControls() fjernet — ingen Leaflet-x/y/scale-slidere lenger
+bindNorgePlacementControls();
 
 // =================================================================
 // START
 // =================================================================
 loadCalendar();
 loadEnok72();
+if (document.getElementById('base-map-norge')?.checked) {
+  applyNorgeInstrumentMode(true);
+}
+setTimeout(() => {
+  if (document.getElementById('base-map-norge')?.checked) {
+    applyNorgeInstrumentMode(true);
+  }
+}, 250);
 document.getElementById('sb-count').textContent = MARKERS.length;
 document.getElementById('sb-visible').textContent = MARKERS.length;
 document.getElementById('sb-mode').textContent = 'Enoch · AE';
