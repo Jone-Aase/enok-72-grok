@@ -4222,6 +4222,77 @@ function bindNorgeSurfaceEngine() {
   document.getElementById('norge-clean-hide-baseline')?.addEventListener('change', syncNorgeCleanControls);
   document.getElementById('norge-clean-opacity')?.addEventListener('input', syncNorgeCleanControls);
 
+  const ICELAND_TONE_DEFAULTS = { brightness: 1.05, contrast: 1.03, saturate: 1.05 };
+  const ICELAND_TONE_STORAGE_KEY = 'enok72.icelandTone.v1';
+  function readIcelandToneInputs() {
+    const b = parseFloat(document.getElementById('norge-iceland-brightness')?.value);
+    const c = parseFloat(document.getElementById('norge-iceland-contrast')?.value);
+    const s = parseFloat(document.getElementById('norge-iceland-saturate')?.value);
+    return {
+      brightness: Number.isFinite(b) ? b : ICELAND_TONE_DEFAULTS.brightness,
+      contrast: Number.isFinite(c) ? c : ICELAND_TONE_DEFAULTS.contrast,
+      saturate: Number.isFinite(s) ? s : ICELAND_TONE_DEFAULTS.saturate,
+    };
+  }
+  function writeIcelandToneStyle(tone) {
+    const styleEl = document.getElementById('iceland-tone-overrides');
+    if (!styleEl) return;
+    styleEl.textContent =
+      `.norge-clean-pixelflate[data-anchor-mode="iceland"] {\n` +
+      `  --pane-brightness: ${tone.brightness};\n` +
+      `  --pane-contrast: ${tone.contrast};\n` +
+      `  --pane-saturate: ${tone.saturate};\n` +
+      `}\n`;
+  }
+  function updateIcelandToneValueDisplays(tone) {
+    const b = document.getElementById('norge-iceland-brightness-val');
+    const c = document.getElementById('norge-iceland-contrast-val');
+    const s = document.getElementById('norge-iceland-saturate-val');
+    if (b) b.textContent = tone.brightness.toFixed(2);
+    if (c) c.textContent = tone.contrast.toFixed(2);
+    if (s) s.textContent = tone.saturate.toFixed(2);
+  }
+  function applyIcelandToneFromInputs() {
+    const tone = readIcelandToneInputs();
+    writeIcelandToneStyle(tone);
+    updateIcelandToneValueDisplays(tone);
+    try { localStorage.setItem(ICELAND_TONE_STORAGE_KEY, JSON.stringify(tone)); } catch (_) {}
+  }
+  function setIcelandToneInputs(tone) {
+    const b = document.getElementById('norge-iceland-brightness');
+    const c = document.getElementById('norge-iceland-contrast');
+    const s = document.getElementById('norge-iceland-saturate');
+    if (b) b.value = String(tone.brightness);
+    if (c) c.value = String(tone.contrast);
+    if (s) s.value = String(tone.saturate);
+  }
+  function initIcelandToneControls() {
+    let stored = null;
+    try {
+      const raw = localStorage.getItem(ICELAND_TONE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') stored = parsed;
+      }
+    } catch (_) {}
+    const initial = stored && Number.isFinite(stored.brightness) && Number.isFinite(stored.contrast) && Number.isFinite(stored.saturate)
+      ? { brightness: stored.brightness, contrast: stored.contrast, saturate: stored.saturate }
+      : { ...ICELAND_TONE_DEFAULTS };
+    setIcelandToneInputs(initial);
+    writeIcelandToneStyle(initial);
+    updateIcelandToneValueDisplays(initial);
+  }
+  initIcelandToneControls();
+  document.getElementById('norge-iceland-brightness')?.addEventListener('input', applyIcelandToneFromInputs);
+  document.getElementById('norge-iceland-contrast')?.addEventListener('input', applyIcelandToneFromInputs);
+  document.getElementById('norge-iceland-saturate')?.addEventListener('input', applyIcelandToneFromInputs);
+  document.getElementById('norge-iceland-tone-reset')?.addEventListener('click', () => {
+    setIcelandToneInputs(ICELAND_TONE_DEFAULTS);
+    writeIcelandToneStyle(ICELAND_TONE_DEFAULTS);
+    updateIcelandToneValueDisplays(ICELAND_TONE_DEFAULTS);
+    try { localStorage.removeItem(ICELAND_TONE_STORAGE_KEY); } catch (_) {}
+  });
+
   document.getElementById('norge-btn-measure')?.addEventListener('click', () => {
     norgeSurfaceMeasureMode = true;
     norgeSurfaceMeasurePoints = [];

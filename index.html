@@ -706,6 +706,7 @@
   }
   #marker-modal .mm-btn.primary:hover { background: #d4b15a; }
 </style>
+<style id="iceland-tone-overrides"></style>
 </head>
 <body>
 <div id="shell">
@@ -1532,6 +1533,22 @@
               <input type="range" id="norge-clean-opacity" min="0" max="100" step="1" value="52">
               <span id="norge-clean-opacity-val">52%</span>
             </div>
+            <div class="norge-range-row">
+              <span>Island brightness</span>
+              <input type="range" id="norge-iceland-brightness" min="0.90" max="1.20" step="0.01" value="1.05">
+              <span id="norge-iceland-brightness-val">1.05</span>
+            </div>
+            <div class="norge-range-row">
+              <span>Island contrast</span>
+              <input type="range" id="norge-iceland-contrast" min="0.90" max="1.20" step="0.01" value="1.03">
+              <span id="norge-iceland-contrast-val">1.03</span>
+            </div>
+            <div class="norge-range-row">
+              <span>Island saturate</span>
+              <input type="range" id="norge-iceland-saturate" min="0.80" max="1.30" step="0.01" value="1.05">
+              <span id="norge-iceland-saturate-val">1.05</span>
+            </div>
+            <button id="norge-iceland-tone-reset" type="button">Reset tone (1.05 / 1.03 / 1.05)</button>
             <div class="norge-measure-box" id="norge-clean-status">Clean lab: venter</div>
           </div>
           <div class="norge-section">
