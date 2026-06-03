@@ -1523,6 +1523,12 @@
           </div>
           <div class="norge-section">
             <div class="norge-title">Clean motor lab</div>
+            <div class="norge-range-row" id="engine-mode-row" title="Velger motor-modus. Steg 1: kun bryter med logg, ingen visuell forskjell.">
+              <span>Motor-modus</span>
+              <label style="margin-right:6px;"><input type="radio" name="engine-mode" value="measurement" checked> Maaling</label>
+              <label><input type="radio" name="engine-mode" value="visual"> Visuell</label>
+              <span id="engine-mode-val">Maaling</span>
+            </div>
             <label title="Halvtransparent Rule 1-test over baseline. Rorer ikke baseline-renderingen.">
               <input type="checkbox" id="norge-clean-visible" checked> Clean pixelflate overlay
             </label>

@@ -4222,6 +4222,28 @@ function bindNorgeSurfaceEngine() {
   document.getElementById('norge-clean-hide-baseline')?.addEventListener('change', syncNorgeCleanControls);
   document.getElementById('norge-clean-opacity')?.addEventListener('input', syncNorgeCleanControls);
 
+  // Engine-modus toggle (Steg 1)
+  // Maaling-modus er default. Visuell-modus reserveres for senere Lag 3 (Three.js).
+  // I Steg 1 endrer toggle kun en intern variabel og sender et CustomEvent.
+  // Ingen visuell forskjell paa kartet. Ingen lytter er paakoblet ennaa.
+  let engineMode = 'measurement';
+  function setEngineMode(mode) {
+    if (mode !== 'measurement' && mode !== 'visual') return;
+    if (mode === engineMode) return;
+    engineMode = mode;
+    const valEl = document.getElementById('engine-mode-val');
+    if (valEl) valEl.textContent = mode === 'visual' ? 'Visuell' : 'Maaling';
+    try {
+      window.dispatchEvent(new CustomEvent('enok72:engineModeChanged', { detail: { mode } }));
+    } catch (_) {}
+    console.info('[engine] mode \u2192', mode);
+  }
+  document.querySelectorAll('input[name="engine-mode"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target && e.target.checked) setEngineMode(e.target.value);
+    });
+  });
+
   const ICELAND_TONE_DEFAULTS = { brightness: 1.05, contrast: 1.03, saturate: 1.05 };
   const ICELAND_TONE_STORAGE_KEY = 'enok72.icelandTone.v1';
   function readIcelandToneInputs() {
