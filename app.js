@@ -2662,7 +2662,69 @@ const norgeCleanTileManager = {
   loaded: 0,
   cached: 0,
   failed: 0,
+  // Lag 1: per-kilde counters og backoff. Holdes paa tvers av batch-resets.
+  bySource: new Map(),
+  backoffBaseMs: 100,
+  backoffMaxMs: 30000,
 };
+
+function sourceKeyFromSource(source) {
+  if (!source) return 'unknown:unknown';
+  return `${source.type || 'unknown'}:${source.layer || 'unknown'}`;
+}
+
+function sourceKeyFromUrl(src) {
+  if (!src) return 'unknown:unknown';
+  if (src.includes('tile.openstreetmap.org')) return 'osm:osm';
+  if (src.includes('gis.natt.is')) {
+    const m = src.match(/LAYERS=([^&]+)/);
+    return `wms-iceland-sjokart:${m ? decodeURIComponent(m[1]) : 'unknown'}`;
+  }
+  if (src.includes('cache.kartverket.no')) {
+    const m = src.match(/\/wmts\/1\.0\.0\/([^/]+)\//);
+    return `kartverket:${m ? m[1] : 'unknown'}`;
+  }
+  if (src.includes('norgeibilder.no')) return 'wms-nib:ortofoto';
+  return 'unknown:unknown';
+}
+
+function ensureSourceCounters(key) {
+  let row = norgeCleanTileManager.bySource.get(key);
+  if (!row) {
+    row = {
+      active: 0,
+      requested: 0,
+      loaded: 0,
+      cached: 0,
+      failed: 0,
+      consecutiveFails: 0,
+      backoffUntil: 0,
+    };
+    norgeCleanTileManager.bySource.set(key, row);
+  }
+  return row;
+}
+
+function isSourceBackedOff(key, now) {
+  const row = norgeCleanTileManager.bySource.get(key);
+  if (!row) return false;
+  return row.backoffUntil > now;
+}
+
+function applySourceFailureBackoff(key) {
+  const row = ensureSourceCounters(key);
+  row.consecutiveFails += 1;
+  const expMs = norgeCleanTileManager.backoffBaseMs * Math.pow(2, row.consecutiveFails - 1);
+  const ms = Math.min(expMs, norgeCleanTileManager.backoffMaxMs);
+  row.backoffUntil = Date.now() + ms;
+}
+
+function resetSourceBackoff(key) {
+  const row = norgeCleanTileManager.bySource.get(key);
+  if (!row) return;
+  row.consecutiveFails = 0;
+  row.backoffUntil = 0;
+}
 let norgeAppliedPan = { x: 0, y: 0 };
 const LOCKED_NORGE_VIEW = {
   center: [65.0, 15.0],
@@ -3049,6 +3111,11 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.loaded = 0;
   norgeCleanTileManager.cached = 0;
   norgeCleanTileManager.failed = 0;
+  // Lag 1: nullstill active per kilde, men behold backoff/consecutiveFails
+  // og sesjonstellere (loaded/cached/failed/requested) paa tvers av batch-resets.
+  for (const row of norgeCleanTileManager.bySource.values()) {
+    row.active = 0;
+  }
   refreshNorgeCleanLoadStatus();
 }
 
@@ -3063,18 +3130,41 @@ function rememberNorgeCleanTile(src) {
 }
 
 function processNorgeCleanTileQueue() {
-  while (norgeCleanTileManager.active < norgeCleanTileManager.maxConcurrent && norgeCleanTileManager.queue.length) {
+  // Lag 1: hvis en jobb tilhoerer en kilde i backoff, legg den bakerst i koeen.
+  // Vi roterer gjennom koeen en gang per kall, slik at vi ikke spinner i evig loop
+  // hvis alle ventende jobber tilhoerer kilder i backoff.
+  let scanned = 0;
+  const startLen = norgeCleanTileManager.queue.length;
+  while (
+    norgeCleanTileManager.active < norgeCleanTileManager.maxConcurrent &&
+    norgeCleanTileManager.queue.length &&
+    scanned < startLen + norgeCleanTileManager.queue.length
+  ) {
     const job = norgeCleanTileManager.queue.shift();
+    scanned += 1;
     const img = job.img;
     if (job.batch !== norgeCleanTileManager.currentBatch) continue;
     if (!img.isConnected || img.dataset.loadedSrc === job.src) continue;
+    const key = job.sourceKey || sourceKeyFromUrl(job.src);
+    const now = Date.now();
+    if (isSourceBackedOff(key, now)) {
+      // Legg bakerst og fortsett. Telles ikke som requested foer den faktisk forsoekes.
+      norgeCleanTileManager.queue.push(job);
+      continue;
+    }
+    const row = ensureSourceCounters(key);
     norgeCleanTileManager.active += 1;
     norgeCleanTileManager.requested += 1;
+    row.active += 1;
+    row.requested += 1;
     refreshNorgeCleanLoadStatus();
     img.onload = () => {
       if (job.batch !== norgeCleanTileManager.currentBatch) return;
       norgeCleanTileManager.active = Math.max(0, norgeCleanTileManager.active - 1);
       norgeCleanTileManager.loaded += 1;
+      row.active = Math.max(0, row.active - 1);
+      row.loaded += 1;
+      resetSourceBackoff(key);
       img.dataset.loadedSrc = job.src;
       rememberNorgeCleanTile(job.src);
       processNorgeCleanTileQueue();
@@ -3085,6 +3175,9 @@ function processNorgeCleanTileQueue() {
       if (job.batch !== norgeCleanTileManager.currentBatch) return;
       norgeCleanTileManager.active = Math.max(0, norgeCleanTileManager.active - 1);
       norgeCleanTileManager.failed += 1;
+      row.active = Math.max(0, row.active - 1);
+      row.failed += 1;
+      applySourceFailureBackoff(key);
       img.remove();
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
@@ -3094,18 +3187,21 @@ function processNorgeCleanTileQueue() {
   }
 }
 
-function queueNorgeCleanTile(img, src, priority = 0) {
+function queueNorgeCleanTile(img, src, priority = 0, source = null) {
   if (!src) return;
   img.dataset.src = src;
+  const sourceKey = source ? sourceKeyFromSource(source) : sourceKeyFromUrl(src);
   if (norgeCleanTileManager.cache.has(src)) {
     img.src = src;
     img.dataset.loadedSrc = src;
     norgeCleanTileManager.cached += 1;
+    const row = ensureSourceCounters(sourceKey);
+    row.cached += 1;
     rememberNorgeCleanTile(src);
     refreshNorgeCleanLoadStatus();
     return;
   }
-  norgeCleanTileManager.queue.push({ img, src, priority, batch: norgeCleanTileManager.currentBatch });
+  norgeCleanTileManager.queue.push({ img, src, priority, batch: norgeCleanTileManager.currentBatch, sourceKey });
 }
 
 function cleanNorgeDetailSources() {
@@ -3318,6 +3414,19 @@ function syncNorgeCleanControls() {
 
 function norgeCleanLoadLine() {
   const manager = norgeCleanTileManager;
+  const now = Date.now();
+  const bySourceSnapshot = {};
+  for (const [key, row] of manager.bySource.entries()) {
+    bySourceSnapshot[key] = {
+      active: row.active,
+      requested: row.requested,
+      loaded: row.loaded,
+      cached: row.cached,
+      failed: row.failed,
+      consecutiveFails: row.consecutiveFails,
+      backoffMsRemaining: Math.max(0, row.backoffUntil - now),
+    };
+  }
   window.__norgeCleanTileManager = {
     active: manager.active,
     requested: manager.requested,
@@ -3328,8 +3437,23 @@ function norgeCleanLoadLine() {
     cacheSize: manager.cache.size,
     maxConcurrent: manager.maxConcurrent,
     currentBatch: manager.currentBatch,
+    bySource: bySourceSnapshot,
   };
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed`;
+  const lines = [
+    `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed`,
+  ];
+  // Per-kilde linjer, kun for kilder som har vaert i bruk (requested>0 eller backoff aktiv).
+  for (const [key, row] of manager.bySource.entries()) {
+    const backoffMs = Math.max(0, row.backoffUntil - now);
+    if (row.requested === 0 && row.cached === 0 && backoffMs === 0) continue;
+    let line = `  ${key}  ${row.loaded}/${row.requested}  ${row.active} act  ${row.failed} fail`;
+    if (backoffMs > 0) {
+      const sec = (backoffMs / 1000).toFixed(backoffMs < 1000 ? 2 : 1);
+      line += `  backoff ${sec}s`;
+    }
+    lines.push(line);
+  }
+  return lines.join('\n');
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -3912,7 +4036,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         img.dataset.role = job.source.role;
         img.dataset.clean = '1';
         img.dataset.anchorMode = job.pane.dataset.anchorMode;
-        queueNorgeCleanTile(img, job.src, job.priority);
+        queueNorgeCleanTile(img, job.src, job.priority, job.source);
         job.pane.appendChild(img);
   }
   norgeCleanTileManager.queue.sort((a, b) => a.priority - b.priority);
