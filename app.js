@@ -2666,7 +2666,59 @@ const norgeCleanTileManager = {
   bySource: new Map(),
   backoffBaseMs: 100,
   backoffMaxMs: 30000,
+  // Wake-up timer for backoff. Kun én aktiv timer.
+  wakeTimer: null,
+  wakeTimerUntil: 0,
 };
+
+function clearNorgeCleanWakeup() {
+  if (norgeCleanTileManager.wakeTimer !== null) {
+    clearTimeout(norgeCleanTileManager.wakeTimer);
+    norgeCleanTileManager.wakeTimer = null;
+    norgeCleanTileManager.wakeTimerUntil = 0;
+  }
+}
+
+function scheduleNorgeCleanWakeup() {
+  // Finn nærmeste backoffUntil blant kilder som har ventende jobs i koeen.
+  // Hvis ingen ventende jobs er blokkert av backoff, ikke planlegg.
+  if (!norgeCleanTileManager.queue.length) {
+    clearNorgeCleanWakeup();
+    return;
+  }
+  const now = Date.now();
+  const blockedSourceKeys = new Set();
+  for (const job of norgeCleanTileManager.queue) {
+    if (job.sourceKey) blockedSourceKeys.add(job.sourceKey);
+  }
+  let earliest = Infinity;
+  for (const key of blockedSourceKeys) {
+    const row = norgeCleanTileManager.bySource.get(key);
+    if (!row) continue;
+    if (row.backoffUntil > now && row.backoffUntil < earliest) {
+      earliest = row.backoffUntil;
+    }
+  }
+  if (!isFinite(earliest)) {
+    // Ingen ventende jobs er blokkert. Ingen timer trengs.
+    clearNorgeCleanWakeup();
+    return;
+  }
+  // Hvis vi alt har en timer som vekker tidligere eller likt, behold den.
+  if (norgeCleanTileManager.wakeTimer !== null && norgeCleanTileManager.wakeTimerUntil <= earliest) {
+    return;
+  }
+  clearNorgeCleanWakeup();
+  const delay = Math.max(10, earliest - now);
+  const batchAtSchedule = norgeCleanTileManager.currentBatch;
+  norgeCleanTileManager.wakeTimerUntil = earliest;
+  norgeCleanTileManager.wakeTimer = setTimeout(() => {
+    norgeCleanTileManager.wakeTimer = null;
+    norgeCleanTileManager.wakeTimerUntil = 0;
+    if (norgeCleanTileManager.currentBatch !== batchAtSchedule) return;
+    processNorgeCleanTileQueue();
+  }, delay);
+}
 
 function sourceKeyFromSource(source) {
   if (!source) return 'unknown:unknown';
@@ -2676,7 +2728,7 @@ function sourceKeyFromSource(source) {
 function sourceKeyFromUrl(src) {
   if (!src) return 'unknown:unknown';
   if (src.includes('tile.openstreetmap.org')) return 'osm:osm';
-  if (src.includes('gis.natt.is')) {
+  if (src.includes('gis.natt.is') || src.includes('gis.lmi.is')) {
     const m = src.match(/LAYERS=([^&]+)/);
     return `wms-iceland-sjokart:${m ? decodeURIComponent(m[1]) : 'unknown'}`;
   }
@@ -3116,6 +3168,7 @@ function resetNorgeCleanTileQueue() {
   for (const row of norgeCleanTileManager.bySource.values()) {
     row.active = 0;
   }
+  clearNorgeCleanWakeup();
   refreshNorgeCleanLoadStatus();
 }
 
@@ -3185,6 +3238,8 @@ function processNorgeCleanTileQueue() {
     };
     img.src = job.src;
   }
+  // Etter loop: planlegg wake hvis det er ventende jobs blokkert av backoff.
+  scheduleNorgeCleanWakeup();
 }
 
 function queueNorgeCleanTile(img, src, priority = 0, source = null) {
