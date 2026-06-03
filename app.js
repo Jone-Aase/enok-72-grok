@@ -3310,8 +3310,10 @@ function syncNorgeCleanControls() {
   baseRasters.forEach(img => {
     img.style.visibility = hideBaseline ? 'hidden' : '';
   });
+  if (layer) layer.style.opacity = String(opacity);
+  if (baselineLayer) baselineLayer.style.opacity = String(opacity);
   panes.forEach(pane => {
-    pane.style.opacity = String(opacity);
+    if (pane.style.opacity) pane.style.opacity = '';
   });
   if (opacityVal) opacityVal.textContent = `${Math.round(opacity * 100)}%`;
 }
