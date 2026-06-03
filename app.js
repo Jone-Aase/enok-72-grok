@@ -4293,6 +4293,61 @@ function bindNorgeSurfaceEngine() {
     try { localStorage.removeItem(ICELAND_TONE_STORAGE_KEY); } catch (_) {}
   });
 
+  const paneDiagState = {
+    showNorway: true,
+    showIceland: true,
+    zOrder: 'default',
+    parentOpacityOverride: null,
+  };
+  function writePaneDiagStyle() {
+    const styleEl = document.getElementById('pane-layer-diagnostics');
+    if (!styleEl) return;
+    const rules = [];
+    if (!paneDiagState.showNorway) {
+      rules.push('.norge-clean-pixelflate[data-anchor-mode="norway"] { display: none; }');
+    }
+    if (!paneDiagState.showIceland) {
+      rules.push('.norge-clean-pixelflate[data-anchor-mode="iceland"] { display: none; }');
+    }
+    if (paneDiagState.zOrder === 'norway-top') {
+      rules.push('.norge-clean-pixelflate[data-anchor-mode="norway"] { z-index: 3; }');
+      rules.push('.norge-clean-pixelflate[data-anchor-mode="iceland"] { z-index: 2; }');
+    } else if (paneDiagState.zOrder === 'iceland-top') {
+      rules.push('.norge-clean-pixelflate[data-anchor-mode="iceland"] { z-index: 3; }');
+      rules.push('.norge-clean-pixelflate[data-anchor-mode="norway"] { z-index: 2; }');
+    }
+    if (paneDiagState.parentOpacityOverride !== null) {
+      const v = paneDiagState.parentOpacityOverride;
+      rules.push(`#norge-clean-detail-layer { opacity: ${v} !important; }`);
+      rules.push(`#norge-screen-detail-layer { opacity: ${v} !important; }`);
+    }
+    styleEl.textContent = rules.join('\n');
+  }
+  document.getElementById('norge-diag-show-norway')?.addEventListener('change', (e) => {
+    paneDiagState.showNorway = e.target.checked;
+    writePaneDiagStyle();
+  });
+  document.getElementById('norge-diag-show-iceland')?.addEventListener('change', (e) => {
+    paneDiagState.showIceland = e.target.checked;
+    writePaneDiagStyle();
+  });
+  document.getElementById('norge-diag-z-norway-top')?.addEventListener('click', () => {
+    paneDiagState.zOrder = paneDiagState.zOrder === 'norway-top' ? 'default' : 'norway-top';
+    writePaneDiagStyle();
+  });
+  document.getElementById('norge-diag-z-iceland-top')?.addEventListener('click', () => {
+    paneDiagState.zOrder = paneDiagState.zOrder === 'iceland-top' ? 'default' : 'iceland-top';
+    writePaneDiagStyle();
+  });
+  document.getElementById('norge-diag-parent-52')?.addEventListener('click', () => {
+    paneDiagState.parentOpacityOverride = paneDiagState.parentOpacityOverride === 0.52 ? null : 0.52;
+    writePaneDiagStyle();
+  });
+  document.getElementById('norge-diag-parent-100')?.addEventListener('click', () => {
+    paneDiagState.parentOpacityOverride = paneDiagState.parentOpacityOverride === 1 ? null : 1;
+    writePaneDiagStyle();
+  });
+
   document.getElementById('norge-btn-measure')?.addEventListener('click', () => {
     norgeSurfaceMeasureMode = true;
     norgeSurfaceMeasurePoints = [];

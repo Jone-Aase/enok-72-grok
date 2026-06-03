@@ -707,6 +707,7 @@
   #marker-modal .mm-btn.primary:hover { background: #d4b15a; }
 </style>
 <style id="iceland-tone-overrides"></style>
+<style id="pane-layer-diagnostics"></style>
 </head>
 <body>
 <div id="shell">
@@ -1549,6 +1550,23 @@
               <span id="norge-iceland-saturate-val">1.05</span>
             </div>
             <button id="norge-iceland-tone-reset" type="button">Reset tone (1.05 / 1.03 / 1.05)</button>
+            <div class="norge-title" style="margin-top:8px;">Layer diagnostics (midlertidig)</div>
+            <label title="Skjuler/viser Norge-pane visuelt. Pane forblir i DOM, kun display.">
+              <input type="checkbox" id="norge-diag-show-norway" checked> Show Norway pane
+            </label>
+            <label title="Skjuler/viser Island-pane visuelt. Pane forblir i DOM, kun display.">
+              <input type="checkbox" id="norge-diag-show-iceland" checked> Show Iceland pane
+            </label>
+            <div class="norge-range-row">
+              <span>Pane z-rekkefolge</span>
+              <button id="norge-diag-z-norway-top" type="button">Norway on top</button>
+              <button id="norge-diag-z-iceland-top" type="button">Iceland on top</button>
+            </div>
+            <div class="norge-range-row">
+              <span>Parent opacity test</span>
+              <button id="norge-diag-parent-52" type="button">52%</button>
+              <button id="norge-diag-parent-100" type="button">100%</button>
+            </div>
             <div class="norge-measure-box" id="norge-clean-status">Clean lab: venter</div>
           </div>
           <div class="norge-section">
