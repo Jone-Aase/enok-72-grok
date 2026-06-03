@@ -313,6 +313,23 @@
     opacity: 0.52;
     outline: none;
     --tile-bleed: 1.0px;
+    /* Lag: pane-niva tone-match. Gjelder hele panen som ett objekt slik at
+       child-tiles ikke faar ny somdannelse. Default 1/1/1 = ingen endring. */
+    --pane-brightness: 1;
+    --pane-contrast: 1;
+    --pane-saturate: 1;
+    filter:
+      brightness(var(--pane-brightness, 1))
+      contrast(var(--pane-contrast, 1))
+      saturate(var(--pane-saturate, 1));
+  }
+  /* Foerste test: Island-pane justeres mot Norge som referanse. Norge-pane
+     roeres ikke. Reversibel ved aa nullstille variablene eller fjerne denne
+     blokken. */
+  .norge-clean-pixelflate[data-anchor-mode="iceland"] {
+    --pane-brightness: 0.94;
+    --pane-contrast: 1.04;
+    --pane-saturate: 0.96;
   }
   .norge-clean-diagnostics {
     position: absolute;
