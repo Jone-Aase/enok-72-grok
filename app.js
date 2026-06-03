@@ -2777,6 +2777,161 @@ function resetSourceBackoff(key) {
   row.consecutiveFails = 0;
   row.backoffUntil = 0;
 }
+
+// ===== Lag 3: zoom-overgang (kun visuell) =====
+// Maal: naar ny batch tiles lastes, behold gammelt pane-sett synlig under det
+// nye til det nye er 70% lastet eller 4 sekunder har gaatt. Cross-family-bytte
+// (anchorMode eller sourceLayers endret) trigger force-purge etter at nye
+// paner er appendet, slik at vi aldri viser dobbeltkart med feil anker.
+//
+// Ingen geometri, ingen anker, ingen transform, ingen tile-posisjon endres.
+// Kun pane.dataset, pane.style.zIndex og DOM-lifecycle.
+const NORGE_CLEAN_RETIRE_COVERAGE_THRESHOLD = 0.70;
+const NORGE_CLEAN_RETIRE_HARD_DEADLINE_MS = 4000;
+let norgeCleanRetirePurgeTimer = null;
+let norgeCleanRetirePurgeUntil = 0;
+
+function paneTransformFamily(pane) {
+  if (!pane || !pane.dataset) return '';
+  return `${pane.dataset.anchorMode || ''}|${pane.dataset.sourceLayers || ''}`;
+}
+
+function getNorgeCleanActiveLayer() {
+  return document.getElementById('norge-screen-detail-layer')
+    || document.getElementById('norge-clean-detail-layer');
+}
+
+function markNorgeCleanPaneLoaded(img) {
+  // Kalles fra processNorgeCleanTileQueue ved onload. Oppdaterer loadedTiles
+  // teller paa panen, og force-purger retired-paner dersom dekning >= terskel.
+  const pane = img.closest && img.closest('.norge-clean-pixelflate');
+  if (!pane || pane.dataset.retired === '1') return;
+  const loaded = (parseInt(pane.dataset.loadedTiles || '0', 10) || 0) + 1;
+  pane.dataset.loadedTiles = String(loaded);
+  const expected = parseInt(pane.dataset.expectedTiles || '0', 10) || 0;
+  if (expected === 0) return;
+  const ratio = loaded / expected;
+  if (ratio >= NORGE_CLEAN_RETIRE_COVERAGE_THRESHOLD) {
+    purgeRetiredNorgeCleanPanes({ force: true });
+  }
+}
+
+function retireNorgeCleanPanesInLayer(layerEl, opts) {
+  // Marker alle eksisterende paner som retired (kun de uten samme batch
+  // som currentBatch). Setter z-index 1. Nye paner faar z-index 2 og legges oppaa.
+  if (!layerEl) return;
+  const now = Date.now();
+  const currentBatch = String(norgeCleanTileManager.currentBatch);
+  const newFamily = opts && opts.newFamily ? opts.newFamily : null;
+  const panes = layerEl.querySelectorAll('.norge-clean-pixelflate');
+  for (const pane of panes) {
+    if (pane.dataset.batch === currentBatch) continue;
+    if (pane.dataset.retired === '1') continue;
+    pane.dataset.retired = '1';
+    pane.dataset.retiredAt = String(now);
+    pane.style.zIndex = '1';
+    if (newFamily !== null) {
+      pane.dataset.familyMismatch = paneTransformFamily(pane) === newFamily ? '0' : '1';
+    }
+  }
+}
+
+function purgeRetiredNorgeCleanPanes(opts) {
+  // Fjern retired-paner som enten har passert hard tidsfrist, eller hvor
+  // opts.force === true (kalles ved coverage-treshold).
+  // SIKKERHETSREGEL: aldri fjerne den siste synlige panen. Hvis ingen ikke-
+  // retired paner finnes ennaa, beholder vi retired til de gjoer det.
+  const layerEl = getNorgeCleanActiveLayer();
+  if (!layerEl) return;
+  const allPanes = layerEl.querySelectorAll('.norge-clean-pixelflate');
+  if (!allPanes.length) return;
+  const now = Date.now();
+  const force = !!(opts && opts.force);
+  const livePanes = [];
+  const retiredPanes = [];
+  for (const pane of allPanes) {
+    if (pane.dataset.retired === '1') retiredPanes.push(pane);
+    else livePanes.push(pane);
+  }
+  if (!retiredPanes.length) {
+    if (norgeCleanRetirePurgeTimer !== null) {
+      clearTimeout(norgeCleanRetirePurgeTimer);
+      norgeCleanRetirePurgeTimer = null;
+      norgeCleanRetirePurgeUntil = 0;
+    }
+    return;
+  }
+  if (!livePanes.length) {
+    scheduleNorgeCleanRetirePurge();
+    return;
+  }
+  let removed = 0;
+  for (const pane of retiredPanes) {
+    const retiredAt = parseInt(pane.dataset.retiredAt || '0', 10) || 0;
+    const age = now - retiredAt;
+    if (force || age >= NORGE_CLEAN_RETIRE_HARD_DEADLINE_MS) {
+      pane.remove();
+      removed += 1;
+    }
+  }
+  scheduleNorgeCleanRetirePurge();
+  if (removed > 0) refreshNorgeCleanLoadStatus();
+}
+
+function scheduleNorgeCleanRetirePurge() {
+  // En setTimeout-guard som vekker purgeRetiredNorgeCleanPanes naar tidligste
+  // hard-deadline naas. Kun en aktiv timer av gangen.
+  const layerEl = getNorgeCleanActiveLayer();
+  if (!layerEl) return;
+  const retired = layerEl.querySelectorAll('.norge-clean-pixelflate[data-retired="1"]');
+  if (!retired.length) {
+    if (norgeCleanRetirePurgeTimer !== null) {
+      clearTimeout(norgeCleanRetirePurgeTimer);
+      norgeCleanRetirePurgeTimer = null;
+      norgeCleanRetirePurgeUntil = 0;
+    }
+    return;
+  }
+  let earliest = Infinity;
+  for (const pane of retired) {
+    const retiredAt = parseInt(pane.dataset.retiredAt || '0', 10) || 0;
+    const deadline = retiredAt + NORGE_CLEAN_RETIRE_HARD_DEADLINE_MS;
+    if (deadline < earliest) earliest = deadline;
+  }
+  if (!isFinite(earliest)) return;
+  if (norgeCleanRetirePurgeTimer !== null && norgeCleanRetirePurgeUntil <= earliest) {
+    return;
+  }
+  if (norgeCleanRetirePurgeTimer !== null) {
+    clearTimeout(norgeCleanRetirePurgeTimer);
+    norgeCleanRetirePurgeTimer = null;
+  }
+  const delay = Math.max(10, earliest - Date.now());
+  norgeCleanRetirePurgeUntil = earliest;
+  norgeCleanRetirePurgeTimer = setTimeout(() => {
+    norgeCleanRetirePurgeTimer = null;
+    norgeCleanRetirePurgeUntil = 0;
+    purgeRetiredNorgeCleanPanes({ force: false });
+  }, delay);
+}
+
+function forcePurgeAllRetiredNorgeCleanPanes() {
+  // Brukes ved cross-family-bytte for aa rydde umiddelbart etter at nye paner
+  // er appendet (men ikke foer). Sikrer at det finnes minst en live-pane.
+  const layerEl = getNorgeCleanActiveLayer();
+  if (!layerEl) return;
+  const retired = layerEl.querySelectorAll('.norge-clean-pixelflate[data-retired="1"]');
+  if (!retired.length) return;
+  const live = layerEl.querySelectorAll('.norge-clean-pixelflate:not([data-retired="1"])');
+  if (!live.length) return;
+  for (const pane of retired) pane.remove();
+  if (norgeCleanRetirePurgeTimer !== null) {
+    clearTimeout(norgeCleanRetirePurgeTimer);
+    norgeCleanRetirePurgeTimer = null;
+    norgeCleanRetirePurgeUntil = 0;
+  }
+  refreshNorgeCleanLoadStatus();
+}
 let norgeAppliedPan = { x: 0, y: 0 };
 const LOCKED_NORGE_VIEW = {
   center: [65.0, 15.0],
@@ -3220,6 +3375,8 @@ function processNorgeCleanTileQueue() {
       resetSourceBackoff(key);
       img.dataset.loadedSrc = job.src;
       rememberNorgeCleanTile(job.src);
+      // Lag 3: tell loaded per pane og force-purge retired ved coverage.
+      markNorgeCleanPaneLoaded(img);
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
       refreshNorgeCleanLoadStatus();
@@ -4060,6 +4217,12 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     pane.dataset.maxResidual = config.transform.maxResidual.toFixed(3);
     pane.dataset.rmsResidual = config.transform.rmsResidual.toFixed(3);
     pane.dataset.overscan = String(tileRange.overscan || 0);
+    // Lag 3: markorer for zoom-overgang. expectedTiles fylles etter alle tileJobs.
+    pane.dataset.batch = String(norgeCleanTileManager.currentBatch);
+    pane.dataset.retired = '0';
+    pane.dataset.loadedTiles = '0';
+    pane.dataset.expectedTiles = '0';
+    pane.style.zIndex = '2';
     panes.push({ pane, ...config });
 
     for (const source of config.sources) {
@@ -4076,6 +4239,11 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     }
   });
 
+  // Lag 3: tell expectedTiles per pane før vi appender img-er.
+  for (const job of tileJobs) {
+    const expected = (parseInt(job.pane.dataset.expectedTiles || '0', 10) || 0) + 1;
+    job.pane.dataset.expectedTiles = String(expected);
+  }
   tileJobs.sort((a, b) => a.priority - b.priority);
   for (const job of tileJobs) {
         const img = document.createElement('img');
@@ -4093,15 +4261,45 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         img.dataset.anchorMode = job.pane.dataset.anchorMode;
         queueNorgeCleanTile(img, job.src, job.priority, job.source);
         job.pane.appendChild(img);
+        // Lag 3: hvis cache-hit ble registrert i queueNorgeCleanTile, tell den
+        // som loaded for panen naa (onload skjer ikke i cache-hit-grenen).
+        if (img.dataset.loadedSrc && img.dataset.loadedSrc === img.dataset.src) {
+          markNorgeCleanPaneLoaded(img);
+        }
   }
   norgeCleanTileManager.queue.sort((a, b) => a.priority - b.priority);
   const fragment = document.createDocumentFragment();
   panes.forEach(config => fragment.appendChild(config.pane));
+  // Lag 3: bygg ny family-signatur for cross-family-deteksjon (anchorMode+sourceLayers).
+  const newFamilies = new Set(panes.map(config => `${config.pane.dataset.anchorMode}|${config.pane.dataset.sourceLayers}`));
+  // Bestem target-layer for retire (samme som vi appender til).
+  const targetLayer = detailLayer || cleanLayer;
+  // Sjekk om eksisterende paner i target-layer matcher ny familie.
+  let crossFamily = false;
+  if (targetLayer) {
+    const existing = targetLayer.querySelectorAll('.norge-clean-pixelflate');
+    for (const ex of existing) {
+      const exFamily = `${ex.dataset.anchorMode || ''}|${ex.dataset.sourceLayers || ''}`;
+      if (!newFamilies.has(exFamily)) { crossFamily = true; break; }
+    }
+  }
+  // Hvis vi har detailLayer + cleanLayer-split, rens cleanLayer (legacy detail-modus).
   if (detailLayer) {
-    detailLayer.replaceChildren(fragment);
+    // Lag 3: retire eksisterende paner i detailLayer foer vi appender nye.
+    retireNorgeCleanPanesInLayer(detailLayer, { newFamily: panes[0] ? `${panes[0].pane.dataset.anchorMode}|${panes[0].pane.dataset.sourceLayers}` : null });
+    detailLayer.appendChild(fragment);
     cleanLayer.replaceChildren();
   } else {
-    cleanLayer.replaceChildren(fragment);
+    retireNorgeCleanPanesInLayer(cleanLayer, { newFamily: panes[0] ? `${panes[0].pane.dataset.anchorMode}|${panes[0].pane.dataset.sourceLayers}` : null });
+    cleanLayer.appendChild(fragment);
+  }
+  // Lag 3: hvis cross-family, fjern alle retired paner umiddelbart etter at
+  // nye er i DOM (vi vil ikke ha dobbeltkart med feil anker).
+  if (crossFamily) {
+    forcePurgeAllRetiredNorgeCleanPanes();
+  } else {
+    // Planlegg hard-deadline purge for retired paner.
+    scheduleNorgeCleanRetirePurge();
   }
   processNorgeCleanTileQueue();
   const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
