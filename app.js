@@ -3125,8 +3125,8 @@ function currentNorgeDetailSources() {
   if (document.getElementById('norge-layer-sjokart')?.checked) {
     sources.push({ type: 'kartverket', layer: 'sjokartraster', role: 'overlay' });
   }
-  if (document.getElementById('norge-layer-osm')?.checked && !sources.some(source => source.type === 'osm')) {
-    sources.push({ type: 'osm', layer: 'osm', role: 'overlay', anchorMode: 'norway' });
+  if (document.getElementById('norge-layer-osm')?.checked && selectedBase !== 'osm' && !sources.some(source => source.type === 'osm')) {
+    sources.unshift({ type: 'osm', layer: 'osm', role: 'base', anchorMode: 'norway' });
   }
   if (document.getElementById('norge-layer-nib')?.checked) {
     sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
@@ -5261,7 +5261,7 @@ function updateNorgeCleanOverviewLayer(bounds, sources, screenKey) {
     pane.dataset.anchorMode = config.anchorMode;
     pane.dataset.overview = '1';
     pane.dataset.sourceLayers = config.sources.map(source => source.layer).join('+');
-    for (const source of config.sources) {
+    config.sources.forEach((source, sourceIndex) => {
       for (let x = tileRange.xMin; x <= tileRange.xMax; x++) {
         for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
           const src = cleanDetailTileUrl(source, zoom, x, y);
@@ -5274,6 +5274,7 @@ function updateNorgeCleanOverviewLayer(bounds, sources, screenKey) {
           img.style.top = `${(y - tileRange.yMin) * tileSize}px`;
           img.style.width = `${tileSize + tileBleed}px`;
           img.style.height = `${tileSize + tileBleed}px`;
+          img.style.zIndex = String(sourceIndex + 1);
           img.dataset.z = String(zoom);
           img.dataset.layer = source.layer;
           img.dataset.role = source.role;
@@ -5282,7 +5283,7 @@ function updateNorgeCleanOverviewLayer(bounds, sources, screenKey) {
           pane.appendChild(img);
         }
       }
-    }
+    });
     fragment.appendChild(pane);
   });
   overviewLayer.replaceChildren(fragment);
@@ -5408,7 +5409,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     pane.dataset.overscan = String(tileRange.overscan || 0);
     panes.push({ pane, ...config });
 
-    for (const source of config.sources) {
+    config.sources.forEach((source, sourceIndex) => {
       for (let x = tileRange.xMin; x <= tileRange.xMax; x++) {
         for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
           const src = cleanDetailTileUrl(source, zoom, x, y);
@@ -5416,10 +5417,10 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
           const layerPriority = source.role === 'overlay' ? 0.2 : 0;
           const anchorPriority = config.anchorMode === primaryMode ? 0 : 0.05;
           const priority = Math.hypot(x - centerX, y - centerY) + layerPriority + anchorPriority;
-          tileJobs.push({ source, x, y, src, priority, pane });
+          tileJobs.push({ source, sourceIndex, x, y, src, priority, pane });
         }
       }
-    }
+    });
   });
 
   tileJobs.sort((a, b) => a.priority - b.priority);
@@ -5432,6 +5433,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         img.style.top = `${(job.y - tileRange.yMin) * tileSize}px`;
         img.style.width = `${tileSize + tileBleed}px`;
         img.style.height = `${tileSize + tileBleed}px`;
+        img.style.zIndex = String(job.sourceIndex + 2);
         img.dataset.z = String(zoom);
         img.dataset.layer = job.source.layer;
         img.dataset.role = job.source.role;
