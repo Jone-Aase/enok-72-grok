@@ -2419,6 +2419,7 @@ function currentModeLabel() { return currentMode === 'enoch' ? 'Enoch scale' : '
 function updateZoomReadout() {
   const el = document.getElementById('zoom-level');
   const ind = document.getElementById('zoom-indicator');
+  const heightEl = document.getElementById('height-above-ground');
   const norgeZoom = document.getElementById('norge-instrument-zoom');
   const norgeZoomVal = document.getElementById('norge-instrument-zoom-val');
   const gridX = document.getElementById('norge-grid-x');
@@ -2427,6 +2428,12 @@ function updateZoomReadout() {
   const gridYVal = document.getElementById('norge-grid-y-val');
   const pct = Math.round(100 / camState.dist * 100);
   if (el) el.textContent = pct + '%';
+  if (heightEl) {
+    const heightKm = Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM);
+    heightEl.textContent = heightKm >= 100
+      ? `H ${Math.round(heightKm).toLocaleString('en-US')} km`
+      : `H ${Math.round(heightKm * 1000).toLocaleString('en-US')} m`;
+  }
   if (norgeZoom) norgeZoom.value = String(Math.max(25, Math.min(50000000, pct)));
   if (norgeZoomVal) norgeZoomVal.textContent = pct + '%';
   if (gridX) gridX.value = String(camState.target.x);
@@ -2441,6 +2448,35 @@ function updateZoomReadout() {
 
 // Pan: forskyv camState.target i kamera-planet (høyre + opp relativt til kamera),
 // projisert ned i XZ-planet slik at vi følger kartet — som i Google Earth.
+function setCameraHeightKm(heightKm) {
+  const dist = (heightKm / R_OUTER_KM) * R_OUTER;
+  camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, dist));
+  applyCamera();
+  updateZoomReadout();
+}
+
+function updateNorgeFreezeUi() {
+  const btn = document.getElementById('norge-freeze-layer');
+  const status = document.getElementById('norge-freeze-status');
+  if (btn) btn.textContent = norgeFrozenDetailLayer ? 'Unfreeze layer' : 'Freeze layer';
+  if (status) {
+    const heightKm = Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM);
+    const heightText = heightKm >= 100
+      ? `${Math.round(heightKm).toLocaleString('en-US')} km`
+      : `${Math.round(heightKm * 1000).toLocaleString('en-US')} m`;
+    status.textContent = norgeFrozenDetailLayer ? `Frozen at H ${heightText}` : 'Dynamic loading';
+  }
+}
+
+function setNorgeFrozenDetailLayer(active) {
+  norgeFrozenDetailLayer = !!active;
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (cleanLayer) cleanLayer.dataset.frozen = norgeFrozenDetailLayer ? '1' : '0';
+  if (!norgeFrozenDetailLayer) scheduleNorgeDetailTiles();
+  updateNorgeFreezeUi();
+  refreshNorgeCleanLoadStatus();
+}
+
 function setInstrumentZoomPercent(percent) {
   const pct = Math.max(25, Math.min(50000000, percent));
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, 10000 / pct));
@@ -2650,13 +2686,14 @@ let norgeDetailTimer = null;
 let norgeDetailKey = '';
 let norgeCleanDetailKey = '';
 let norgeCleanLastContext = null;
+let norgeFrozenDetailLayer = false;
 const norgeCleanLabSamples = [];
 const norgeCleanTileManager = {
   active: 0,
-  maxConcurrent: 24,
+  maxConcurrent: 12,
   queue: [],
   cache: new Map(),
-  cacheLimit: 2600,
+  cacheLimit: 1800,
   currentBatch: 0,
   requested: 0,
   loaded: 0,
@@ -2848,11 +2885,11 @@ const NORGE_SURFACE_CONTROL_POINTS = [
   },
 ];
 const NORGE_SURFACE_DETAIL = {
-  maxTiles: 24000,
+  maxTiles: 3600,
   minZoom: 7,
   maxZoom: 18,
   tileSize: 256,
-  bounds: { latMin: 55.0, latMax: 72.5, lonMin: -30.0, lonMax: 32.2 },
+  bounds: { latMin: -85.0, latMax: 84.0, lonMin: -180.0, lonMax: 180.0 },
 };
 const GRIMSEY_CONTROL_POINT = {
   name: 'Grimsey, Iceland',
@@ -2868,6 +2905,31 @@ const JAN_MAYEN_CONTROL_POINT = {
   name: 'Jan Mayen',
   lat: 70.98,
   lon: -8.53,
+};
+const DENMARK_CONTROL_POINT = {
+  name: 'Danmark - Kattegat',
+  lat: 56.0,
+  lon: 10.5,
+};
+const GREENLAND_CONTROL_POINT = {
+  name: 'Greenland - Arctic Circle reference',
+  lat: 66.57695,
+  lon: -53.49841,
+};
+const SWEDEN_CONTROL_POINT = {
+  name: 'Sweden - Stockholm archipelago',
+  lat: 59.33,
+  lon: 18.07,
+};
+const SOUTH_CONTROL_POINT = {
+  name: 'South test - Norwegian seacharts',
+  lat: -70.0,
+  lon: 0.0,
+};
+const ASSEMBLED_CONTROL_POINT = {
+  name: 'Assembled Nordic surface',
+  lat: 64.5,
+  lon: 4.0,
 };
 
 function norgeSurfacePxPerUnit() {
@@ -2962,6 +3024,20 @@ function currentNorgeDetailSources() {
   else if (selectedBase === 'iceland-sjokart') {
     sources.push({ type: 'wms-iceland-sjokart', layer: 'Sjomaelingar:Sjokort_Sjomaelinga', role: 'base' });
   }
+  else if (selectedBase === 'denmark-havplan') {
+    sources.push({ type: 'wms-denmark-havplan', layer: 'Danmarks_havplan_af_28_juni_2024', role: 'base' });
+  }
+  else if (selectedBase === 'sweden-seachart') {
+    sources.push({ type: 'wms-sweden-fyren', layer: 'OgcWmsLayer0', role: 'base' });
+  }
+  else if (selectedBase === 'assembled-nordic') {
+    sources.push(
+      { type: 'wms-sweden-fyren', layer: 'OgcWmsLayer0', role: 'base', anchorMode: 'norway' },
+      { type: 'wms-denmark-havplan', layer: 'Danmarks_havplan_af_28_juni_2024', role: 'overlay', anchorMode: 'norway' },
+      { type: 'wms-iceland-sjokart', layer: 'Sjomaelingar:Sjokort_Sjomaelinga', role: 'overlay', anchorMode: 'norway' },
+      { type: 'kartverket', layer: 'sjokartraster', role: 'overlay', anchorMode: 'norway' },
+    );
+  }
   else sources.push({ type: 'kartverket', layer: selectedBase, role: 'base' });
   if (document.getElementById('norge-layer-both-seacharts')?.checked) {
     if (!sources.some(source => source.type === 'wms-iceland-sjokart')) {
@@ -3011,6 +3087,24 @@ function detailTileUrl(source, z, x, y, bounds) {
       `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
       `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
   }
+  if (source.type === 'wms-denmark-havplan') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://havplan.dk/geoserver/havplan/wms?' +
+      'SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&SRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
+  if (source.type === 'wms-sweden-fyren') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://geokatalog.sjofartsverket.se/mapservice/wms.axd/FyrenBakgrund?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=FALSE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
   if (source.type === 'wms-nib') {
     const sw = mercatorMeters(bounds.west, bounds.south);
     const ne = mercatorMeters(bounds.east, bounds.north);
@@ -3034,6 +3128,24 @@ function cleanDetailTileUrl(source, z, x, y) {
       'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
       `&LAYERS=${encodeURIComponent(source.layer)}` +
       '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
+  if (source.type === 'wms-denmark-havplan') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://havplan.dk/geoserver/havplan/wms?' +
+      'SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&SRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
+  if (source.type === 'wms-sweden-fyren') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://geokatalog.sjofartsverket.se/mapservice/wms.axd/FyrenBakgrund?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=FALSE&CRS=EPSG:3857' +
       `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
       `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
   }
@@ -3113,6 +3225,7 @@ function cleanNorgeDetailSources() {
 }
 
 function cleanSourceAnchorMode(source) {
+  if (source?.anchorMode) return source.anchorMode;
   return source?.type === 'wms-iceland-sjokart' ? 'iceland' : 'norway';
 }
 
@@ -3623,6 +3736,7 @@ function refreshNorgeCleanMapOverlay() {
 }
 
 function syncNorgeDetailPaneToCamera() {
+  if (norgeFrozenDetailLayer) return;
   if (!norgeCleanLastContext) return;
   const panes = [...document.querySelectorAll('.norge-clean-pixelflate')];
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
@@ -3773,6 +3887,7 @@ function expandNorgeTileRange(tileRange, zoom) {
 }
 
 function updateNorgeDetailTiles() {
+  if (norgeFrozenDetailLayer) return;
   const detailLayer = document.getElementById('norge-screen-detail-layer');
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
   const legacyDetailLayer = document.getElementById('norge-surface-detail-layer');
@@ -3920,12 +4035,8 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   norgeCleanTileManager.queue.sort((a, b) => a.priority - b.priority);
   const fragment = document.createDocumentFragment();
   panes.forEach(config => fragment.appendChild(config.pane));
-  if (detailLayer) {
-    detailLayer.replaceChildren(fragment);
-    cleanLayer.replaceChildren();
-  } else {
-    cleanLayer.replaceChildren(fragment);
-  }
+  cleanLayer.replaceChildren(fragment);
+  if (detailLayer) detailLayer.replaceChildren();
   processNorgeCleanTileQueue();
   const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
   const primaryTransform = primaryPane.transform;
@@ -3953,6 +4064,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
 }
 
 function scheduleNorgeDetailTiles() {
+  if (norgeFrozenDetailLayer) return;
   clearTimeout(norgeDetailTimer);
   norgeDetailTimer = setTimeout(updateNorgeDetailTiles, 120);
 }
@@ -4367,6 +4479,37 @@ function bindNorgeSurfaceEngine() {
     selectNorgeBaseMap('osm');
     focusNorgeSurfaceLatLon(JAN_MAYEN_CONTROL_POINT.lat, JAN_MAYEN_CONTROL_POINT.lon, JAN_MAYEN_CONTROL_POINT.name);
   });
+  document.getElementById('norge-focus-denmark')?.addEventListener('click', () => {
+    selectNorgeBaseMap('denmark-havplan');
+    focusNorgeSurfaceLatLon(DENMARK_CONTROL_POINT.lat, DENMARK_CONTROL_POINT.lon, DENMARK_CONTROL_POINT.name);
+  });
+  document.getElementById('norge-focus-greenland')?.addEventListener('click', () => {
+    selectNorgeBaseMap('osm');
+    focusNorgeSurfaceLatLon(GREENLAND_CONTROL_POINT.lat, GREENLAND_CONTROL_POINT.lon, GREENLAND_CONTROL_POINT.name);
+  });
+  document.getElementById('norge-focus-sweden')?.addEventListener('click', () => {
+    selectNorgeBaseMap('sweden-seachart');
+    focusNorgeSurfaceLatLon(SWEDEN_CONTROL_POINT.lat, SWEDEN_CONTROL_POINT.lon, SWEDEN_CONTROL_POINT.name);
+  });
+  document.getElementById('norge-focus-assembled')?.addEventListener('click', () => {
+    selectNorgeBaseMap('assembled-nordic');
+    focusNorgeSurfaceLatLon(ASSEMBLED_CONTROL_POINT.lat, ASSEMBLED_CONTROL_POINT.lon, ASSEMBLED_CONTROL_POINT.name);
+  });
+  document.getElementById('norge-set-height-7')?.addEventListener('click', () => {
+    setNorgeFrozenDetailLayer(false);
+    selectNorgeBaseMap('assembled-nordic');
+    focusNorgeSurfaceLatLon(ASSEMBLED_CONTROL_POINT.lat, ASSEMBLED_CONTROL_POINT.lon, ASSEMBLED_CONTROL_POINT.name);
+    setCameraHeightKm(7);
+    scheduleNorgeDetailTiles();
+  });
+  document.getElementById('norge-freeze-layer')?.addEventListener('click', () => {
+    setNorgeFrozenDetailLayer(!norgeFrozenDetailLayer);
+  });
+  document.getElementById('norge-focus-south')?.addEventListener('click', () => {
+    selectNorgeBaseMap('sjokartraster');
+    focusNorgeSurfaceLatLon(SOUTH_CONTROL_POINT.lat, SOUTH_CONTROL_POINT.lon, SOUTH_CONTROL_POINT.name);
+  });
+  updateNorgeFreezeUi();
 
   mapEl.addEventListener('mousemove', e => {
     const imagePoint = norgeSurfacePointerToImage(e);
