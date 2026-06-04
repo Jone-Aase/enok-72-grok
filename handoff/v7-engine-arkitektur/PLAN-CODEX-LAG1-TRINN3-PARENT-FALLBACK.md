@@ -87,17 +87,19 @@ Regel:
 
 Dette holder Trinn 3 liten og hindrer ekstra lastestorm.
 
-## Hvordan plasseres foreldre-bildet?
+## Klipping til riktig kvadrant - formel og CSS-losning
 
 Foreldre-bildet skal dekke samme lokale tile-slot som barnet, men det maa vise riktig utsnitt av forelderen.
 
 Viktig: en barn-tile er bare en kvadrant av direkte forelder. Hvis hele foreldre-bildet vises i barnets slot uten klipping, blir fallback-bildet forskyvet.
 
-For direkte forelder gjelder:
+Kvadrant-tabell for direkte forelder:
 
 ```text
-quadrantX = x % 2
-quadrantY = y % 2
+(x % 2, y % 2) = (0, 0) -> ovre venstre
+(x % 2, y % 2) = (1, 0) -> ovre hoyre
+(x % 2, y % 2) = (0, 1) -> nedre venstre
+(x % 2, y % 2) = (1, 1) -> nedre hoyre
 ```
 
 For flere nivaaer opp:
@@ -113,8 +115,11 @@ backgroundSize = 256 * scale
 Forste patch bor derfor bruke et fallback-element i samme slot, med foreldrebildet som `background-image`, og:
 
 ```text
+background-image: url(parentSrc)
 background-size: backgroundSize px backgroundSize px
 background-position: -offsetX px -offsetY px
+left/top/width/height: samme som barn-tilen
+z-index: lavere enn barn-tilen
 ```
 
 Dette viser riktig utsnitt av foreldre-tilen uten aa endre barnets `left`, `top`, `width`, `height`, pane-transform eller kartgeometri.
