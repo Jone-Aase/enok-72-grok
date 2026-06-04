@@ -2756,6 +2756,11 @@ const norgeCleanLabSamples = [];
 const norgeCleanTileManager = {
   active: 0,
   maxConcurrent: 12,
+  frameBudgetMs: 8,
+  queuePumpTimer: null,
+  queueYielded: false,
+  yieldCount: 0,
+  lastPumpMs: 0,
   queue: [],
   cache: new Map(),
   cacheLimit: 1800,
@@ -3219,6 +3224,10 @@ function cleanDetailTileUrl(source, z, x, y) {
 }
 
 function resetNorgeCleanTileQueue() {
+  if (norgeCleanTileManager.queuePumpTimer !== null) {
+    cancelAnimationFrame(norgeCleanTileManager.queuePumpTimer);
+    norgeCleanTileManager.queuePumpTimer = null;
+  }
   norgeCleanTileManager.queue = [];
   norgeCleanTileManager.active = 0;
   norgeCleanTileManager.currentBatch += 1;
@@ -3227,6 +3236,9 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.loaded = 0;
   norgeCleanTileManager.cached = 0;
   norgeCleanTileManager.failed = 0;
+  norgeCleanTileManager.queueYielded = false;
+  norgeCleanTileManager.yieldCount = 0;
+  norgeCleanTileManager.lastPumpMs = 0;
   refreshNorgeCleanLoadStatus();
 }
 
@@ -3240,8 +3252,41 @@ function rememberNorgeCleanTile(src) {
   }
 }
 
+function norgeCleanNow() {
+  return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+}
+
+function computeNorgeCleanPriorityScore(job) {
+  const basePriority = Number.isFinite(job.priority) ? job.priority : 0;
+  const qualityGap = Number.isFinite(job.qualityGap) ? Math.max(0, job.qualityGap) : 0;
+  return basePriority - qualityGap * 100;
+}
+
+function compareNorgeCleanTileJobs(a, b) {
+  const aScore = Number.isFinite(a.priorityScore) ? a.priorityScore : computeNorgeCleanPriorityScore(a);
+  const bScore = Number.isFinite(b.priorityScore) ? b.priorityScore : computeNorgeCleanPriorityScore(b);
+  return aScore - bScore || (a.priority || 0) - (b.priority || 0);
+}
+
+function scheduleNorgeCleanQueuePump() {
+  if (norgeCleanTileManager.queuePumpTimer !== null) return;
+  norgeCleanTileManager.queuePumpTimer = requestAnimationFrame(() => {
+    norgeCleanTileManager.queuePumpTimer = null;
+    processNorgeCleanTileQueue();
+  });
+}
+
 function processNorgeCleanTileQueue() {
+  const startedAt = norgeCleanNow();
+  const deadline = startedAt + norgeCleanTileManager.frameBudgetMs;
+  norgeCleanTileManager.queueYielded = false;
   while (norgeCleanTileManager.active < norgeCleanTileManager.maxConcurrent && norgeCleanTileManager.queue.length) {
+    if (norgeCleanNow() >= deadline) {
+      norgeCleanTileManager.queueYielded = true;
+      norgeCleanTileManager.yieldCount += 1;
+      scheduleNorgeCleanQueuePump();
+      break;
+    }
     const job = norgeCleanTileManager.queue.shift();
     const img = job.img;
     if (job.batch !== norgeCleanTileManager.currentBatch) continue;
@@ -3254,6 +3299,7 @@ function processNorgeCleanTileQueue() {
       norgeCleanTileManager.active = Math.max(0, norgeCleanTileManager.active - 1);
       norgeCleanTileManager.loaded += 1;
       img.dataset.loadedSrc = job.src;
+      img.dataset.loadedZ = img.dataset.z || '';
       rememberNorgeCleanTile(job.src);
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
@@ -3272,6 +3318,10 @@ function processNorgeCleanTileQueue() {
     };
     img.src = job.src;
   }
+  norgeCleanTileManager.lastPumpMs = Math.max(0, norgeCleanNow() - startedAt);
+  if (norgeCleanTileManager.queue.length && norgeCleanTileManager.active < norgeCleanTileManager.maxConcurrent) {
+    scheduleNorgeCleanQueuePump();
+  }
   checkNorgeFreezeWhenLoaded();
 }
 
@@ -3281,13 +3331,21 @@ function queueNorgeCleanTile(img, src, priority = 0) {
   if (norgeCleanTileManager.cache.has(src)) {
     img.src = src;
     img.dataset.loadedSrc = src;
+    img.dataset.loadedZ = img.dataset.z || '';
     norgeCleanTileManager.cached += 1;
     rememberNorgeCleanTile(src);
     refreshNorgeCleanLoadStatus();
     checkNorgeFreezeWhenLoaded();
     return;
   }
-  norgeCleanTileManager.queue.push({ img, src, priority, batch: norgeCleanTileManager.currentBatch });
+  const targetZ = Number(img.dataset.z);
+  const availableZ = Number(img.dataset.loadedZ);
+  const qualityGap = Number.isFinite(targetZ) && Number.isFinite(availableZ)
+    ? Math.max(0, targetZ - availableZ)
+    : 0;
+  const job = { img, src, priority, targetZ, availableZ, qualityGap, batch: norgeCleanTileManager.currentBatch };
+  job.priorityScore = computeNorgeCleanPriorityScore(job);
+  norgeCleanTileManager.queue.push(job);
 }
 
 function cleanNorgeDetailSources() {
@@ -3512,11 +3570,16 @@ function norgeCleanLoadLine() {
     queued: manager.queue.length,
     cacheSize: manager.cache.size,
     maxConcurrent: manager.maxConcurrent,
+    frameBudgetMs: manager.frameBudgetMs,
+    queueYielded: manager.queueYielded,
+    yieldCount: manager.yieldCount,
+    lastPumpMs: Number(manager.lastPumpMs.toFixed(2)),
     currentBatch: manager.currentBatch,
     freezeMode: norgeFreezeMode,
     frozen: norgeFrozenDetailLayer,
   };
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, freeze ${norgeFreezeMode}`;
+  const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}`;
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -4106,7 +4169,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         queueNorgeCleanTile(img, job.src, job.priority);
         job.pane.appendChild(img);
   }
-  norgeCleanTileManager.queue.sort((a, b) => a.priority - b.priority);
+  norgeCleanTileManager.queue.sort(compareNorgeCleanTileJobs);
   const fragment = document.createDocumentFragment();
   panes.forEach(config => fragment.appendChild(config.pane));
   cleanLayer.replaceChildren(fragment);
