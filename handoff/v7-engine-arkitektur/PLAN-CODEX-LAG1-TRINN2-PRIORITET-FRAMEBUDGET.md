@@ -39,7 +39,7 @@ For Trinn 2 maaler vi ikke kvalitet som fysisk avstand og ikke som geografisk fe
 
 Forslag til modell:
 
-- `targetZ`: zoom-nivaaet motoren ons ker for denne synlige sloten akkurat naa.
+- `targetZ`: zoom-nivaaet motoren onsker for denne synlige sloten akkurat naa.
 - `availableZ`: beste tile-nivaa som allerede er synlig eller tilgjengelig for samme slot/kilde.
 - `qualityGap = targetZ - availableZ`.
 - Hvis ingen tile finnes for sloten: `availableZ = -Infinity`, og jobben faar hoy prioritet.
@@ -59,6 +59,20 @@ Praktisk for forste patch:
 4. Hvis `qualityGap` ikke kan beregnes for en jobb i forste patch, fall tilbake til eksisterende prioritet.
 
 Dette gjor at patchen kan starte lite: prioriteringen blir bedre uten at vi maa bygge parent-fallback i samme steg.
+
+## Presisering etter Perplexety-review: `priorityScore`
+
+`priorityScore` skal vaere en ny beregnet sorteringsnokkel, ikke en ny betydning av dagens `job.priority`.
+
+Regel for patchen:
+
+- `job.priority` beholdes som eksisterende raaverdi/kompatibilitetsfelt.
+- `priorityScore` beregnes rett for sortering eller lagres som eget felt hvis det er praktisk.
+- Sorteringen bruker `priorityScore` nar den finnes.
+- Hvis `priorityScore` ikke kan beregnes trygt, faller sorteringen tilbake til `job.priority`.
+- Lag 2 sin prefetch-ko skal ikke arve eller tolke Lag 1 sin `priorityScore`.
+
+Dette holder grenseflaten stabil for Perplexety og gjor patchen lettere aa reviewe.
 
 ## Sporsmaal 2: skal frame-budget maales med performance.now per iterasjon eller per batch?
 
@@ -160,4 +174,3 @@ Hvis Jone godkjenner denne planen:
 - kodebranch: `codex/v7-lag1-trinn2-prioritet-framebudget`
 - base: `codex/v7-lag1-freeze-when-loaded`
 - forventet filomfang: hovedsakelig `app.js`, eventuelt ingen `index.html` hvis statuslinjen kan bruke eksisterende DOM
-
