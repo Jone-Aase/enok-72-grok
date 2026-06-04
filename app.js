@@ -2769,6 +2769,8 @@ const norgeCleanTileManager = {
   loaded: 0,
   cached: 0,
   failed: 0,
+  fallbackHits: 0,
+  fallbackMisses: 0,
 };
 let norgeAppliedPan = { x: 0, y: 0 };
 const LOCKED_NORGE_VIEW = {
@@ -3236,6 +3238,8 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.loaded = 0;
   norgeCleanTileManager.cached = 0;
   norgeCleanTileManager.failed = 0;
+  norgeCleanTileManager.fallbackHits = 0;
+  norgeCleanTileManager.fallbackMisses = 0;
   norgeCleanTileManager.queueYielded = false;
   norgeCleanTileManager.yieldCount = 0;
   norgeCleanTileManager.lastPumpMs = 0;
@@ -3266,6 +3270,57 @@ function compareNorgeCleanTileJobs(a, b) {
   const aScore = Number.isFinite(a.priorityScore) ? a.priorityScore : computeNorgeCleanPriorityScore(a);
   const bScore = Number.isFinite(b.priorityScore) ? b.priorityScore : computeNorgeCleanPriorityScore(b);
   return aScore - bScore || (a.priority || 0) - (b.priority || 0);
+}
+
+function findNorgeCleanParentFallback(source, z, x, y, maxLevels = 4) {
+  for (let levels = 1; levels <= maxLevels && z - levels >= 0; levels += 1) {
+    const scale = 2 ** levels;
+    const parentZ = z - levels;
+    const parentX = x >> levels;
+    const parentY = y >> levels;
+    const parentSrc = cleanDetailTileUrl(source, parentZ, parentX, parentY);
+    if (!parentSrc || !norgeCleanTileManager.cache.has(parentSrc)) continue;
+    return {
+      levels,
+      src: parentSrc,
+      offsetX: (x % scale) * NORGE_SURFACE_DETAIL.tileSize,
+      offsetY: (y % scale) * NORGE_SURFACE_DETAIL.tileSize,
+      backgroundSize: NORGE_SURFACE_DETAIL.tileSize * scale,
+    };
+  }
+  return null;
+}
+
+function addNorgeCleanParentFallback(img, source, z, x, y) {
+  const fallback = findNorgeCleanParentFallback(source, z, x, y);
+  if (!fallback) {
+    norgeCleanTileManager.fallbackMisses += 1;
+    return null;
+  }
+  const el = document.createElement('div');
+  el.className = `norge-detail-tile-fallback${source.role === 'overlay' ? ' overlay' : ''}`;
+  el.style.position = 'absolute';
+  el.style.left = img.style.left;
+  el.style.top = img.style.top;
+  el.style.width = img.style.width;
+  el.style.height = img.style.height;
+  el.style.pointerEvents = 'none';
+  el.style.backgroundImage = `url("${fallback.src}")`;
+  el.style.backgroundRepeat = 'no-repeat';
+  el.style.backgroundSize = `${fallback.backgroundSize}px ${fallback.backgroundSize}px`;
+  el.style.backgroundPosition = `-${fallback.offsetX}px -${fallback.offsetY}px`;
+  el.style.zIndex = '1';
+  el.dataset.parentSrc = fallback.src;
+  el.dataset.parentLevels = String(fallback.levels);
+  img.dataset.fallbackId = '1';
+  img.style.zIndex = '2';
+  norgeCleanTileManager.fallbackHits += 1;
+  return el;
+}
+
+function removeNorgeCleanParentFallback(img) {
+  if (!img?.previousSibling?.classList?.contains('norge-detail-tile-fallback')) return;
+  img.previousSibling.remove();
 }
 
 function scheduleNorgeCleanQueuePump() {
@@ -3300,6 +3355,7 @@ function processNorgeCleanTileQueue() {
       norgeCleanTileManager.loaded += 1;
       img.dataset.loadedSrc = job.src;
       img.dataset.loadedZ = img.dataset.z || '';
+      removeNorgeCleanParentFallback(img);
       rememberNorgeCleanTile(job.src);
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
@@ -3567,6 +3623,8 @@ function norgeCleanLoadLine() {
     loaded: manager.loaded,
     cached: manager.cached,
     failed: manager.failed,
+    fallbackHits: manager.fallbackHits,
+    fallbackMisses: manager.fallbackMisses,
     queued: manager.queue.length,
     cacheSize: manager.cache.size,
     maxConcurrent: manager.maxConcurrent,
@@ -3579,7 +3637,7 @@ function norgeCleanLoadLine() {
     frozen: norgeFrozenDetailLayer,
   };
   const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}`;
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}`;
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -4166,6 +4224,10 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         img.dataset.role = job.source.role;
         img.dataset.clean = '1';
         img.dataset.anchorMode = job.pane.dataset.anchorMode;
+        if (!norgeCleanTileManager.cache.has(job.src)) {
+          const fallback = addNorgeCleanParentFallback(img, job.source, zoom, job.x, job.y);
+          if (fallback) job.pane.appendChild(fallback);
+        }
         queueNorgeCleanTile(img, job.src, job.priority);
         job.pane.appendChild(img);
   }
