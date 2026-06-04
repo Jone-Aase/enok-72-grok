@@ -3125,6 +3125,9 @@ function currentNorgeDetailSources() {
   if (document.getElementById('norge-layer-sjokart')?.checked) {
     sources.push({ type: 'kartverket', layer: 'sjokartraster', role: 'overlay' });
   }
+  if (document.getElementById('norge-layer-osm')?.checked && !sources.some(source => source.type === 'osm')) {
+    sources.push({ type: 'osm', layer: 'osm', role: 'overlay', anchorMode: 'norway' });
+  }
   if (document.getElementById('norge-layer-nib')?.checked) {
     sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
   }
@@ -5762,7 +5765,7 @@ function bindNorgeSurfaceEngine() {
   if (!mapEl || mapEl.dataset.bound === '1') return;
   mapEl.dataset.bound = '1';
 
-  ['norge-layer-geo-grid', 'norge-layer-square-grid', 'norge-layer-cities', 'norge-layer-both-seacharts'].forEach(id => {
+  ['norge-layer-geo-grid', 'norge-layer-square-grid', 'norge-layer-cities', 'norge-layer-both-seacharts', 'norge-layer-osm'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', () => {
       renderNorgeSurfaceLayers();
       scheduleNorgeDetailTiles();
@@ -6026,7 +6029,7 @@ function initNorgeSurfaceMap() {
     mouseGridToggle.disabled = true;
     mouseGridToggle.title = 'Ny motor: venstre-drag panorerer alltid som Google Earth';
   }
-  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-both-seacharts')
+  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-both-seacharts, #norge-layer-osm')
     .forEach(el => {
       el.disabled = false;
       el.title = '';
