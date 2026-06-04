@@ -307,6 +307,15 @@
     display: none;
     opacity: 0.52;
   }
+  #norge-clean-overview-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 3;
+    display: none;
+    opacity: 0.34;
+  }
   .norge-clean-pixelflate {
     position: absolute;
     left: 0;
@@ -467,6 +476,9 @@
     display: block;
   }
   #canvas-wrap.norge-active #norge-screen-detail-layer {
+    display: block;
+  }
+  #canvas-wrap.norge-active #norge-clean-overview-layer {
     display: block;
   }
   #canvas-wrap.norge-active #norge-clean-detail-layer {
@@ -1717,6 +1729,7 @@
         <svg id="norge-surface-overlay" viewBox="0 0 2048 2048" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
       </div>
       <div id="norge-screen-detail-layer" aria-hidden="true"></div>
+      <div id="norge-clean-overview-layer" aria-hidden="true"></div>
       <div id="norge-clean-detail-layer" aria-hidden="true"></div>
       <div id="tooltip"></div>
       <div id="zoom-indicator">100% Â· Enoch scale</div>

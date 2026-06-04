@@ -2748,6 +2748,7 @@ let norgeSurfaceMeasurePoints = [];
 let norgeDetailTimer = null;
 let norgeDetailKey = '';
 let norgeCleanDetailKey = '';
+let norgeCleanOverviewKey = '';
 let norgeCleanLastContext = null;
 let norgeFrozenDetailLayer = false;
 let norgeFreezeMode = 'dynamic';
@@ -2959,6 +2960,8 @@ const NORGE_SURFACE_CONTROL_POINTS = [
 const NORGE_SURFACE_DETAIL = {
   maxTiles: 3600,
   minZoom: 7,
+  overviewZoom: 4,
+  overviewMaxTiles: 360,
   maxZoom: 18,
   tileSize: 256,
   bounds: { latMin: -85.0, latMax: 84.0, lonMin: -180.0, lonMax: 180.0 },
@@ -4671,6 +4674,7 @@ function cleanNorgeTransform(zoom, originX, originY, anchorMode = primaryCleanAn
 
 function syncNorgeCleanControls() {
   const layer = document.getElementById('norge-clean-detail-layer');
+  const overviewLayer = document.getElementById('norge-clean-overview-layer');
   const baselineLayer = document.getElementById('norge-screen-detail-layer');
   const surfaceOverlay = document.getElementById('norge-surface-overlay');
   const baseRasters = document.querySelectorAll('#norge-surface-map .norge-surface-raster');
@@ -4685,6 +4689,7 @@ function syncNorgeCleanControls() {
   const hideBaseline = hideBaselineToggle?.checked === true;
   const opacity = Math.max(0, Math.min(100, Number(opacityInput?.value || 52))) / 100;
   if (layer) layer.style.display = visible ? '' : 'none';
+  if (overviewLayer) overviewLayer.style.display = visible ? '' : 'none';
   if (baselineLayer) baselineLayer.style.visibility = hideBaseline ? 'hidden' : '';
   if (surfaceOverlay) surfaceOverlay.style.visibility = hideBaseline ? 'hidden' : '';
   if (surfaceDetailLayer) surfaceDetailLayer.style.visibility = hideBaseline ? 'hidden' : '';
@@ -5018,7 +5023,7 @@ function refreshNorgeCleanMapOverlay() {
 function syncNorgeDetailPaneToCamera() {
   if (norgeFrozenDetailLayer) return;
   if (!norgeCleanLastContext) return;
-  const panes = [...document.querySelectorAll('.norge-clean-pixelflate')];
+  const panes = [...document.querySelectorAll('#norge-clean-detail-layer .norge-clean-pixelflate')];
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
   if (!panes.length || !cleanLayer) return;
   const { zoom, originX, originY } = norgeCleanLastContext;
@@ -5166,28 +5171,147 @@ function expandNorgeTileRange(tileRange, zoom) {
   return expanded;
 }
 
+function fitOverviewTileRangeToBudget(tileRange, sourcesLength) {
+  const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.overviewMaxTiles / Math.max(1, sourcesLength)));
+  if (!tileRange || tileRange.count <= maxTilesPerSource) return tileRange;
+  const centerX = (tileRange.xMin + tileRange.xMax) / 2;
+  const centerY = (tileRange.yMin + tileRange.yMax) / 2;
+  let halfW = Math.max(1, Math.floor((tileRange.xMax - tileRange.xMin + 1) / 2));
+  let halfH = Math.max(1, Math.floor((tileRange.yMax - tileRange.yMin + 1) / 2));
+  while ((halfW * 2 + 1) * (halfH * 2 + 1) > maxTilesPerSource && (halfW > 1 || halfH > 1)) {
+    if (halfW >= halfH && halfW > 1) halfW -= 1;
+    else if (halfH > 1) halfH -= 1;
+  }
+  const fitted = {
+    xMin: Math.max(tileRange.xMin, Math.floor(centerX - halfW)),
+    xMax: Math.min(tileRange.xMax, Math.floor(centerX + halfW)),
+    yMin: Math.max(tileRange.yMin, Math.floor(centerY - halfH)),
+    yMax: Math.min(tileRange.yMax, Math.floor(centerY + halfH)),
+    clipped: true,
+    overscan: tileRange.overscan || 0,
+  };
+  fitted.count = (fitted.xMax - fitted.xMin + 1) * (fitted.yMax - fitted.yMin + 1);
+  return fitted;
+}
+
+function updateNorgeCleanOverviewLayer(bounds, sources, screenKey) {
+  const overviewLayer = document.getElementById('norge-clean-overview-layer');
+  if (!overviewLayer) return;
+  const overviewSources = (sources || []).filter(source => source.type !== 'wms-nib');
+  if (!bounds || !overviewSources.length) {
+    overviewLayer.replaceChildren();
+    norgeCleanOverviewKey = '';
+    return;
+  }
+  const zoom = Math.max(2, Math.min(NORGE_SURFACE_DETAIL.overviewZoom, NORGE_SURFACE_DETAIL.minZoom));
+  const nw = lonLatToTile(bounds.lonMin, bounds.latMax, zoom);
+  const se = lonLatToTile(bounds.lonMax, bounds.latMin, zoom);
+  const rawRange = {
+    xMin: Math.max(0, Math.floor(Math.min(nw.x, se.x))),
+    xMax: Math.floor(Math.max(nw.x, se.x)),
+    yMin: Math.max(0, Math.floor(Math.min(nw.y, se.y))),
+    yMax: Math.floor(Math.max(nw.y, se.y)),
+  };
+  rawRange.count = (rawRange.xMax - rawRange.xMin + 1) * (rawRange.yMax - rawRange.yMin + 1);
+  let tileRange = expandNorgeTileRange(rawRange, zoom);
+  tileRange = fitOverviewTileRangeToBudget(tileRange, overviewSources.length);
+  if (!tileRange) return;
+
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const tileBleed = 1.0;
+  const originX = tileRange.xMin * tileSize;
+  const originY = tileRange.yMin * tileSize;
+  const groupedSources = new Map();
+  overviewSources.forEach(source => {
+    const anchorMode = cleanSourceAnchorMode(source);
+    if (!groupedSources.has(anchorMode)) groupedSources.set(anchorMode, []);
+    groupedSources.get(anchorMode).push(source);
+  });
+  const paneConfigs = [...groupedSources.entries()].map(([anchorMode, groupSources]) => ({
+    anchorMode,
+    sources: groupSources,
+    transform: cleanNorgeTransform(zoom, originX, originY, anchorMode),
+  })).filter(config => config.transform);
+  if (!paneConfigs.length) {
+    overviewLayer.replaceChildren();
+    norgeCleanOverviewKey = '';
+    return;
+  }
+  const sourceKey = overviewSources.map(source => `${source.type}:${source.layer}:${source.role}:${source.anchorMode || ''}`).join('+');
+  const transformKey = paneConfigs.map(config => `${config.anchorMode}:${config.transform.css}`).join('|');
+  const key = `overview:${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}:${transformKey}`;
+  if (key === norgeCleanOverviewKey) return;
+  norgeCleanOverviewKey = key;
+
+  const paneSize = {
+    width: `${(tileRange.xMax - tileRange.xMin + 1) * tileSize}px`,
+    height: `${(tileRange.yMax - tileRange.yMin + 1) * tileSize}px`,
+  };
+  const fragment = document.createDocumentFragment();
+  paneConfigs.forEach(config => {
+    const pane = document.createElement('div');
+    pane.className = 'norge-clean-pixelflate norge-clean-overview-pixelflate';
+    pane.style.width = paneSize.width;
+    pane.style.height = paneSize.height;
+    pane.style.transform = config.transform.css;
+    pane.dataset.zoom = String(zoom);
+    pane.dataset.anchorMode = config.anchorMode;
+    pane.dataset.overview = '1';
+    pane.dataset.sourceLayers = config.sources.map(source => source.layer).join('+');
+    for (const source of config.sources) {
+      for (let x = tileRange.xMin; x <= tileRange.xMax; x++) {
+        for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
+          const src = cleanDetailTileUrl(source, zoom, x, y);
+          if (!src) continue;
+          const img = document.createElement('img');
+          img.className = `norge-detail-tile norge-overview-tile${source.role === 'overlay' ? ' overlay' : ''}`;
+          img.loading = 'eager';
+          img.decoding = 'async';
+          img.style.left = `${(x - tileRange.xMin) * tileSize}px`;
+          img.style.top = `${(y - tileRange.yMin) * tileSize}px`;
+          img.style.width = `${tileSize + tileBleed}px`;
+          img.style.height = `${tileSize + tileBleed}px`;
+          img.dataset.z = String(zoom);
+          img.dataset.layer = source.layer;
+          img.dataset.role = source.role;
+          img.dataset.overview = '1';
+          img.src = src;
+          pane.appendChild(img);
+        }
+      }
+    }
+    fragment.appendChild(pane);
+  });
+  overviewLayer.replaceChildren(fragment);
+}
+
 function updateNorgeDetailTiles() {
   if (norgeFrozenDetailLayer) return;
   const detailLayer = document.getElementById('norge-screen-detail-layer');
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  const overviewLayer = document.getElementById('norge-clean-overview-layer');
   const legacyDetailLayer = document.getElementById('norge-surface-detail-layer');
   if (legacyDetailLayer) legacyDetailLayer.replaceChildren();
   if (!cleanLayer || !norgeSurface) return;
   const bounds = visibleNorgeSourceBounds();
   if (!bounds || bounds.latMax <= bounds.latMin || bounds.lonMax <= bounds.lonMin) {
     if (detailLayer) detailLayer.replaceChildren();
+    if (overviewLayer) overviewLayer.replaceChildren();
     if (cleanLayer) cleanLayer.replaceChildren();
     norgeDetailKey = '';
     norgeCleanDetailKey = '';
+    norgeCleanOverviewKey = '';
     return;
   }
 
   const sources = currentNorgeDetailSources();
   if (!sources.length) {
     if (detailLayer) detailLayer.replaceChildren();
+    if (overviewLayer) overviewLayer.replaceChildren();
     if (cleanLayer) cleanLayer.replaceChildren();
     norgeDetailKey = '';
     norgeCleanDetailKey = '';
+    norgeCleanOverviewKey = '';
     return;
   }
   let zoom = currentNorgeDetailZoom(bounds);
@@ -5208,6 +5332,7 @@ function updateNorgeDetailTiles() {
   const key = `${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}`;
   if (key === norgeDetailKey) return;
   norgeDetailKey = key;
+  updateNorgeCleanOverviewLayer(bounds, sources, screenKey);
 
   if (detailLayer) {
     detailLayer.replaceChildren();
@@ -5348,7 +5473,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   } catch (_) { /* aldri brekk pipelinen */ }
   const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
   const primaryTransform = primaryPane.transform;
-  const tileCount = panes.reduce((sum, config) => sum + config.pane.querySelectorAll('img').length, 0);
+  const tileCount = tileJobs.length;
   norgeCleanLastContext = { transform: primaryTransform, zoom, originX, originY };
   addNorgeCleanDiagnostics(cleanLayer, primaryTransform, zoom, originX, originY);
   addNorgeCleanMapOverlay(cleanLayer, primaryTransform, zoom, originX, originY);
@@ -5535,6 +5660,7 @@ function updateNorgeSurfaceRasters() {
     img.classList.toggle('active', isBase || isSjokart || isNib);
   });
   norgeDetailKey = '';
+  norgeCleanOverviewKey = '';
   scheduleNorgeDetailTiles();
 }
 
@@ -5939,6 +6065,7 @@ function initNorgeSurfaceMap() {
       updateNorgeSurfaceCityList();
       renderNorgeSurfaceLayers();
       norgeCleanDetailKey = '';
+      norgeCleanOverviewKey = '';
       scheduleNorgeDetailTiles();
     })
     .catch(err => {
