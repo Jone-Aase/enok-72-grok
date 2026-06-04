@@ -4054,7 +4054,8 @@ async function lag2TryServeFromIdb(job) {
     const row = await lag2GetTileRow(job.lag2Key);
     if (!row || !row.blob) return false;
     if (job.batch !== norgeCleanTileManager.currentBatch) return true; // batch rullet — ikke skriv DOM
-    if (!job.img.isConnected || job.img.dataset.loadedSrc === job.src) return true;
+    if (!job.img.isConnected) return false;
+    if (job.img.dataset.loadedSrc === job.src) return true;
 
     const blobUrl = URL.createObjectURL(row.blob);
     const cleanup = () => {
@@ -4066,6 +4067,7 @@ async function lag2TryServeFromIdb(job) {
       // Paritet 1 mot Lag 1 (Trinn 2): IDB-serverte tiles må også sette loadedZ
       // slik at qualityGap-beregningen i queueNorgeCleanTile er konsistent.
       job.img.dataset.loadedZ = job.img.dataset.z || '';
+      removeNorgeCleanParentFallback(job.img);
       rememberNorgeCleanTile(job.src);
       norgeCleanTileManager.fromIdb += 1;
       lag2UpdateLastUsed(job.lag2Key);
