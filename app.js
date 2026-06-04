@@ -3247,6 +3247,20 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.fromIdb = 0;
   norgeCleanTileManager.idbWriteFailed = 0;
   norgeCleanTileManager.idbDecodeFailed = 0;
+  // Lag 2 steg 3: eksplisitt tøm prefetch-kø + abort in-flight
+  try {
+    if (typeof lag2State !== 'undefined' && lag2State) {
+      lag2State.prefetchQueue = [];
+      if (lag2State.prefetchAbortController) {
+        try { lag2State.prefetchAbortController.abort(); } catch (_) { /* noop */ }
+        lag2State.prefetchAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      }
+      lag2State.lastLiveActivityAt = Date.now();
+    }
+  } catch (_) { /* aldri brekk pipelinen */ }
+  norgeCleanTileManager.prefetched = 0;
+  norgeCleanTileManager.prefetchSkipped = 0;
+  norgeCleanTileManager.prefetchAborted = 0;
   refreshNorgeCleanLoadStatus();
 }
 
@@ -3511,7 +3525,25 @@ const lag2State = {
   sweepTimer: null,
   taintedSources: new Set(),
   initError: null,
+  // Lag 2 steg 3: prefetch-tilstand
+  prefetchMode: 'on', // 'off' | 'on'
+  prefetchEnabled: false,
+  prefetchQueue: [],
+  prefetchActive: 0,
+  prefetchMaxConcurrent: 4,
+  prefetchQueueMax: 256,
+  prefetchAbortController: null,
+  prefetchPausedUntil: 0,
+  prefetchPumpTimer: null,
+  prefetchFailStreak: 0,
+  prefetchFailDisabledForSession: false,
+  lastLiveActivityAt: 0,
 };
+
+const LAG2_PREFETCH_IDLE_MS = 400;
+const LAG2_PREFETCH_QUEUE_MAX = 256;
+const LAG2_PREFETCH_MAX_CONCURRENT = 4;
+const LAG2_PREFETCH_FAIL_BUDGET = 3;
 
 function lag2ReadKillSwitch() {
   try {
@@ -3530,6 +3562,16 @@ function lag2ReadCacheFlag() {
     if (v === 'off' || v === 'shadow' || v === 'on') return v;
   } catch (_) { /* localStorage utilgjengelig */ }
   // Steg 2 default: 'on'
+  return 'on';
+}
+
+function lag2ReadPrefetchFlag() {
+  if (lag2ReadKillSwitch()) return 'off';
+  try {
+    const v = localStorage.getItem('enok72.lag2.prefetch');
+    if (v === 'off' || v === 'on') return v;
+  } catch (_) { /* noop */ }
+  // Steg 3 default: 'on'
   return 'on';
 }
 
@@ -3841,16 +3883,29 @@ async function lag2InitOnce() {
       lastSweepAt: 0,
     });
 
+    // Lag 2 steg 3: prefetch-konfig
+    const prefetchMode = lag2ReadPrefetchFlag();
+    lag2State.prefetchMode = prefetchMode;
+    lag2State.prefetchEnabled = (mode === 'on') && (prefetchMode === 'on');
+    if (typeof AbortController !== 'undefined') {
+      lag2State.prefetchAbortController = new AbortController();
+    }
+
     await lag2MetaPut({
       id: 'flags',
       cacheMode: mode,
-      prefetchOn: false, // settes av steg 3
+      prefetchOn: lag2State.prefetchEnabled,
       updatedAt: Date.now(),
     });
 
     // Initial sweep + periodisk sweep
     await sweepTileCache('init');
     lag2StartPeriodicSweep();
+
+    // Lag 2 steg 3: bind pause-handlers etter at IDB er klar
+    if (lag2State.prefetchEnabled) {
+      lag2BindPrefetchPauseHandlers();
+    }
 
     lag2State.enabled = true;
     console.info('[v7-lag2] IDB-skall aktivert', {
@@ -4172,6 +4227,264 @@ async function lag2WriteTileFromImg(img, job) {
 
 // =================================================================
 // SLUTT LAG 2 — STEG 2 (cache-innkobling)
+// =================================================================
+
+// =================================================================
+// LAG 2 STEG 3: PREFETCH
+// =================================================================
+
+function lag2NetworkAllowsPrefetch() {
+  // Chromium-only: respekter saveData/effectiveType der det finnes.
+  // Firefox/Safari: navigator.connection er undefined — prefetch går på.
+  try {
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!c) return true;
+    if (c.saveData === true) return false;
+    if (c.effectiveType === 'slow-2g' || c.effectiveType === '2g') return false;
+  } catch (_) { /* noop */ }
+  return true;
+}
+
+function lag2CanRunPrefetch() {
+  if (!lag2State.enabled) return false;
+  if (lag2State.mode !== 'on') return false;
+  if (!lag2State.prefetchEnabled) return false;
+  if (lag2State.prefetchFailDisabledForSession) return false;
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return false;
+  if (Date.now() < lag2State.prefetchPausedUntil) return false;
+  if (!lag2NetworkAllowsPrefetch()) return false;
+  // Aldri konkurrer med live-køen
+  if (norgeCleanTileManager.queue.length > 0) return false;
+  if (norgeCleanTileManager.active > 0) return false;
+  if (Date.now() - lag2State.lastLiveActivityAt < LAG2_PREFETCH_IDLE_MS) return false;
+  return true;
+}
+
+function lag2BindPrefetchPauseHandlers() {
+  // Visibility — universelt støttet
+  if (typeof document !== 'undefined' && !lag2State._visibilityBound) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') {
+        lag2State.prefetchPausedUntil = Number.POSITIVE_INFINITY;
+        try { lag2State.prefetchAbortController && lag2State.prefetchAbortController.abort(); } catch (_) { /* noop */ }
+        lag2State.prefetchAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      } else {
+        lag2State.prefetchPausedUntil = Date.now() + LAG2_PREFETCH_IDLE_MS;
+        lag2SchedulePrefetchPump();
+      }
+    });
+    lag2State._visibilityBound = true;
+  }
+  // Leaflet pan/zoom — sett pause til Infinity ved start, oppløs ved end
+  try {
+    if (typeof norgeLeaflet !== 'undefined' && norgeLeaflet && norgeLeaflet.map && !lag2State._leafletBound) {
+      const map = norgeLeaflet.map;
+      const startHandler = () => {
+        lag2State.prefetchPausedUntil = Number.POSITIVE_INFINITY;
+        try { lag2State.prefetchAbortController && lag2State.prefetchAbortController.abort(); } catch (_) { /* noop */ }
+        lag2State.prefetchAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        lag2State.lastLiveActivityAt = Date.now();
+      };
+      const endHandler = () => {
+        lag2State.prefetchPausedUntil = Date.now() + LAG2_PREFETCH_IDLE_MS;
+        lag2SchedulePrefetchPump();
+      };
+      map.on('movestart', startHandler);
+      map.on('zoomstart', startHandler);
+      map.on('moveend', endHandler);
+      map.on('zoomend', endHandler);
+      lag2State._leafletBound = true;
+    }
+  } catch (_) { /* aldri brekk pipelinen */ }
+}
+
+function lag2SchedulePrefetchPump() {
+  if (lag2State.prefetchPumpTimer) return;
+  lag2State.prefetchPumpTimer = setTimeout(() => {
+    lag2State.prefetchPumpTimer = null;
+    lag2ProcessPrefetchQueue();
+  }, LAG2_PREFETCH_IDLE_MS);
+}
+
+async function lag2ProcessPrefetchQueue() {
+  if (!lag2CanRunPrefetch()) {
+    // Prøv igjen senere om køen ikke er tom
+    if (lag2State.prefetchQueue.length > 0) lag2SchedulePrefetchPump();
+    return;
+  }
+  while (
+    lag2State.prefetchActive < LAG2_PREFETCH_MAX_CONCURRENT
+    && lag2State.prefetchQueue.length > 0
+    && lag2CanRunPrefetch()
+  ) {
+    const job = lag2State.prefetchQueue.shift();
+    if (!job) break;
+    if (job.batch !== norgeCleanTileManager.currentBatch) continue;
+    lag2State.prefetchActive += 1;
+    lag2RunPrefetchJob(job)
+      .catch(() => { /* sluk — telleren oppdateres i runneren */ })
+      .finally(() => {
+        lag2State.prefetchActive = Math.max(0, lag2State.prefetchActive - 1);
+        if (lag2State.prefetchQueue.length > 0) lag2SchedulePrefetchPump();
+      });
+  }
+}
+
+async function lag2RunPrefetchJob(job) {
+  if (!lag2CanRunPrefetch()) {
+    norgeCleanTileManager.prefetchSkipped += 1;
+    return;
+  }
+  if (job.batch !== norgeCleanTileManager.currentBatch) {
+    norgeCleanTileManager.prefetchAborted += 1;
+    return;
+  }
+  // Sjekk om vi allerede har den i IDB — da er prefetch unødvendig
+  try {
+    await lag2BuildKey(job);
+    const existing = await lag2GetTileRow(job.lag2Key);
+    if (existing && existing.blob) {
+      norgeCleanTileManager.prefetchSkipped += 1;
+      return;
+    }
+  } catch (_) { /* noop — fortsett til fetch */ }
+
+  const signal = lag2State.prefetchAbortController ? lag2State.prefetchAbortController.signal : undefined;
+  let resp;
+  try {
+    resp = await fetch(job.src, { signal, credentials: 'omit', mode: 'cors' });
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      norgeCleanTileManager.prefetchAborted += 1;
+      return;
+    }
+    lag2State.prefetchFailStreak += 1;
+    if (lag2State.prefetchFailStreak >= LAG2_PREFETCH_FAIL_BUDGET) {
+      lag2State.prefetchFailDisabledForSession = true;
+      console.warn('[v7-lag2] prefetch slått av for resten av sesjonen — 3 påfølgende feil');
+    }
+    norgeCleanTileManager.prefetchSkipped += 1;
+    return;
+  }
+  if (!resp || !resp.ok) {
+    lag2State.prefetchFailStreak += 1;
+    if (lag2State.prefetchFailStreak >= LAG2_PREFETCH_FAIL_BUDGET) {
+      lag2State.prefetchFailDisabledForSession = true;
+      console.warn('[v7-lag2] prefetch slått av for resten av sesjonen — 3 påfølgende feil');
+    }
+    norgeCleanTileManager.prefetchSkipped += 1;
+    return;
+  }
+  let blob;
+  try {
+    blob = await resp.blob();
+  } catch (_) {
+    norgeCleanTileManager.prefetchSkipped += 1;
+    return;
+  }
+  if (!blob || !blob.size) {
+    norgeCleanTileManager.prefetchSkipped += 1;
+    return;
+  }
+  // Sjekk batch på nytt etter await
+  if (job.batch !== norgeCleanTileManager.currentBatch) {
+    norgeCleanTileManager.prefetchAborted += 1;
+    return;
+  }
+  lag2State.prefetchFailStreak = 0;
+  const row = {
+    key: job.lag2Key,
+    src: job.src,
+    source: job.sourceKey,
+    z: job.z,
+    x: job.x,
+    y: job.y,
+    blob,
+    bytes: blob.size,
+    etag: resp.headers.get && resp.headers.get('etag') ? resp.headers.get('etag') : null,
+    fetchedAt: Date.now(),
+    lastUsed: Date.now(),
+    hits: 0,
+  };
+  try {
+    await lag2PutTileRow(row);
+    lag2State.bytesUsed += blob.size;
+    norgeCleanTileManager.prefetched += 1;
+    if (lag2State.bytesUsed > lag2State.bytesBudget * 0.9) {
+      lag2ScheduleIdle(() => sweepTileCache('post-prefetch'));
+    }
+  } catch (err) {
+    norgeCleanTileManager.idbWriteFailed += 1;
+  }
+}
+
+function lag2ComputePrefetchRing(tileRange, zoom) {
+  // Pad-utvidelse halvparten av Lag 1 sin overscan-pad
+  const pad = zoom >= 14 ? 8 : zoom >= 11 ? 6 : 4;
+  const ring = [];
+  if (!tileRange) return ring;
+  // World-bounds + NORGE_SURFACE_DETAIL.bounds-grenser håndteres allerede av expandNorgeTileRange
+  // som har levert tileRange. Vi pad-utvider rundt den uten å gå utenfor 0..2^z-1.
+  const worldTiles = (1 << zoom) >>> 0;
+  const xMin = Math.max(0, tileRange.xMin - pad);
+  const xMax = Math.min(worldTiles - 1, tileRange.xMax + pad);
+  const yMin = Math.max(0, tileRange.yMin - pad);
+  const yMax = Math.min(worldTiles - 1, tileRange.yMax + pad);
+  const cx = (tileRange.xMin + tileRange.xMax) / 2;
+  const cy = (tileRange.yMin + tileRange.yMax) / 2;
+  for (let x = xMin; x <= xMax; x++) {
+    for (let y = yMin; y <= yMax; y++) {
+      // Bare utenfor live-rangen
+      if (x >= tileRange.xMin && x <= tileRange.xMax && y >= tileRange.yMin && y <= tileRange.yMax) continue;
+      ring.push({ x, y, dist: Math.hypot(x - cx, y - cy) });
+    }
+  }
+  ring.sort((a, b) => a.dist - b.dist);
+  return ring;
+}
+
+function schedulePrefetchAround(tileRange, zoom, sources) {
+  if (!lag2CanRunPrefetch() && !lag2State.prefetchEnabled) return;
+  if (!lag2State.enabled || lag2State.mode !== 'on' || !lag2State.prefetchEnabled) return;
+  if (!tileRange || !sources || !sources.length) return;
+  if (lag2State.prefetchFailDisabledForSession) return;
+
+  const ring = lag2ComputePrefetchRing(tileRange, zoom);
+  if (!ring.length) return;
+
+  const batch = norgeCleanTileManager.currentBatch;
+  // Bygg jobber: bare ikke-overlay, ikke-NIB, ikke-tainted
+  const jobs = [];
+  for (const source of sources) {
+    if (source.role === 'overlay') continue;
+    if (lag2IsSourceExcluded(source)) continue;
+    const sourceKey = lag2SourceKey(source);
+    if (lag2State.taintedSources.has(sourceKey)) continue;
+    for (const tile of ring) {
+      const src = cleanDetailTileUrl(source, zoom, tile.x, tile.y);
+      if (!src) continue;
+      jobs.push({
+        src,
+        sourceKey,
+        z: zoom,
+        x: tile.x,
+        y: tile.y,
+        priority: tile.dist,
+        batch,
+        lag2Key: null,
+      });
+      if (jobs.length >= LAG2_PREFETCH_QUEUE_MAX) break;
+    }
+    if (jobs.length >= LAG2_PREFETCH_QUEUE_MAX) break;
+  }
+  // Erstatt prefetch-køen eksplisitt (V2 §C.3)
+  lag2State.prefetchQueue = jobs;
+  lag2State.lastLiveActivityAt = Date.now();
+  lag2SchedulePrefetchPump();
+}
+
+// =================================================================
+// SLUTT LAG 2 — STEG 3 (prefetch)
 // =================================================================
 
 function cleanNorgeDetailSources() {
@@ -5025,6 +5338,12 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   cleanLayer.replaceChildren(fragment);
   if (detailLayer) detailLayer.replaceChildren();
   processNorgeCleanTileQueue();
+  // Lag 2 steg 3: planlegg prefetch-ring rundt synlig tile-range
+  try {
+    if (typeof schedulePrefetchAround === 'function') {
+      schedulePrefetchAround(tileRange, zoom, sources);
+    }
+  } catch (_) { /* aldri brekk pipelinen */ }
   const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
   const primaryTransform = primaryPane.transform;
   const tileCount = panes.reduce((sum, config) => sum + config.pane.querySelectorAll('img').length, 0);
