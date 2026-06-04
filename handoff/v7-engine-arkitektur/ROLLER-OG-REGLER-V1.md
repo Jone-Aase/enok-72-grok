@@ -85,6 +85,10 @@ Perplexety bekrefter på samme måte, eller via melding til Jone som videreformi
 
 Jone bekrefter i samtaletråd. Hans godkjenning er den endelige.
 
+## Codex bekreftelse: lest og godkjent
+
+Codex har lest Roller og regler — motor-utviklingen v7 og bekrefter dokumentet som arbeidsregel for videre motor-utvikling. Codex forplikter seg til rollene, de låste områdene, arbeidsflyten, sporbarhetskravene og stopp-regelen slik de står i dokumentet.
+
 ## Endringer av dette dokumentet
 
 Endringer i v1 må godkjennes av Jone. Ny versjon (v2 osv.) opprettes som ny fil for å bevare historikken.
