@@ -3473,6 +3473,23 @@ function queueNorgeCleanTile(img, src, priority = 0, meta = null) {
 // for fullstendig plan.
 // =================================================================
 
+// -----------------------------------------------------------------
+// Steg 2b: koordineringssignal mot Lag 3 (Three.js snapshot-bro, Grok)
+// -----------------------------------------------------------------
+// Initialiseres her slik at Lag 3 alltid kan lese flagget, selv om
+// Lag 2 er i shadow/off-modus. Lag 2 setter true før OffscreenCanvas/
+// convertToBlob-eksport av en img, og false i finally. Lag 3 venter
+// til false før html2canvas-snapshot — da unngår de to lagene å
+// kjøre canvas-operasjoner på samme rAF-frame.
+// Hvis flagget ikke finnes når Lag 3 sjekker det (Lag 2 ikke lastet),
+// fungerer Lag 3 som om Lag 2 aldri kjører canvas — ren no-op for oss.
+if (typeof window !== 'undefined') {
+  window.__enok72__ = window.__enok72__ || {};
+  if (typeof window.__enok72__.lag2Exporting === 'undefined') {
+    window.__enok72__.lag2Exporting = false;
+  }
+}
+
 const LAG2_SCHEMA_VERSION = 1;
 const LAG2_DATA_GENERATION = 1;
 const LAG2_DB_NAME = 'enok72-tiles';
@@ -4046,33 +4063,44 @@ async function lag2BlobFromImg(img, mimeHint) {
     try { await img.decode(); } catch (_) { /* mange nettlesere kaster om src ble satt før decode kalles — fortsett */ }
   }
 
-  if (canvasKind === 'offscreen') {
-    const canvas = new OffscreenCanvas(w, h);
+  // Steg 2b: koordineringssignal mot Lag 3 (Grok snapshot-bro).
+  // Sett true før selve canvas-eksporten, false i finally slik at
+  // flagget alltid ryddes selv ved feil. Vi bruker `return await ...`
+  // istedenfor `return ...` slik at finally venter på at Promise faktisk
+  // har resolvet — ellers ville flagget blitt nullstilt for tidlig.
+  const enok = (typeof window !== 'undefined') ? (window.__enok72__ = window.__enok72__ || {}) : null;
+  if (enok) enok.lag2Exporting = true;
+  try {
+    if (canvasKind === 'offscreen') {
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('lag2: 2d-context failed');
+      ctx.drawImage(img, 0, 0);
+      if (typeof canvas.convertToBlob === 'function') {
+        return await canvas.convertToBlob({ type: mimeHint, quality: 0.92 });
+      }
+    }
+
+    // HTMLCanvasElement-fallback (Safari < 16.4 m.fl.)
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('lag2: 2d-context failed');
     ctx.drawImage(img, 0, 0);
-    if (typeof canvas.convertToBlob === 'function') {
-      return canvas.convertToBlob({ type: mimeHint, quality: 0.92 });
-    }
+    return await new Promise((resolve, reject) => {
+      if (typeof canvas.toBlob !== 'function') {
+        reject(new Error('lag2: toBlob unavailable'));
+        return;
+      }
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('lag2: toBlob returned null'));
+      }, mimeHint, 0.92);
+    });
+  } finally {
+    if (enok) enok.lag2Exporting = false;
   }
-
-  // HTMLCanvasElement-fallback (Safari < 16.4 m.fl.)
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('lag2: 2d-context failed');
-  ctx.drawImage(img, 0, 0);
-  return new Promise((resolve, reject) => {
-    if (typeof canvas.toBlob !== 'function') {
-      reject(new Error('lag2: toBlob unavailable'));
-      return;
-    }
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('lag2: toBlob returned null'));
-    }, mimeHint, 0.92);
-  });
 }
 
 function lag2GuessMime(src) {
