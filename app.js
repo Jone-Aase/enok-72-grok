@@ -2457,27 +2457,87 @@ function setCameraHeightKm(heightKm) {
 
 function updateNorgeFreezeUi() {
   const btn = document.getElementById('norge-freeze-layer');
+  const waitBtn = document.getElementById('norge-freeze-when-loaded');
   const status = document.getElementById('norge-freeze-status');
   if (btn) btn.textContent = norgeFrozenDetailLayer ? 'Unfreeze layer' : 'Freeze layer';
+  if (waitBtn) waitBtn.textContent = norgeFreezeMode === 'waiting' ? 'Waiting...' : 'Freeze when loaded';
   if (status) {
     const heightKm = Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM);
     const heightText = heightKm >= 100
       ? `${Math.round(heightKm).toLocaleString('en-US')} km`
       : `${Math.round(heightKm * 1000).toLocaleString('en-US')} m`;
-    status.textContent = norgeFrozenDetailLayer ? `Frozen at H ${heightText}` : 'Dynamic loading';
+    if (norgeFreezeMode === 'waiting') {
+      status.textContent = `Waiting for tiles at H ${heightText}`;
+    } else {
+      status.textContent = norgeFrozenDetailLayer ? `Frozen at H ${heightText}` : 'Dynamic loading';
+    }
   }
 }
 
 function setNorgeFrozenDetailLayer(active) {
   norgeFrozenDetailLayer = !!active;
+  norgeFreezeMode = norgeFrozenDetailLayer ? 'frozen' : 'dynamic';
+  norgeFreezeWaitBatch = null;
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
   if (cleanLayer) cleanLayer.dataset.frozen = norgeFrozenDetailLayer ? '1' : '0';
+  if (cleanLayer) cleanLayer.dataset.freezeMode = norgeFreezeMode;
   if (!norgeFrozenDetailLayer) scheduleNorgeDetailTiles();
   updateNorgeFreezeUi();
   refreshNorgeCleanLoadStatus();
 }
 
+function isNorgeCleanTileQueueIdle() {
+  return norgeCleanTileManager.active === 0 && norgeCleanTileManager.queue.length === 0;
+}
+
+function checkNorgeFreezeWhenLoaded() {
+  if (norgeFreezeMode !== 'waiting') return;
+  if (norgeFreezeWaitBatch !== null && norgeFreezeWaitBatch !== norgeCleanTileManager.currentBatch) {
+    norgeFreezeWaitBatch = norgeCleanTileManager.currentBatch;
+  }
+  if (!isNorgeCleanTileQueueIdle()) {
+    updateNorgeFreezeUi();
+    return;
+  }
+  norgeFrozenDetailLayer = true;
+  norgeFreezeMode = 'frozen';
+  norgeFreezeWaitBatch = null;
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (cleanLayer) {
+    cleanLayer.dataset.frozen = '1';
+    cleanLayer.dataset.freezeMode = 'frozen';
+  }
+  updateNorgeFreezeUi();
+  refreshNorgeCleanLoadStatus();
+}
+
+function requestNorgeFreezeWhenLoaded() {
+  if (norgeFrozenDetailLayer) return;
+  norgeFreezeMode = 'waiting';
+  norgeFreezeWaitBatch = norgeCleanTileManager.currentBatch;
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (cleanLayer) {
+    cleanLayer.dataset.frozen = '0';
+    cleanLayer.dataset.freezeMode = 'waiting';
+  }
+  updateNorgeFreezeUi();
+  refreshNorgeCleanLoadStatus();
+  if (norgeDetailTimer) return;
+  checkNorgeFreezeWhenLoaded();
+}
+
+function cancelNorgeFreezeWait() {
+  if (norgeFreezeMode !== 'waiting') return;
+  norgeFreezeMode = 'dynamic';
+  norgeFreezeWaitBatch = null;
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (cleanLayer) cleanLayer.dataset.freezeMode = 'dynamic';
+  updateNorgeFreezeUi();
+  refreshNorgeCleanLoadStatus();
+}
+
 function setInstrumentZoomPercent(percent) {
+  cancelNorgeFreezeWait();
   const pct = Math.max(25, Math.min(50000000, percent));
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, 10000 / pct));
   applyCamera();
@@ -2485,6 +2545,7 @@ function setInstrumentZoomPercent(percent) {
 }
 
 function setInstrumentGridOffset({ x = camState.target.x, y = camState.target.z }) {
+  cancelNorgeFreezeWait();
   camState.target.x = Math.max(-40, Math.min(40, x));
   camState.target.z = Math.max(-40, Math.min(40, y));
   applyCamera();
@@ -2521,6 +2582,7 @@ function focusBaseMap(selected) {
 }
 
 function panCameraTarget(dx, dy) {
+  cancelNorgeFreezeWait();
   // dx, dy er piksel-delta. Skalér til scene-enheter basert på dist (zoom-nivå).
   // Ved dist=100 og 60° FOV: én piksel ~ dist/canvas.height scene-enheter.
   const h = canvas.clientHeight || window.innerHeight;
@@ -2594,6 +2656,7 @@ function screenToMapWorld(clientX, clientY) {
 }
 
 function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
+  cancelNorgeFreezeWait();
   // Adaptiv zoom: multiplikativ. Mindre følsom enn før.
   const before = anchorEvent ? screenToMapWorld(anchorEvent.clientX, anchorEvent.clientY) : null;
   const factor = Math.pow(1.0008, deltaY);
@@ -2687,6 +2750,8 @@ let norgeDetailKey = '';
 let norgeCleanDetailKey = '';
 let norgeCleanLastContext = null;
 let norgeFrozenDetailLayer = false;
+let norgeFreezeMode = 'dynamic';
+let norgeFreezeWaitBatch = null;
 const norgeCleanLabSamples = [];
 const norgeCleanTileManager = {
   active: 0,
@@ -3157,6 +3222,7 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.queue = [];
   norgeCleanTileManager.active = 0;
   norgeCleanTileManager.currentBatch += 1;
+  if (norgeFreezeMode === 'waiting') norgeFreezeWaitBatch = norgeCleanTileManager.currentBatch;
   norgeCleanTileManager.requested = 0;
   norgeCleanTileManager.loaded = 0;
   norgeCleanTileManager.cached = 0;
@@ -3192,6 +3258,7 @@ function processNorgeCleanTileQueue() {
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
       refreshNorgeCleanLoadStatus();
+      checkNorgeFreezeWhenLoaded();
     };
     img.onerror = () => {
       if (job.batch !== norgeCleanTileManager.currentBatch) return;
@@ -3201,9 +3268,11 @@ function processNorgeCleanTileQueue() {
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
       refreshNorgeCleanLoadStatus();
+      checkNorgeFreezeWhenLoaded();
     };
     img.src = job.src;
   }
+  checkNorgeFreezeWhenLoaded();
 }
 
 function queueNorgeCleanTile(img, src, priority = 0) {
@@ -3215,6 +3284,7 @@ function queueNorgeCleanTile(img, src, priority = 0) {
     norgeCleanTileManager.cached += 1;
     rememberNorgeCleanTile(src);
     refreshNorgeCleanLoadStatus();
+    checkNorgeFreezeWhenLoaded();
     return;
   }
   norgeCleanTileManager.queue.push({ img, src, priority, batch: norgeCleanTileManager.currentBatch });
@@ -3443,8 +3513,10 @@ function norgeCleanLoadLine() {
     cacheSize: manager.cache.size,
     maxConcurrent: manager.maxConcurrent,
     currentBatch: manager.currentBatch,
+    freezeMode: norgeFreezeMode,
+    frozen: norgeFrozenDetailLayer,
   };
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed`;
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, freeze ${norgeFreezeMode}`;
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -3649,6 +3721,7 @@ function projectNorgeCleanScreenPoint(lat, lon, zoom, originX, originY, transfor
 }
 
 function focusNorgeSurfaceLatLon(lat, lon, label = '') {
+  cancelNorgeFreezeWait();
   const target = aeProject(lat, lon);
   camState.target.set(target.x, 0, target.z);
   camState.dist = Math.min(camState.dist, 4);
@@ -3663,6 +3736,7 @@ function focusNorgeSurfaceLatLon(lat, lon, label = '') {
 }
 
 function selectNorgeBaseMap(value) {
+  cancelNorgeFreezeWait();
   const input = document.querySelector(`input[name="norge-base"][value="${value}"]`);
   if (!input) return;
   input.checked = true;
@@ -4061,12 +4135,16 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     rmsResidualPx: Number(primaryTransform.rmsResidual.toFixed(3)),
     layers: sources.map(source => source.layer),
   });
+  checkNorgeFreezeWhenLoaded();
 }
 
 function scheduleNorgeDetailTiles() {
   if (norgeFrozenDetailLayer) return;
   clearTimeout(norgeDetailTimer);
-  norgeDetailTimer = setTimeout(updateNorgeDetailTiles, 120);
+  norgeDetailTimer = setTimeout(() => {
+    norgeDetailTimer = null;
+    updateNorgeDetailTiles();
+  }, 120);
 }
 
 function norgeSurfacePointerToImage(e) {
@@ -4504,6 +4582,9 @@ function bindNorgeSurfaceEngine() {
   });
   document.getElementById('norge-freeze-layer')?.addEventListener('click', () => {
     setNorgeFrozenDetailLayer(!norgeFrozenDetailLayer);
+  });
+  document.getElementById('norge-freeze-when-loaded')?.addEventListener('click', () => {
+    requestNorgeFreezeWhenLoaded();
   });
   document.getElementById('norge-focus-south')?.addEventListener('click', () => {
     selectNorgeBaseMap('sjokartraster');
