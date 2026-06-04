@@ -1,0 +1,709 @@
+{
+  "type": "FeatureCollection",
+  "name": "marine-2km-nordic-poc.coverage.plan",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "properties": {
+    "atlasId": "marine-2km-nordic-poc",
+    "lod": "marine-2km",
+    "captureMethod": "static-engine-dry-run",
+    "sourceOfTruth": "current app.js request/grid formulas, no browser network capture",
+    "generatedAt": "2026-06-04",
+    "branch": "codex/v7-overview-base-atlas",
+    "baseCommit": "503013b",
+    "downloadedImages": 0,
+    "noDataStatus": "unknown-until-approved-download"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "union-bounds",
+        "captureMethod": "static-engine-dry-run",
+        "status": "planned",
+        "regions": [
+          "norway",
+          "iceland",
+          "grimsey",
+          "sweden",
+          "transition"
+        ],
+        "zoom": 13,
+        "downloadedImages": 0,
+        "note": "Union of planned scenario tile ranges; no image content was fetched, so no-data is unknown."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -19.55566406,
+              59.04055462
+            ],
+            [
+              18.6328125,
+              59.04055462
+            ],
+            [
+              18.6328125,
+              66.77458576
+            ],
+            [
+              -19.55566406,
+              66.77458576
+            ],
+            [
+              -19.55566406,
+              59.04055462
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-tile-range",
+        "captureMethod": "static-engine-dry-run",
+        "captureScenario": "norway-main-2km",
+        "region": "norway",
+        "baseMap": "sjokartraster",
+        "focusName": "Norge focusBaseMap reference",
+        "focusLat": 66.55,
+        "focusLon": 14,
+        "zoom": 13,
+        "tileRange": {
+          "xMin": 4402,
+          "xMax": 4426,
+          "yMin": 2033,
+          "yMax": 2057,
+          "centerTile": {
+            "x": 4414,
+            "y": 2045
+          },
+          "overscan": 12
+        },
+        "tileCountPerSource": 625,
+        "status": "planned",
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              13.44726563,
+              66.33750502
+            ],
+            [
+              14.54589844,
+              66.33750502
+            ],
+            [
+              14.54589844,
+              66.77458576
+            ],
+            [
+              13.44726563,
+              66.77458576
+            ],
+            [
+              13.44726563,
+              66.33750502
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "norway-main-2km",
+        "region": "norway",
+        "sourceId": "kartverket-sjokartraster",
+        "sourceType": "kartverket",
+        "layer": "sjokartraster",
+        "role": "base",
+        "anchorMode": "norway",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              13.44726563,
+              66.33750502
+            ],
+            [
+              14.54589844,
+              66.33750502
+            ],
+            [
+              14.54589844,
+              66.77458576
+            ],
+            [
+              13.44726563,
+              66.77458576
+            ],
+            [
+              13.44726563,
+              66.33750502
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-tile-range",
+        "captureMethod": "static-engine-dry-run",
+        "captureScenario": "iceland-main-2km",
+        "region": "iceland",
+        "baseMap": "iceland-sjokart",
+        "focusName": "Island senter",
+        "focusLat": 64.9631,
+        "focusLon": -19.0208,
+        "zoom": 13,
+        "tileRange": {
+          "xMin": 3651,
+          "xMax": 3675,
+          "yMin": 2121,
+          "yMax": 2145,
+          "centerTile": {
+            "x": 3663,
+            "y": 2133
+          },
+          "overscan": 12
+        },
+        "tileCountPerSource": 625,
+        "status": "planned",
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -19.55566406,
+              64.7366414
+            ],
+            [
+              -18.45703125,
+              64.7366414
+            ],
+            [
+              -18.45703125,
+              65.20146842
+            ],
+            [
+              -19.55566406,
+              65.20146842
+            ],
+            [
+              -19.55566406,
+              64.7366414
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "iceland-main-2km",
+        "region": "iceland",
+        "sourceId": "iceland-sjokart-sjomaelingar-sjokort",
+        "sourceType": "wms-iceland-sjokart",
+        "layer": "Sjomaelingar:Sjokort_Sjomaelinga",
+        "role": "base",
+        "anchorMode": "iceland",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -19.55566406,
+              64.7366414
+            ],
+            [
+              -18.45703125,
+              64.7366414
+            ],
+            [
+              -18.45703125,
+              65.20146842
+            ],
+            [
+              -19.55566406,
+              65.20146842
+            ],
+            [
+              -19.55566406,
+              64.7366414
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-tile-range",
+        "captureMethod": "static-engine-dry-run",
+        "captureScenario": "grimsey-2km",
+        "region": "grimsey",
+        "baseMap": "iceland-sjokart",
+        "focusName": "Grimsey, Iceland",
+        "focusLat": 66.545525,
+        "focusLon": -18.011092,
+        "zoom": 13,
+        "tileRange": {
+          "xMin": 3674,
+          "xMax": 3698,
+          "yMin": 2034,
+          "yMax": 2058,
+          "centerTile": {
+            "x": 3686,
+            "y": 2046
+          },
+          "overscan": 12
+        },
+        "tileCountPerSource": 625,
+        "status": "planned",
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -18.54492188,
+              66.31986145
+            ],
+            [
+              -17.44628906,
+              66.31986145
+            ],
+            [
+              -17.44628906,
+              66.75724984
+            ],
+            [
+              -18.54492188,
+              66.75724984
+            ],
+            [
+              -18.54492188,
+              66.31986145
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "grimsey-2km",
+        "region": "grimsey",
+        "sourceId": "iceland-sjokart-sjomaelingar-sjokort",
+        "sourceType": "wms-iceland-sjokart",
+        "layer": "Sjomaelingar:Sjokort_Sjomaelinga",
+        "role": "base",
+        "anchorMode": "iceland",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -18.54492188,
+              66.31986145
+            ],
+            [
+              -17.44628906,
+              66.31986145
+            ],
+            [
+              -17.44628906,
+              66.75724984
+            ],
+            [
+              -18.54492188,
+              66.75724984
+            ],
+            [
+              -18.54492188,
+              66.31986145
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-tile-range",
+        "captureMethod": "static-engine-dry-run",
+        "captureScenario": "sweden-2km",
+        "region": "sweden",
+        "baseMap": "sweden-seachart",
+        "focusName": "Sweden - Stockholm archipelago",
+        "focusLat": 59.33,
+        "focusLon": 18.07,
+        "zoom": 13,
+        "tileRange": {
+          "xMin": 4495,
+          "xMax": 4519,
+          "yMin": 2397,
+          "yMax": 2421,
+          "centerTile": {
+            "x": 4507,
+            "y": 2409
+          },
+          "overscan": 12
+        },
+        "tileCountPerSource": 625,
+        "status": "planned",
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              17.53417969,
+              59.04055462
+            ],
+            [
+              18.6328125,
+              59.04055462
+            ],
+            [
+              18.6328125,
+              59.60109549
+            ],
+            [
+              17.53417969,
+              59.60109549
+            ],
+            [
+              17.53417969,
+              59.04055462
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "sweden-2km",
+        "region": "sweden",
+        "sourceId": "sweden-fyren-ogcwmslayer0",
+        "sourceType": "wms-sweden-fyren",
+        "layer": "OgcWmsLayer0",
+        "role": "base",
+        "anchorMode": "norway",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              17.53417969,
+              59.04055462
+            ],
+            [
+              18.6328125,
+              59.04055462
+            ],
+            [
+              18.6328125,
+              59.60109549
+            ],
+            [
+              17.53417969,
+              59.60109549
+            ],
+            [
+              17.53417969,
+              59.04055462
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-tile-range",
+        "captureMethod": "static-engine-dry-run",
+        "captureScenario": "assembled-transition-2km",
+        "region": "transition",
+        "baseMap": "assembled-nordic",
+        "focusName": "Assembled Nordic surface",
+        "focusLat": 64.5,
+        "focusLon": 4,
+        "zoom": 13,
+        "tileRange": {
+          "xMin": 4175,
+          "xMax": 4199,
+          "yMin": 2146,
+          "yMax": 2170,
+          "centerTile": {
+            "x": 4187,
+            "y": 2158
+          },
+          "overscan": 12
+        },
+        "tileCountPerSource": 625,
+        "status": "planned",
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.47167969,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.26368374
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "assembled-transition-2km",
+        "region": "transition",
+        "sourceId": "sweden-fyren-ogcwmslayer0",
+        "sourceType": "wms-sweden-fyren",
+        "layer": "OgcWmsLayer0",
+        "role": "base",
+        "anchorMode": "norway",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.47167969,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.26368374
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "assembled-transition-2km",
+        "region": "transition",
+        "sourceId": "denmark-havplan-2024",
+        "sourceType": "wms-denmark-havplan",
+        "layer": "Danmarks_havplan_af_28_juni_2024",
+        "role": "overlay",
+        "anchorMode": "norway",
+        "includedInFirstScope": false,
+        "status": "excluded-by-scope",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.47167969,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.26368374
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "assembled-transition-2km",
+        "region": "transition",
+        "sourceId": "iceland-sjokart-sjomaelingar-sjokort",
+        "sourceType": "wms-iceland-sjokart",
+        "layer": "Sjomaelingar:Sjokort_Sjomaelinga",
+        "role": "overlay",
+        "anchorMode": "norway",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.47167969,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.26368374
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "atlasId": "marine-2km-nordic-poc",
+        "coverageKind": "scenario-source-range",
+        "captureScenario": "assembled-transition-2km",
+        "region": "transition",
+        "sourceId": "kartverket-sjokartraster",
+        "sourceType": "kartverket",
+        "layer": "sjokartraster",
+        "role": "overlay",
+        "anchorMode": "norway",
+        "includedInFirstScope": true,
+        "status": "planned",
+        "plannedRequests": 625,
+        "downloadedImages": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.47167969,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.26368374
+            ],
+            [
+              4.5703125,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.7366414
+            ],
+            [
+              3.47167969,
+              64.26368374
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
