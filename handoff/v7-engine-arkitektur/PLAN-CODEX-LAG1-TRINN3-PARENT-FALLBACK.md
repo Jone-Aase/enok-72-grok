@@ -44,7 +44,7 @@ Begrunnelse:
 
 Praktisk modell:
 
-- hver fine tile-slot kan faa ett ekstra `img`-element for fallback
+- hver fine tile-slot kan faa ett ekstra fallback-element
 - fallback-elementet legges for barnet i DOM eller gis lavere z-index
 - barnet er endelig visning nar det er lastet
 - fallback fjernes eller skjules nar barnet er klart
@@ -89,11 +89,39 @@ Dette holder Trinn 3 liten og hindrer ekstra lastestorm.
 
 ## Hvordan plasseres foreldre-bildet?
 
-Foreldre-bildet skal dekke samme lokale tile-slot som barnet.
+Foreldre-bildet skal dekke samme lokale tile-slot som barnet, men det maa vise riktig utsnitt av forelderen.
+
+Viktig: en barn-tile er bare en kvadrant av direkte forelder. Hvis hele foreldre-bildet vises i barnets slot uten klipping, blir fallback-bildet forskyvet.
+
+For direkte forelder gjelder:
+
+```text
+quadrantX = x % 2
+quadrantY = y % 2
+```
+
+For flere nivaaer opp:
+
+```text
+levels = z - ancestorZ
+scale = 2 ** levels
+offsetX = (x % scale) * 256
+offsetY = (y % scale) * 256
+backgroundSize = 256 * scale
+```
+
+Forste patch bor derfor bruke et fallback-element i samme slot, med foreldrebildet som `background-image`, og:
+
+```text
+background-size: backgroundSize px backgroundSize px
+background-position: -offsetX px -offsetY px
+```
+
+Dette viser riktig utsnitt av foreldre-tilen uten aa endre barnets `left`, `top`, `width`, `height`, pane-transform eller kartgeometri.
 
 Det betyr:
 
-- fallback-bildet strekkes visuelt innenfor barnets 256px slot
+- fallback-bildet klippes visuelt innenfor barnets 256px slot
 - dette er midlertidig visuell reserve, ikke maalegeometri
 - barnets faktiske tile erstatter fallback nar den er lastet
 
