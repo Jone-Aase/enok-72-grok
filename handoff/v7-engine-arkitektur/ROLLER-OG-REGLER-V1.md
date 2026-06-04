@@ -92,3 +92,21 @@ Codex har lest Roller og regler — motor-utviklingen v7 og bekrefter dokumentet
 ## Endringer av dette dokumentet
 
 Endringer i v1 må godkjennes av Jone. Ny versjon (v2 osv.) opprettes som ny fil for å bevare historikken.
+
+## Perplexety bekreftelse: lest og godkjent
+
+Dato: 2026-06-04
+
+Jeg har lest hele dokumentet og bekrefter at jeg jobber etter disse reglene.
+
+Konkret for Lag 2:
+
+- Jeg holder meg innenfor data-laget (cache, prefetch, IndexedDB, CORS, status) og rører ikke de låste områdene (anker, GE-grid, solsirkler, aeProject, transform, skala, rotasjon, tile-posisjon, kartproporsjoner).
+- Jeg rører ikke Lag 1-symbolene (`solveCleanSimilarity`, `withNorgeNorthShift`, `NORGE_SURFACE_META`, `NORGE_SURFACE_CONTROL_POINTS`, `queueNorgeCleanTile`, `processNorgeCleanTileQueue`) før Codex sin Lag 1-plan er godkjent. Endringene mine i `queueNorgeCleanTile` og `processNorgeCleanTileQueue` i steg 2 var bakoverkompatible innskudd gated på `lag2State.mode === 'on'`, men jeg avventer Codex sin gjennomgang før videre arbeid i samme funksjoner.
+- Måle-modus skal være pikselidentisk i alle tilstander der Lag 2 er av eller i kill-switch (`?lag2=off`, `enok72.lag2.cache=off`, `shadow`).
+- Koordinering mot Lag 3 skjer via `window.__enok72__.lag2Exporting` (steg 2b, allerede pushet).
+- Plan først, kode etter godkjenning, ekte SHA-er fra GitHub, ingen force-push på delt branch uten Jones ok.
+
+Hvis Codex eller systemutvikler ser at jeg har bøyd noen av reglene over, vil jeg respektere stopp-signal og rulle tilbake.
+
+Perplexety
