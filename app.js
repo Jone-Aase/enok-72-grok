@@ -3143,6 +3143,9 @@ function currentNorgeDetailSources() {
   if (document.getElementById('norge-layer-nib')?.checked) {
     sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
   }
+  if (document.getElementById('norge-layer-se-eiendom')?.checked) {
+    sources.push({ type: 'wms-se-eiendom', layer: 'eiendomskart,presentasjonsdata', role: 'overlay' });
+  }
   return sources;
 }
 
@@ -3207,6 +3210,15 @@ function detailTileUrl(source, z, x, y, bounds) {
       `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}` +
       tokenParam;
   }
+  if (source.type === 'wms-se-eiendom') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://wms.geonorge.no/skwms1/wms.matrikkel?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
   return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
 }
 
@@ -3240,6 +3252,15 @@ function cleanDetailTileUrl(source, z, x, y) {
       `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
   }
   if (source.type === 'wms-nib') return '';
+  if (source.type === 'wms-se-eiendom') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://wms.geonorge.no/skwms1/wms.matrikkel?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
   return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
 }
 
@@ -4919,7 +4940,7 @@ function initNorgeSurfaceMap() {
     mouseGridToggle.disabled = true;
     mouseGridToggle.title = 'Ny motor: venstre-drag panorerer alltid som Google Earth';
   }
-  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-both-seacharts')
+  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-se-eiendom, #norge-layer-both-seacharts')
     .forEach(el => {
       el.disabled = false;
       el.title = '';
