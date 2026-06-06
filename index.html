@@ -1508,19 +1508,24 @@
         <div id="norge-controls">
           <div class="norge-section">
             <div class="norge-title">Bakgrunnskart</div>
+            <div style="font-size:10px;color:#9a8a58;margin:2px 0 5px">Kartverket / gamle Leaflet-valg</div>
+            <label><input type="radio" name="norge-base" value="topograatone"> Topografisk gråtone</label>
+            <label><input type="radio" name="norge-base" value="topo"> Topografisk farge</label>
+            <label><input type="radio" name="norge-base" value="toporaster"> Turkart-raster (N50/N5)</label>
+            <label><input type="radio" name="norge-base" value="osm"> OpenStreetMap</label>
+            <div style="font-size:10px;color:#9a8a58;margin:8px 0 5px">Sjøkart og regionale testflater</div>
             <label><input type="radio" name="norge-base" value="sjokartraster" checked> SjÃ¸kart hovedlag</label>
             <label><input type="radio" name="norge-base" value="iceland-sjokart"> Island sjÃƒÂ¸kart (offisiell)</label>
             <label><input type="radio" name="norge-base" value="denmark-havplan"> Denmark marine plan (official WMS)</label>
             <label><input type="radio" name="norge-base" value="sweden-seachart"> Sweden seachart (official WMS)</label>
             <label><input type="radio" name="norge-base" value="assembled-nordic"> Assembled Nordic surface</label>
-            <label><input type="radio" name="norge-base" value="topo"> Land/vei topo</label>
-            <label><input type="radio" name="norge-base" value="toporaster"> Turkart-raster (N50/N5)</label>
-            <label><input type="radio" name="norge-base" value="osm"> Verdenskart / vei (OSM)</label>
           </div>
           <div class="norge-section">
             <div class="norge-title">Kartlag</div>
             <label><input type="checkbox" id="norge-layer-geo-grid" checked> Geografisk grid</label>
             <label><input type="checkbox" id="norge-layer-square-grid" checked> Square grid 110.593 km/Â°</label>
+            <label><input type="checkbox" id="norge-layer-sjokart"> Sjøkart som overlay</label>
+            <label><input type="checkbox" id="norge-layer-nib"> Norge i bilder / ortofoto</label>
             <label><input type="checkbox" id="norge-layer-cities" checked> Kontrollpunkter og landemerker</label>
             <label><input type="checkbox" id="norge-layer-both-seacharts"> Norge + Island sjÃƒÂ¸kart samtidig</label>
             <button id="norge-focus-grimsey" type="button">GÃƒÂ¥ til GrÃƒÂ­msey</button>
