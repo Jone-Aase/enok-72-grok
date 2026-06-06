@@ -4165,7 +4165,7 @@ function fitTileRangeToBudget(tileRange, sourcesLength) {
 }
 
 function expandNorgeTileRange(tileRange, zoom) {
-  const pad = zoom >= 14 ? 16 : zoom >= 11 ? 12 : 8;
+  const pad = zoom >= 16 ? 4 : zoom >= 14 ? 8 : zoom >= 11 ? 12 : 8;
   const worldTiles = 2 ** zoom;
   const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
   const seLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMax, NORGE_SURFACE_DETAIL.bounds.latMin, zoom);
@@ -4195,11 +4195,15 @@ function updateNorgeDetailTiles() {
   if (!cleanLayer || !norgeSurface) return;
   const bounds = visibleNorgeSourceBounds();
   if (!bounds || bounds.latMax <= bounds.latMin || bounds.lonMax <= bounds.lonMin) {
-    if (detailLayer) detailLayer.replaceChildren();
-    if (cleanLayer) cleanLayer.replaceChildren();
-    norgeDetailKey = '';
-    norgeCleanDetailKey = '';
-    resetNorgeCleanDiagnosticsV1();
+    Object.assign(norgeCleanDiagnosticsV1, {
+      visibleTileCount: 0,
+      requestTileCount: 0,
+      visibleRange: null,
+      expandedRange: null,
+      fittedRange: null,
+      clipped: false,
+    });
+    refreshNorgeCleanLoadStatus();
     return;
   }
 
@@ -4223,7 +4227,8 @@ function updateNorgeDetailTiles() {
   const count = (xMax - xMin + 1) * (yMax - yMin + 1);
   const visibleRange = { xMin, xMax, yMin, yMax, count };
   const expandedRange = expandNorgeTileRange(visibleRange, zoom);
-  tileRange = fitTileRangeToBudget(expandedRange, sources.length);
+  const baseSourceCount = sources.filter(source => source.role !== 'overlay').length || sources.length;
+  tileRange = fitTileRangeToBudget(expandedRange, baseSourceCount);
   if (!tileRange) return;
 
   const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
@@ -4338,7 +4343,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
           const src = cleanDetailTileUrl(source, zoom, x, y);
           if (!src) continue;
-          const layerPriority = source.role === 'overlay' ? 0.2 : 0;
+          const layerPriority = source.role === 'overlay' ? 1000 : 0;
           const anchorPriority = config.anchorMode === primaryMode ? 0 : 0.05;
           const priority = Math.hypot(x - centerX, y - centerY) + layerPriority + anchorPriority;
           tileJobs.push({ source, x, y, src, priority, pane });
