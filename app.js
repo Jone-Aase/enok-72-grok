@@ -2787,9 +2787,11 @@ const norgeCleanDiagnosticsV1 = {
   fittedRange: null,
   overscan: 0,
   clipped: false,
+  boundsSource: '',
   outsideVisibleJobs: 0,
   overscanJobs: 0,
 };
+let norgeLastVisibleSourceBounds = null;
 let norgeAppliedPan = { x: 0, y: 0 };
 const LOCKED_NORGE_VIEW = {
   center: [65.0, 15.0],
@@ -3333,6 +3335,7 @@ function resetNorgeCleanDiagnosticsV1() {
     fittedRange: null,
     overscan: 0,
     clipped: false,
+    boundsSource: '',
     outsideVisibleJobs: 0,
     overscanJobs: 0,
   });
@@ -3732,6 +3735,7 @@ function norgeCleanLoadLine() {
       outsideVisibleJobs: diag.outsideVisibleJobs,
       overscan: diag.overscan,
       clipped: diag.clipped,
+      boundsSource: diag.boundsSource,
       visibleRange: diag.visibleRange,
       expandedRange: diag.expandedRange,
       fittedRange: diag.fittedRange,
@@ -3741,7 +3745,7 @@ function norgeCleanLoadLine() {
   const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
   const diagText = diag.zoom === null
     ? ''
-    : `\nDiag V1: z${diag.zoom}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
+    : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
   return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${diagText}`;
 }
 
@@ -4091,23 +4095,41 @@ function visibleNorgeSourceBounds() {
   if (!mapEl || !wrap) return null;
   const wrapRect = wrap.getBoundingClientRect();
 
-  // Leaflet-lignende utsnitt: beregn synlig kartflate fra kamera/vindu,
-  // ikke fra den store DOM-flaten. Ved ekstrem zoom kan DOM-flaten ligge
-  // langt utenfor skjermen selv om kameraet ser Norge korrekt.
-  const screenPad = 48;
-  const worldPts = [
-    screenToMapWorld(wrapRect.left - screenPad, wrapRect.top - screenPad),
-    screenToMapWorld(wrapRect.right + screenPad, wrapRect.top - screenPad),
-    screenToMapWorld(wrapRect.left - screenPad, wrapRect.bottom + screenPad),
-    screenToMapWorld(wrapRect.right + screenPad, wrapRect.bottom + screenPad),
-    screenToMapWorld(wrapRect.left + wrapRect.width / 2, wrapRect.top + wrapRect.height / 2),
-  ].filter(Boolean).map(p => worldPointToLatLon(p.x, p.z));
+  const samplePoints = [
+    [wrapRect.left, wrapRect.top],
+    [wrapRect.left + wrapRect.width / 2, wrapRect.top],
+    [wrapRect.right, wrapRect.top],
+    [wrapRect.left, wrapRect.top + wrapRect.height / 2],
+    [wrapRect.left + wrapRect.width / 2, wrapRect.top + wrapRect.height / 2],
+    [wrapRect.right, wrapRect.top + wrapRect.height / 2],
+    [wrapRect.left, wrapRect.bottom],
+    [wrapRect.left + wrapRect.width / 2, wrapRect.bottom],
+    [wrapRect.right, wrapRect.bottom],
+  ];
+  const worldPts = samplePoints
+    .map(([x, y]) => screenToMapWorld(x, y))
+    .filter(Boolean)
+    .map(p => worldPointToLatLon(p.x, p.z));
   if (worldPts.length >= 3) {
     const latMin = Math.max(NORGE_SURFACE_DETAIL.bounds.latMin, Math.min(...worldPts.map(p => p.lat)));
     const latMax = Math.min(NORGE_SURFACE_DETAIL.bounds.latMax, Math.max(...worldPts.map(p => p.lat)));
     const lonMin = Math.max(NORGE_SURFACE_DETAIL.bounds.lonMin, Math.min(...worldPts.map(p => p.lon)));
     const lonMax = Math.min(NORGE_SURFACE_DETAIL.bounds.lonMax, Math.max(...worldPts.map(p => p.lon)));
-    if (latMax > latMin && lonMax > lonMin) return { latMin, latMax, lonMin, lonMax };
+    if (latMax > latMin && lonMax > lonMin) {
+      norgeLastVisibleSourceBounds = { latMin, latMax, lonMin, lonMax };
+      norgeCleanDiagnosticsV1.boundsSource = 'camera';
+      return norgeLastVisibleSourceBounds;
+    }
+  }
+
+  const pct = Math.max(100, Math.round(100 / camState.dist * 100));
+  if (norgeLastVisibleSourceBounds) {
+    norgeCleanDiagnosticsV1.boundsSource = 'last-valid';
+    return norgeLastVisibleSourceBounds;
+  }
+  if (pct >= 1000) {
+    norgeCleanDiagnosticsV1.boundsSource = 'camera-miss';
+    return null;
   }
 
   const mapRect = mapEl.getBoundingClientRect();
@@ -4126,7 +4148,6 @@ function visibleNorgeSourceBounds() {
     };
   };
 
-  const pct = Math.max(100, Math.round(100 / camState.dist * 100));
   const pad = pct >= 1000 ? 0 : 120;
   const pts = [
     screenToSource(left - pad, top - pad),
@@ -4134,12 +4155,19 @@ function visibleNorgeSourceBounds() {
     screenToSource(left - pad, bottom + pad),
     screenToSource(right + pad, bottom + pad),
   ].map(p => unprojectNorgeSurfacePoint(p.x, p.y));
-  return {
+  const result = {
     latMin: Math.max(NORGE_SURFACE_DETAIL.bounds.latMin, Math.min(...pts.map(p => p.lat))),
     latMax: Math.min(NORGE_SURFACE_DETAIL.bounds.latMax, Math.max(...pts.map(p => p.lat))),
     lonMin: Math.max(NORGE_SURFACE_DETAIL.bounds.lonMin, Math.min(...pts.map(p => p.lon))),
     lonMax: Math.min(NORGE_SURFACE_DETAIL.bounds.lonMax, Math.max(...pts.map(p => p.lon))),
   };
+  if (result.latMax > result.latMin && result.lonMax > result.lonMin) {
+    norgeCleanDiagnosticsV1.boundsSource = 'dom-fallback';
+    norgeLastVisibleSourceBounds = result;
+    return result;
+  }
+  norgeCleanDiagnosticsV1.boundsSource = 'none';
+  return null;
 }
 
 function fitTileRangeToBudget(tileRange, sourcesLength, centerRange = null) {
