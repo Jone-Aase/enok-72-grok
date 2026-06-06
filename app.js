@@ -2772,6 +2772,24 @@ const norgeCleanTileManager = {
   fallbackHits: 0,
   fallbackMisses: 0,
 };
+const norgeCleanDiagnosticsV1 = {
+  zoom: null,
+  screenKey: '',
+  sourceCount: 0,
+  cleanSourceCount: 0,
+  paneCount: 0,
+  tileJobCount: 0,
+  visibleTileCount: 0,
+  overscanTileCount: 0,
+  requestTileCount: 0,
+  visibleRange: null,
+  expandedRange: null,
+  fittedRange: null,
+  overscan: 0,
+  clipped: false,
+  outsideVisibleJobs: 0,
+  overscanJobs: 0,
+};
 let norgeAppliedPan = { x: 0, y: 0 };
 const LOCKED_NORGE_VIEW = {
   center: [65.0, 15.0],
@@ -3256,6 +3274,49 @@ function rememberNorgeCleanTile(src) {
   }
 }
 
+function countNorgeCleanTilesInRange(range) {
+  if (!range) return 0;
+  return Math.max(0, range.xMax - range.xMin + 1) * Math.max(0, range.yMax - range.yMin + 1);
+}
+
+function cloneNorgeCleanTileRange(range) {
+  if (!range) return null;
+  return {
+    xMin: range.xMin,
+    xMax: range.xMax,
+    yMin: range.yMin,
+    yMax: range.yMax,
+    count: range.count || countNorgeCleanTilesInRange(range),
+    overscan: range.overscan || 0,
+    clipped: !!range.clipped,
+  };
+}
+
+function isNorgeTileInRange(x, y, range) {
+  return !!range && x >= range.xMin && x <= range.xMax && y >= range.yMin && y <= range.yMax;
+}
+
+function resetNorgeCleanDiagnosticsV1() {
+  Object.assign(norgeCleanDiagnosticsV1, {
+    zoom: null,
+    screenKey: '',
+    sourceCount: 0,
+    cleanSourceCount: 0,
+    paneCount: 0,
+    tileJobCount: 0,
+    visibleTileCount: 0,
+    overscanTileCount: 0,
+    requestTileCount: 0,
+    visibleRange: null,
+    expandedRange: null,
+    fittedRange: null,
+    overscan: 0,
+    clipped: false,
+    outsideVisibleJobs: 0,
+    overscanJobs: 0,
+  });
+}
+
 function norgeCleanNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
@@ -3617,6 +3678,7 @@ function syncNorgeCleanControls() {
 
 function norgeCleanLoadLine() {
   const manager = norgeCleanTileManager;
+  const diag = norgeCleanDiagnosticsV1;
   window.__norgeCleanTileManager = {
     active: manager.active,
     requested: manager.requested,
@@ -3635,9 +3697,31 @@ function norgeCleanLoadLine() {
     currentBatch: manager.currentBatch,
     freezeMode: norgeFreezeMode,
     frozen: norgeFrozenDetailLayer,
+    diagnosticsV1: {
+      zoom: diag.zoom,
+      screenKey: diag.screenKey,
+      sourceCount: diag.sourceCount,
+      cleanSourceCount: diag.cleanSourceCount,
+      paneCount: diag.paneCount,
+      tileJobCount: diag.tileJobCount,
+      visibleTileCount: diag.visibleTileCount,
+      overscanTileCount: diag.overscanTileCount,
+      requestTileCount: diag.requestTileCount,
+      overscanJobs: diag.overscanJobs,
+      outsideVisibleJobs: diag.outsideVisibleJobs,
+      overscan: diag.overscan,
+      clipped: diag.clipped,
+      visibleRange: diag.visibleRange,
+      expandedRange: diag.expandedRange,
+      fittedRange: diag.fittedRange,
+      fallbackIndicatorNote: 'diagnostic only; confirmed fallback is tracked by DOM/data fallbackId and fallback counters',
+    },
   };
   const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}`;
+  const diagText = diag.zoom === null
+    ? ''
+    : `\nDiag V1: z${diag.zoom}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${diagText}`;
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -4094,6 +4178,7 @@ function updateNorgeDetailTiles() {
     if (cleanLayer) cleanLayer.replaceChildren();
     norgeDetailKey = '';
     norgeCleanDetailKey = '';
+    resetNorgeCleanDiagnosticsV1();
     return;
   }
 
@@ -4103,6 +4188,7 @@ function updateNorgeDetailTiles() {
     if (cleanLayer) cleanLayer.replaceChildren();
     norgeDetailKey = '';
     norgeCleanDetailKey = '';
+    resetNorgeCleanDiagnosticsV1();
     return;
   }
   let zoom = currentNorgeDetailZoom(bounds);
@@ -4114,12 +4200,26 @@ function updateNorgeDetailTiles() {
   const yMin = Math.max(0, Math.floor(Math.min(nw.y, se.y)));
   const yMax = Math.floor(Math.max(nw.y, se.y));
   const count = (xMax - xMin + 1) * (yMax - yMin + 1);
-  tileRange = expandNorgeTileRange({ xMin, xMax, yMin, yMax, count }, zoom);
-  tileRange = fitTileRangeToBudget(tileRange, sources.length);
+  const visibleRange = { xMin, xMax, yMin, yMax, count };
+  const expandedRange = expandNorgeTileRange(visibleRange, zoom);
+  tileRange = fitTileRangeToBudget(expandedRange, sources.length);
   if (!tileRange) return;
 
   const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
   const screenKey = `${camState.dist.toExponential(3)}:${camState.target.x.toFixed(3)}:${camState.target.z.toFixed(3)}:${Math.round(cw)}x${Math.round(ch)}`;
+  Object.assign(norgeCleanDiagnosticsV1, {
+    zoom,
+    screenKey,
+    sourceCount: sources.length,
+    visibleTileCount: countNorgeCleanTilesInRange(visibleRange),
+    overscanTileCount: Math.max(0, countNorgeCleanTilesInRange(expandedRange) - countNorgeCleanTilesInRange(visibleRange)),
+    requestTileCount: countNorgeCleanTilesInRange(tileRange),
+    visibleRange: cloneNorgeCleanTileRange(visibleRange),
+    expandedRange: cloneNorgeCleanTileRange(expandedRange),
+    fittedRange: cloneNorgeCleanTileRange(tileRange),
+    overscan: expandedRange.overscan || 0,
+    clipped: !!tileRange.clipped,
+  });
   const key = `${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}`;
   if (key === norgeDetailKey) return;
   norgeDetailKey = key;
@@ -4140,6 +4240,13 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   if (!sources.length) {
     cleanLayer.replaceChildren();
     norgeCleanDetailKey = '';
+    Object.assign(norgeCleanDiagnosticsV1, {
+      cleanSourceCount: 0,
+      paneCount: 0,
+      tileJobCount: 0,
+      outsideVisibleJobs: 0,
+      overscanJobs: 0,
+    });
     updateNorgeCleanStatus(null, 0, sources, zoom);
     return;
   }
@@ -4161,6 +4268,13 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   if (!paneConfigs.length) {
     cleanLayer.replaceChildren();
     norgeCleanDetailKey = '';
+    Object.assign(norgeCleanDiagnosticsV1, {
+      cleanSourceCount: sources.length,
+      paneCount: 0,
+      tileJobCount: 0,
+      outsideVisibleJobs: 0,
+      overscanJobs: 0,
+    });
     updateNorgeCleanStatus(null, 0, sources, zoom);
     return;
   }
@@ -4180,6 +4294,9 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     height: `${(tileRange.yMax - tileRange.yMin + 1) * tileSize}px`,
   };
   const tileJobs = [];
+  let outsideVisibleJobs = 0;
+  let overscanJobs = 0;
+  const visibleRange = norgeCleanDiagnosticsV1.visibleRange;
   paneConfigs.forEach((config, index) => {
     const pane = document.createElement('div');
     pane.className = 'norge-clean-pixelflate';
@@ -4204,9 +4321,20 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
           const anchorPriority = config.anchorMode === primaryMode ? 0 : 0.05;
           const priority = Math.hypot(x - centerX, y - centerY) + layerPriority + anchorPriority;
           tileJobs.push({ source, x, y, src, priority, pane });
+          if (!isNorgeTileInRange(x, y, visibleRange)) {
+            outsideVisibleJobs += 1;
+            overscanJobs += 1;
+          }
         }
       }
     }
+  });
+  Object.assign(norgeCleanDiagnosticsV1, {
+    cleanSourceCount: sources.length,
+    paneCount: panes.length,
+    tileJobCount: tileJobs.length,
+    outsideVisibleJobs,
+    overscanJobs,
   });
 
   tileJobs.sort((a, b) => a.priority - b.priority);
