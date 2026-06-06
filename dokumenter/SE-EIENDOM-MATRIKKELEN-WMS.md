@@ -26,7 +26,14 @@ wms-se-eiendom
 
 Lag brukt i WMS GetMap:
 
+eiendomsgrense,grensepunkt,adresse,eiendoms_id
+
+Tidligere testet lag:
+
 eiendomskart,presentasjonsdata
+
+Dette ga mange brutte WMS-bilder ved Oslo-testen og er derfor ikke aktivt i
+arbeidskopien.
 
 ## Regel for bruk
 

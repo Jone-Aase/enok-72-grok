@@ -3144,7 +3144,7 @@ function currentNorgeDetailSources() {
     sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
   }
   if (document.getElementById('norge-layer-se-eiendom')?.checked) {
-    sources.push({ type: 'wms-se-eiendom', layer: 'eiendomskart,presentasjonsdata', role: 'overlay' });
+    sources.push({ type: 'wms-se-eiendom', layer: 'eiendomsgrense,grensepunkt,adresse,eiendoms_id', role: 'overlay' });
   }
   return sources;
 }
