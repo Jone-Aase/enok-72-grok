@@ -2788,6 +2788,7 @@ const norgeCleanDiagnosticsV1 = {
   overscan: 0,
   clipped: false,
   boundsSource: '',
+  coverageGuard: null,
   outsideVisibleJobs: 0,
   overscanJobs: 0,
 };
@@ -3319,6 +3320,96 @@ function isNorgeTileInRange(x, y, range) {
   return !!range && x >= range.xMin && x <= range.xMax && y >= range.yMin && y <= range.yMax;
 }
 
+function norgeCleanPaneScreenRectForRange(range, zoom, anchorMode = primaryCleanAnchorMode()) {
+  if (!range) return null;
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const originX = range.xMin * tileSize;
+  const originY = range.yMin * tileSize;
+  const transform = cleanNorgeTransform(zoom, originX, originY, anchorMode);
+  if (!transform) return null;
+  const width = (range.xMax - range.xMin + 1) * tileSize;
+  const height = (range.yMax - range.yMin + 1) * tileSize;
+  const corners = [
+    applyCleanTransformPoint(transform, { x: 0, y: 0 }),
+    applyCleanTransformPoint(transform, { x: width, y: 0 }),
+    applyCleanTransformPoint(transform, { x: 0, y: height }),
+    applyCleanTransformPoint(transform, { x: width, y: height }),
+  ];
+  return {
+    left: Math.min(...corners.map(p => p.x)),
+    right: Math.max(...corners.map(p => p.x)),
+    top: Math.min(...corners.map(p => p.y)),
+    bottom: Math.max(...corners.map(p => p.y)),
+  };
+}
+
+function norgeCleanViewportCoverage(rect) {
+  if (!rect || !wrap) return null;
+  const viewport = wrap.getBoundingClientRect();
+  const missing = {
+    left: Math.max(0, rect.left - viewport.left),
+    right: Math.max(0, viewport.right - rect.right),
+    top: Math.max(0, rect.top - viewport.top),
+    bottom: Math.max(0, viewport.bottom - rect.bottom),
+  };
+  return {
+    ...missing,
+    total: missing.left + missing.right + missing.top + missing.bottom,
+  };
+}
+
+function norgeTileRangeLimit(zoom) {
+  const worldTiles = 2 ** zoom;
+  const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
+  const seLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMax, NORGE_SURFACE_DETAIL.bounds.latMin, zoom);
+  return {
+    xMin: Math.max(0, Math.floor(Math.min(nwLimit.x, seLimit.x))),
+    xMax: Math.min(worldTiles - 1, Math.floor(Math.max(nwLimit.x, seLimit.x))),
+    yMin: Math.max(0, Math.floor(Math.min(nwLimit.y, seLimit.y))),
+    yMax: Math.min(worldTiles - 1, Math.floor(Math.max(nwLimit.y, seLimit.y))),
+  };
+}
+
+function expandNorgeTileRangeToCoverViewport(range, zoom, sourcesLength) {
+  if (!range) return range;
+  const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.maxTiles / Math.max(1, sourcesLength)));
+  const limit = norgeTileRangeLimit(zoom);
+  let current = { ...range, count: countNorgeCleanTilesInRange(range) };
+  let guard = { expanded: 0, before: null, after: null, limited: false };
+  for (let i = 0; i < 64; i++) {
+    const rect = norgeCleanPaneScreenRectForRange(current, zoom);
+    const coverage = norgeCleanViewportCoverage(rect);
+    if (!coverage) break;
+    if (!guard.before) guard.before = coverage;
+    guard.after = coverage;
+    if (coverage.total <= 2) break;
+    const candidates = [];
+    const pushCandidate = next => {
+      next.count = countNorgeCleanTilesInRange(next);
+      if (next.count <= maxTilesPerSource) {
+        const nextRect = norgeCleanPaneScreenRectForRange(next, zoom);
+        const nextCoverage = norgeCleanViewportCoverage(nextRect);
+        if (nextCoverage) candidates.push({ range: next, coverage: nextCoverage });
+      }
+    };
+    if (current.xMin > limit.xMin) pushCandidate({ ...current, xMin: current.xMin - 1 });
+    if (current.xMax < limit.xMax) pushCandidate({ ...current, xMax: current.xMax + 1 });
+    if (current.yMin > limit.yMin) pushCandidate({ ...current, yMin: current.yMin - 1 });
+    if (current.yMax < limit.yMax) pushCandidate({ ...current, yMax: current.yMax + 1 });
+    if (!candidates.length) {
+      guard.limited = true;
+      break;
+    }
+    candidates.sort((a, b) => a.coverage.total - b.coverage.total);
+    if (candidates[0].coverage.total >= coverage.total - 0.1) break;
+    current = candidates[0].range;
+    guard.expanded += 1;
+  }
+  current.count = countNorgeCleanTilesInRange(current);
+  current.coverageGuard = guard;
+  return current;
+}
+
 function resetNorgeCleanDiagnosticsV1() {
   Object.assign(norgeCleanDiagnosticsV1, {
     zoom: null,
@@ -3336,6 +3427,7 @@ function resetNorgeCleanDiagnosticsV1() {
     overscan: 0,
     clipped: false,
     boundsSource: '',
+    coverageGuard: null,
     outsideVisibleJobs: 0,
     overscanJobs: 0,
   });
@@ -3736,6 +3828,7 @@ function norgeCleanLoadLine() {
       overscan: diag.overscan,
       clipped: diag.clipped,
       boundsSource: diag.boundsSource,
+      coverageGuard: diag.coverageGuard,
       visibleRange: diag.visibleRange,
       expandedRange: diag.expandedRange,
       fittedRange: diag.fittedRange,
@@ -3743,9 +3836,12 @@ function norgeCleanLoadLine() {
     },
   };
   const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
+  const guardText = diag.coverageGuard
+    ? `, guard +${diag.coverageGuard.expanded}${diag.coverageGuard.after ? ` miss ${diag.coverageGuard.after.total.toFixed(0)}px` : ''}`
+    : '';
   const diagText = diag.zoom === null
     ? ''
-    : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
+    : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}${guardText}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
   return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${diagText}`;
 }
 
@@ -4258,6 +4354,7 @@ function updateNorgeDetailTiles() {
   const expandedRange = expandNorgeTileRange(visibleRange, zoom);
   const baseSourceCount = sources.filter(source => source.role !== 'overlay').length || sources.length;
   tileRange = fitTileRangeToBudget(expandedRange, baseSourceCount, visibleRange);
+  tileRange = expandNorgeTileRangeToCoverViewport(tileRange, zoom, baseSourceCount);
   if (!tileRange) return;
 
   const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
@@ -4274,6 +4371,7 @@ function updateNorgeDetailTiles() {
     fittedRange: cloneNorgeCleanTileRange(tileRange),
     overscan: expandedRange.overscan || 0,
     clipped: !!tileRange.clipped,
+    coverageGuard: tileRange.coverageGuard || null,
   });
   const key = `${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}`;
   if (key === norgeDetailKey) return;
