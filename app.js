@@ -4194,7 +4194,7 @@ function fitTileRangeToBudget(tileRange, sourcesLength, centerRange = null) {
 }
 
 function expandNorgeTileRange(tileRange, zoom) {
-  const pad = zoom >= 16 ? 4 : zoom >= 14 ? 8 : zoom >= 11 ? 12 : 8;
+  const pad = zoom >= 16 ? 1 : zoom >= 14 ? 2 : zoom >= 11 ? 3 : 8;
   const worldTiles = 2 ** zoom;
   const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
   const seLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMax, NORGE_SURFACE_DETAIL.bounds.latMin, zoom);
