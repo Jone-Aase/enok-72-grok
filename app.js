@@ -4142,18 +4142,19 @@ function visibleNorgeSourceBounds() {
   };
 }
 
-function fitTileRangeToBudget(tileRange, sourcesLength) {
+function fitTileRangeToBudget(tileRange, sourcesLength, centerRange = null) {
   const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.maxTiles / Math.max(1, sourcesLength)));
   if (tileRange.count <= maxTilesPerSource) return tileRange;
   const width = tileRange.xMax - tileRange.xMin + 1;
   const height = tileRange.yMax - tileRange.yMin + 1;
-  const centerX = Math.round((tileRange.xMin + tileRange.xMax) / 2);
-  const centerY = Math.round((tileRange.yMin + tileRange.yMax) / 2);
+  const centerSource = centerRange || tileRange;
+  const centerX = Math.round((centerSource.xMin + centerSource.xMax) / 2);
+  const centerY = Math.round((centerSource.yMin + centerSource.yMax) / 2);
   const aspect = Math.max(0.25, Math.min(4, width / Math.max(1, height)));
   const fittedWidth = Math.max(1, Math.min(width, Math.floor(Math.sqrt(maxTilesPerSource * aspect))));
   const fittedHeight = Math.max(1, Math.min(height, Math.floor(maxTilesPerSource / fittedWidth)));
-  const xMin = Math.max(tileRange.xMin, centerX - Math.floor(fittedWidth / 2));
-  const yMin = Math.max(tileRange.yMin, centerY - Math.floor(fittedHeight / 2));
+  const xMin = Math.max(tileRange.xMin, Math.min(tileRange.xMax - fittedWidth + 1, centerX - Math.floor(fittedWidth / 2)));
+  const yMin = Math.max(tileRange.yMin, Math.min(tileRange.yMax - fittedHeight + 1, centerY - Math.floor(fittedHeight / 2)));
   return {
     xMin,
     xMax: Math.min(tileRange.xMax, xMin + fittedWidth - 1),
@@ -4228,7 +4229,7 @@ function updateNorgeDetailTiles() {
   const visibleRange = { xMin, xMax, yMin, yMax, count };
   const expandedRange = expandNorgeTileRange(visibleRange, zoom);
   const baseSourceCount = sources.filter(source => source.role !== 'overlay').length || sources.length;
-  tileRange = fitTileRangeToBudget(expandedRange, baseSourceCount);
+  tileRange = fitTileRangeToBudget(expandedRange, baseSourceCount, visibleRange);
   if (!tileRange) return;
 
   const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
