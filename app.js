@@ -2771,6 +2771,8 @@ const norgeCleanTileManager = {
   failed: 0,
   fallbackHits: 0,
   fallbackMisses: 0,
+  staging: null,
+  lastStageStatus: 'none',
 };
 const norgeCleanDiagnosticsV1 = {
   zoom: null,
@@ -3288,6 +3290,55 @@ function resetNorgeCleanTileQueue() {
   refreshNorgeCleanLoadStatus();
 }
 
+function getNorgeCleanActivePanes(cleanLayer) {
+  if (!cleanLayer) return [];
+  return [...cleanLayer.querySelectorAll('.norge-clean-pixelflate')]
+    .filter(pane => pane.dataset.paneState !== 'staging' && pane.dataset.paneState !== 'retiring');
+}
+
+function markNorgeCleanStageBase(job, state) {
+  const stage = norgeCleanTileManager.staging;
+  if (!stage || !job?.stageId || stage.id !== job.stageId || !job.isBase) return;
+  if (state === 'failed') {
+    stage.baseFailed += 1;
+  } else {
+    stage.baseReady += 1;
+  }
+}
+
+function maybeSwapNorgeCleanStaging(stageId) {
+  const stage = norgeCleanTileManager.staging;
+  const cleanLayer = document.getElementById('norge-clean-detail-layer');
+  if (!stage || stage.swapped || stage.id !== stageId || !cleanLayer) return;
+  const stagingPanes = [...cleanLayer.querySelectorAll(`.norge-clean-pixelflate[data-pane-state="staging"][data-stage-id="${stageId}"]`)];
+  if (!stagingPanes.length) return;
+  const baseComplete = stage.baseRequired === 0 || stage.baseReady >= stage.baseRequired;
+  const baseDoneWithFailures = stage.baseRequired === 0 || stage.baseReady + stage.baseFailed >= stage.baseRequired;
+  if (!baseComplete && (stage.hadActivePane || !baseDoneWithFailures)) {
+    norgeCleanTileManager.lastStageStatus = `staging ${stage.baseReady}/${stage.baseRequired}`;
+    refreshNorgeCleanLoadStatus();
+    return;
+  }
+
+  const oldPanes = [...cleanLayer.querySelectorAll('.norge-clean-pixelflate')]
+    .filter(pane => pane.dataset.stageId !== String(stageId));
+  stagingPanes.forEach(pane => {
+    pane.dataset.paneState = 'active';
+    pane.style.visibility = '';
+  });
+  oldPanes.forEach(pane => {
+    pane.dataset.paneState = 'retiring';
+    pane.style.visibility = 'hidden';
+    setTimeout(() => {
+      if (pane.dataset.paneState === 'retiring') pane.remove();
+    }, 250);
+  });
+  stage.swapped = true;
+  norgeCleanTileManager.lastStageStatus = `active ${stage.baseReady}/${stage.baseRequired}`;
+  refreshNorgeCleanLoadStatus();
+  syncNorgeCleanControls();
+}
+
 function rememberNorgeCleanTile(src) {
   if (!src) return;
   if (norgeCleanTileManager.cache.has(src)) norgeCleanTileManager.cache.delete(src);
@@ -3534,6 +3585,8 @@ function processNorgeCleanTileQueue() {
       img.dataset.loadedZ = img.dataset.z || '';
       removeNorgeCleanParentFallback(img);
       rememberNorgeCleanTile(job.src);
+      markNorgeCleanStageBase(job, 'loaded');
+      maybeSwapNorgeCleanStaging(job.stageId);
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
       refreshNorgeCleanLoadStatus();
@@ -3543,6 +3596,8 @@ function processNorgeCleanTileQueue() {
       if (job.batch !== norgeCleanTileManager.currentBatch) return;
       norgeCleanTileManager.active = Math.max(0, norgeCleanTileManager.active - 1);
       norgeCleanTileManager.failed += 1;
+      markNorgeCleanStageBase(job, 'failed');
+      maybeSwapNorgeCleanStaging(job.stageId);
       img.remove();
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
@@ -3558,7 +3613,7 @@ function processNorgeCleanTileQueue() {
   checkNorgeFreezeWhenLoaded();
 }
 
-function queueNorgeCleanTile(img, src, priority = 0) {
+function queueNorgeCleanTile(img, src, priority = 0, meta = null) {
   if (!src) return;
   img.dataset.src = src;
   if (norgeCleanTileManager.cache.has(src)) {
@@ -3567,6 +3622,8 @@ function queueNorgeCleanTile(img, src, priority = 0) {
     img.dataset.loadedZ = img.dataset.z || '';
     norgeCleanTileManager.cached += 1;
     rememberNorgeCleanTile(src);
+    markNorgeCleanStageBase(meta, 'cached');
+    maybeSwapNorgeCleanStaging(meta?.stageId);
     refreshNorgeCleanLoadStatus();
     checkNorgeFreezeWhenLoaded();
     return;
@@ -3576,7 +3633,7 @@ function queueNorgeCleanTile(img, src, priority = 0) {
   const qualityGap = Number.isFinite(targetZ) && Number.isFinite(availableZ)
     ? Math.max(0, targetZ - availableZ)
     : 0;
-  const job = { img, src, priority, targetZ, availableZ, qualityGap, batch: norgeCleanTileManager.currentBatch };
+  const job = { img, src, priority, targetZ, availableZ, qualityGap, batch: norgeCleanTileManager.currentBatch, ...(meta || {}) };
   job.priorityScore = computeNorgeCleanPriorityScore(job);
   norgeCleanTileManager.queue.push(job);
 }
@@ -3811,6 +3868,15 @@ function norgeCleanLoadLine() {
     yieldCount: manager.yieldCount,
     lastPumpMs: Number(manager.lastPumpMs.toFixed(2)),
     currentBatch: manager.currentBatch,
+    staging: manager.staging ? {
+      id: manager.staging.id,
+      baseRequired: manager.staging.baseRequired,
+      baseReady: manager.staging.baseReady,
+      baseFailed: manager.staging.baseFailed,
+      swapped: manager.staging.swapped,
+      hadActivePane: manager.staging.hadActivePane,
+    } : null,
+    lastStageStatus: manager.lastStageStatus,
     freezeMode: norgeFreezeMode,
     frozen: norgeFrozenDetailLayer,
     diagnosticsV1: {
@@ -3842,7 +3908,11 @@ function norgeCleanLoadLine() {
   const diagText = diag.zoom === null
     ? ''
     : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}${guardText}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${diagText}`;
+  const stage = manager.staging;
+  const stageText = stage
+    ? `, stage ${manager.lastStageStatus || 'staging'}`
+    : '';
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${stageText}${diagText}`;
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -4393,6 +4463,8 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   if (!sources.length) {
     cleanLayer.replaceChildren();
     norgeCleanDetailKey = '';
+    norgeCleanTileManager.staging = null;
+    norgeCleanTileManager.lastStageStatus = 'none';
     Object.assign(norgeCleanDiagnosticsV1, {
       cleanSourceCount: 0,
       paneCount: 0,
@@ -4419,7 +4491,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     transform: cleanNorgeTransform(zoom, originX, originY, anchorMode),
   })).filter(config => config.transform);
   if (!paneConfigs.length) {
-    cleanLayer.replaceChildren();
+    // Keep the last visible pane if transform creation fails during a transient camera update.
     norgeCleanDetailKey = '';
     Object.assign(norgeCleanDiagnosticsV1, {
       cleanSourceCount: sources.length,
@@ -4437,7 +4509,19 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   if (key === norgeCleanDetailKey) return;
   norgeCleanDetailKey = key;
 
+  const hadActivePane = getNorgeCleanActivePanes(cleanLayer).length > 0;
   resetNorgeCleanTileQueue();
+  const stageId = norgeCleanTileManager.currentBatch;
+  norgeCleanTileManager.staging = {
+    id: stageId,
+    baseRequired: 0,
+    baseReady: 0,
+    baseFailed: 0,
+    swapped: false,
+    hadActivePane,
+  };
+  norgeCleanTileManager.lastStageStatus = hadActivePane ? 'staging 0/0' : 'initial 0/0';
+  cleanLayer.querySelectorAll('.norge-clean-pixelflate[data-pane-state="staging"]').forEach(pane => pane.remove());
   const centerX = (tileRange.xMin + tileRange.xMax) / 2;
   const centerY = (tileRange.yMin + tileRange.yMax) / 2;
   const primaryMode = primaryCleanAnchorMode();
@@ -4463,6 +4547,9 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     pane.dataset.maxResidual = config.transform.maxResidual.toFixed(3);
     pane.dataset.rmsResidual = config.transform.rmsResidual.toFixed(3);
     pane.dataset.overscan = String(tileRange.overscan || 0);
+    pane.dataset.paneState = 'staging';
+    pane.dataset.stageId = String(stageId);
+    pane.style.visibility = hadActivePane ? 'hidden' : '';
     panes.push({ pane, ...config });
 
     for (const source of config.sources) {
@@ -4474,6 +4561,7 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
           const anchorPriority = config.anchorMode === primaryMode ? 0 : 0.05;
           const priority = Math.hypot(x - centerX, y - centerY) + layerPriority + anchorPriority;
           tileJobs.push({ source, x, y, src, priority, pane });
+          if (source.role !== 'overlay') norgeCleanTileManager.staging.baseRequired += 1;
           if (!isNorgeTileInRange(x, y, visibleRange)) {
             outsideVisibleJobs += 1;
             overscanJobs += 1;
@@ -4509,14 +4597,18 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
           const fallback = addNorgeCleanParentFallback(img, job.source, zoom, job.x, job.y);
           if (fallback) job.pane.appendChild(fallback);
         }
-        queueNorgeCleanTile(img, job.src, job.priority);
+        queueNorgeCleanTile(img, job.src, job.priority, {
+          stageId,
+          isBase: job.source.role !== 'overlay',
+        });
         job.pane.appendChild(img);
   }
   norgeCleanTileManager.queue.sort(compareNorgeCleanTileJobs);
   const fragment = document.createDocumentFragment();
   panes.forEach(config => fragment.appendChild(config.pane));
-  cleanLayer.replaceChildren(fragment);
+  cleanLayer.appendChild(fragment);
   if (detailLayer) detailLayer.replaceChildren();
+  maybeSwapNorgeCleanStaging(stageId);
   processNorgeCleanTileQueue();
   const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
   const primaryTransform = primaryPane.transform;
