@@ -2796,6 +2796,14 @@ const norgeLeafletStyleEngine = {
     queueCenter: null,
     queueCap: 0,
     queueRejectedReason: '',
+    tileDescriptors: [],
+    descriptorPreview: [],
+    descriptorPreviewLimit: 12,
+    previewTruncated: false,
+    countsByRequestType: {},
+    validationSummary: { valid: 0, invalid: 0, errors: [] },
+    loadCandidates: 0,
+    rejectedCandidates: 0,
     rejected: false,
     warnings: [],
   },
@@ -2803,7 +2811,7 @@ const norgeLeafletStyleEngine = {
   sourceVersion: 'v1',
   lastSnapshot: null,
   stats: {
-    phase: '2D-center-out-dry-run',
+    phase: '2E-passive-tile-descriptors',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2839,6 +2847,18 @@ const norgeLeafletStyleEngine = {
     queueCap: 0,
     queueFirstDistance: null,
     queuePreviewDistances: [],
+    descriptorPreviewCount: 0,
+    descriptorPreviewLimit: 12,
+    previewTruncated: false,
+    loadCandidates: 0,
+    rejectedCandidates: 0,
+    countsByRequestType: {},
+    validationInvalid: 0,
+    validationErrors: [],
+    firstDescriptorRequestType: '',
+    firstDescriptorSourceKind: '',
+    firstDescriptorValid: false,
+    firstDescriptorLoaderAllowed: false,
     baseSourceCount: 0,
     overlaySourceCount: 0,
     baseWanted: 0,
@@ -2962,6 +2982,115 @@ const norgeLeafletStyleEngine = {
       || a.key.localeCompare(b.key)
     );
     return queue;
+  },
+  inferPassiveSourceContract(source) {
+    const sourceText = [
+      source?.id,
+      source?.type,
+      source?.layer,
+    ].filter(Boolean).join(' ').toLowerCase();
+    if (!source) return { requestType: 'unknown', sourceKind: 'unknown' };
+    if (sourceText.includes('se-eiendom') || sourceText.includes('matrikkel') || sourceText.includes('eiendom')) {
+      return { requestType: 'wms', sourceKind: 'se-eiendom' };
+    }
+    if ((source.type || '').startsWith('wms-') || sourceText.includes(' wms') || sourceText.includes('wms-')) {
+      return { requestType: 'wms', sourceKind: 'wms' };
+    }
+    if (source.type === 'kartverket') return { requestType: 'xyz', sourceKind: 'wmts' };
+    if (source.type === 'osm') return { requestType: 'xyz', sourceKind: 'other' };
+    if (sourceText.includes('local') || sourceText.includes('assembled')) {
+      return { requestType: 'local', sourceKind: 'other' };
+    }
+    if (source.type === 'none') return { requestType: 'none', sourceKind: 'other' };
+    return { requestType: 'unknown', sourceKind: 'unknown' };
+  },
+  validatePassiveTileDescriptor(descriptor) {
+    const errors = [];
+    const minZoom = NORGE_SURFACE_DETAIL.minZoom;
+    const maxZoom = NORGE_SURFACE_DETAIL.maxZoom;
+    const worldTiles = Number.isInteger(descriptor.z) ? Math.pow(2, descriptor.z) : 0;
+    if (!descriptor.sourceId) errors.push('missing sourceId');
+    if (!['base', 'overlay'].includes(descriptor.role)) errors.push(`invalid role ${descriptor.role}`);
+    if (!['visible', 'keep'].includes(descriptor.band)) errors.push(`invalid band ${descriptor.band}`);
+    if (!Number.isInteger(descriptor.z)) errors.push('z is not integer');
+    if (!Number.isInteger(descriptor.nativeZ)) errors.push('nativeZ is not integer');
+    if (Number.isInteger(descriptor.z) && (descriptor.z < minZoom || descriptor.z > maxZoom)) {
+      errors.push(`z ${descriptor.z} outside ${minZoom}-${maxZoom}`);
+    }
+    if (!Number.isInteger(descriptor.x)) errors.push('x is not integer');
+    if (!Number.isInteger(descriptor.y)) errors.push('y is not integer');
+    if (worldTiles > 0 && (descriptor.x < 0 || descriptor.x >= worldTiles)) {
+      errors.push(`x ${descriptor.x} outside 0-${worldTiles - 1}`);
+    }
+    if (worldTiles > 0 && (descriptor.y < 0 || descriptor.y >= worldTiles)) {
+      errors.push(`y ${descriptor.y} outside 0-${worldTiles - 1}`);
+    }
+    if (!['xyz', 'wms', 'local', 'none', 'unknown'].includes(descriptor.requestType)) {
+      errors.push(`invalid requestType ${descriptor.requestType}`);
+    }
+    if (descriptor.requestType === 'unknown') errors.push('unknown requestType');
+    if (descriptor.sourceKind === 'unknown') errors.push('unknown sourceKind');
+    return errors;
+  },
+  buildPassiveTileDescriptors(snapshot, diff) {
+    const previewLimit = 12;
+    const queue = Array.isArray(diff.priorityQueue) ? diff.priorityQueue : [];
+    const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
+    const shouldPreviewOnly = diff.rejected || queue.length > diff.queueCap;
+    const descriptorItems = shouldPreviewOnly ? queue.slice(0, previewLimit) : queue;
+    const countsByRequestType = { xyz: 0, wms: 0, local: 0, none: 0, unknown: 0 };
+    const validationSummary = { valid: 0, invalid: 0, errors: [] };
+    const tileDescriptors = descriptorItems.map(item => {
+      const source = sourceMap.get(item.sourceId) || null;
+      const sourceContract = this.inferPassiveSourceContract(source);
+      const descriptor = {
+        sourceId: item.sourceId || '',
+        role: item.role === 'overlay' ? 'overlay' : 'base',
+        band: item.band === 'visible' ? 'visible' : 'keep',
+        z: Number.isInteger(item.z) ? item.z : Number(item.z),
+        nativeZ: Number.isInteger(item.nativeZ) ? item.nativeZ : Number(item.nativeZ),
+        x: Number.isInteger(item.x) ? item.x : Number(item.x),
+        y: Number.isInteger(item.y) ? item.y : Number(item.y),
+        priorityGroup: Number.isFinite(item.priorityGroup) ? item.priorityGroup : 99,
+        sourceOrder: Number.isFinite(item.sourceOrder) ? item.sourceOrder : 0,
+        distanceToCenter: Number.isFinite(item.distanceToCenter) ? item.distanceToCenter : 0,
+        requestType: sourceContract.requestType,
+        sourceKind: sourceContract.sourceKind,
+        validTile: false,
+        validationErrors: [],
+        loaderAllowed: false,
+        loadingEnabled: false,
+      };
+      descriptor.validationErrors = this.validatePassiveTileDescriptor(descriptor);
+      descriptor.validTile = descriptor.validationErrors.length === 0;
+      countsByRequestType[descriptor.requestType] = (countsByRequestType[descriptor.requestType] || 0) + 1;
+      if (descriptor.validTile) {
+        validationSummary.valid += 1;
+      } else {
+        validationSummary.invalid += 1;
+        descriptor.validationErrors.forEach(error => {
+          if (validationSummary.errors.length < 12) {
+            validationSummary.errors.push(`${descriptor.sourceId || 'unknown'} ${descriptor.z}/${descriptor.x}/${descriptor.y}: ${error}`);
+          }
+        });
+      }
+      return descriptor;
+    });
+    const descriptorPreview = tileDescriptors.slice(0, previewLimit);
+    return {
+      tileDescriptors,
+      descriptorPreview,
+      descriptorPreviewLimit: previewLimit,
+      previewTruncated: queue.length > previewLimit,
+      countsByRequestType,
+      validationSummary,
+      loadCandidates: tileDescriptors.filter(descriptor => descriptor.validTile).length,
+      rejectedCandidates: validationSummary.invalid,
+      rejected: shouldPreviewOnly,
+      queueRejectedReason: shouldPreviewOnly && !diff.queueRejectedReason
+        ? `descriptor preview limited by cap ${diff.queueCap}`
+        : diff.queueRejectedReason,
+    };
   },
   computeTileDiff(snapshot) {
     const warnings = [];
@@ -3163,9 +3292,38 @@ const norgeLeafletStyleEngine = {
           distanceToCenter: Number(item.distanceToCenter.toFixed(3)),
           priorityGroup: item.priorityGroup,
         })),
+        queuePreviewDescriptors: this.dryRun.descriptorPreview.map(descriptor => ({
+          sourceId: descriptor.sourceId,
+          role: descriptor.role,
+          band: descriptor.band,
+          z: descriptor.z,
+          nativeZ: descriptor.nativeZ,
+          x: descriptor.x,
+          y: descriptor.y,
+          priorityGroup: descriptor.priorityGroup,
+          sourceOrder: descriptor.sourceOrder,
+          distanceToCenter: Number(descriptor.distanceToCenter.toFixed(3)),
+          requestType: descriptor.requestType,
+          sourceKind: descriptor.sourceKind,
+          validTile: descriptor.validTile,
+          validationErrors: [...descriptor.validationErrors],
+          loaderAllowed: false,
+          loadingEnabled: false,
+        })),
         queueCenter: this.dryRun.queueCenter ? { ...this.dryRun.queueCenter } : null,
         queueCap: this.dryRun.queueCap,
         queueRejectedReason: this.dryRun.queueRejectedReason,
+        descriptorPreviewCount: this.dryRun.descriptorPreview.length,
+        descriptorPreviewLimit: this.dryRun.descriptorPreviewLimit,
+        previewTruncated: this.dryRun.previewTruncated,
+        countsByRequestType: { ...this.dryRun.countsByRequestType },
+        validationSummary: {
+          valid: this.dryRun.validationSummary.valid,
+          invalid: this.dryRun.validationSummary.invalid,
+          errors: [...this.dryRun.validationSummary.errors],
+        },
+        loadCandidates: this.dryRun.loadCandidates,
+        rejectedCandidates: this.dryRun.rejectedCandidates,
         rejected: this.dryRun.rejected,
         warnings: [...this.dryRun.warnings],
         sources: { ...this.dryRun.sourceStats },
@@ -3205,6 +3363,14 @@ const norgeLeafletStyleEngine = {
       queueCenter: null,
       queueCap: 0,
       queueRejectedReason: '',
+      tileDescriptors: [],
+      descriptorPreview: [],
+      descriptorPreviewLimit: 12,
+      previewTruncated: false,
+      countsByRequestType: {},
+      validationSummary: { valid: 0, invalid: 0, errors: [] },
+      loadCandidates: 0,
+      rejectedCandidates: 0,
       rejected: false,
       warnings: [],
     };
@@ -3237,6 +3403,18 @@ const norgeLeafletStyleEngine = {
       queueCap: 0,
       queueFirstDistance: null,
       queuePreviewDistances: [],
+      descriptorPreviewCount: 0,
+      descriptorPreviewLimit: 12,
+      previewTruncated: false,
+      loadCandidates: 0,
+      rejectedCandidates: 0,
+      countsByRequestType: {},
+      validationInvalid: 0,
+      validationErrors: [],
+      firstDescriptorRequestType: '',
+      firstDescriptorSourceKind: '',
+      firstDescriptorValid: false,
+      firstDescriptorLoaderAllowed: false,
       baseSourceCount: 0,
       overlaySourceCount: 0,
       baseWanted: 0,
@@ -3305,6 +3483,19 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.queueCap = String(this.stats.queueCap);
     this.layer.dataset.queueFirstDistance = this.stats.queueFirstDistance === null ? '' : String(this.stats.queueFirstDistance);
     this.layer.dataset.queuePreviewDistances = this.stats.queuePreviewDistances.join(',');
+    this.layer.dataset.descriptorPreviewCount = String(this.stats.descriptorPreviewCount);
+    this.layer.dataset.descriptorPreviewLimit = String(this.stats.descriptorPreviewLimit);
+    this.layer.dataset.previewTruncated = this.stats.previewTruncated ? '1' : '0';
+    this.layer.dataset.loadCandidates = String(this.stats.loadCandidates);
+    this.layer.dataset.rejectedCandidates = String(this.stats.rejectedCandidates);
+    this.layer.dataset.countsByRequestType = Object.entries(this.stats.countsByRequestType || {})
+      .map(([key, value]) => `${key}:${value}`).join(',');
+    this.layer.dataset.validationInvalid = String(this.stats.validationInvalid);
+    this.layer.dataset.validationErrors = (this.stats.validationErrors || []).join(' | ');
+    this.layer.dataset.firstDescriptorRequestType = this.stats.firstDescriptorRequestType;
+    this.layer.dataset.firstDescriptorSourceKind = this.stats.firstDescriptorSourceKind;
+    this.layer.dataset.firstDescriptorValid = this.stats.firstDescriptorValid ? '1' : '0';
+    this.layer.dataset.firstDescriptorLoaderAllowed = this.stats.firstDescriptorLoaderAllowed ? '1' : '0';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
@@ -3314,6 +3505,7 @@ const norgeLeafletStyleEngine = {
       `dry-run visible ${this.stats.visibleTiles}, keep ${this.stats.keepTiles}, enter ${this.stats.enterTiles}, stay ${this.stats.stayTiles}, leave ${this.stats.leaveTiles}\n` +
       `queue total ${this.stats.queueTotal}: base vis ${this.stats.queueVisibleBase}, overlay vis ${this.stats.queueVisibleOverlay}, base keep ${this.stats.queueKeepBase}, overlay keep ${this.stats.queueKeepOverlay}\n` +
       `queue center ${this.stats.queueCenterX === null ? '-' : this.stats.queueCenterX},${this.stats.queueCenterY === null ? '-' : this.stats.queueCenterY}; first ${this.stats.queueFirstRole || '-'} d ${this.stats.queueFirstDistance === null ? '-' : this.stats.queueFirstDistance}\n` +
+      `descriptors preview ${this.stats.descriptorPreviewCount}/${this.stats.descriptorPreviewLimit}${this.stats.previewTruncated ? ' truncated' : ''}; requests ${this.layer.dataset.countsByRequestType || '-'}; invalid ${this.stats.validationInvalid}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -3321,7 +3513,21 @@ const norgeLeafletStyleEngine = {
     if (!this.enabled) return;
     const snapshot = this.getCoreSnapshot();
     this.lastSnapshot = snapshot;
-    const diff = this.computeTileDiff(snapshot);
+    const rawDiff = this.computeTileDiff(snapshot);
+    const descriptorDiff = this.buildPassiveTileDescriptors(snapshot, rawDiff);
+    const diff = {
+      ...rawDiff,
+      tileDescriptors: descriptorDiff.tileDescriptors,
+      descriptorPreview: descriptorDiff.descriptorPreview,
+      descriptorPreviewLimit: descriptorDiff.descriptorPreviewLimit,
+      previewTruncated: descriptorDiff.previewTruncated,
+      countsByRequestType: descriptorDiff.countsByRequestType,
+      validationSummary: descriptorDiff.validationSummary,
+      loadCandidates: descriptorDiff.loadCandidates,
+      rejectedCandidates: descriptorDiff.rejectedCandidates,
+      rejected: rawDiff.rejected || descriptorDiff.rejected,
+      queueRejectedReason: descriptorDiff.queueRejectedReason || rawDiff.queueRejectedReason,
+    };
     this.dryRun = diff;
     const baseKey = this.selectedBaseKey();
     const seEnabled = document.getElementById('norge-layer-se-eiendom')?.checked === true;
@@ -3343,6 +3549,7 @@ const norgeLeafletStyleEngine = {
     const queueFirstDistance = firstQueueItem ? Number(firstQueueItem.distanceToCenter.toFixed(3)) : null;
     const queuePreviewDistances = diff.priorityQueue.slice(0, 12)
       .map(item => Number(item.distanceToCenter.toFixed(3)));
+    const firstDescriptor = diff.descriptorPreview[0] || null;
     this.stats = {
       ...this.stats,
       state: 'dry-run',
@@ -3378,6 +3585,18 @@ const norgeLeafletStyleEngine = {
       queueCap: diff.queueCap,
       queueFirstDistance,
       queuePreviewDistances,
+      descriptorPreviewCount: diff.descriptorPreview.length,
+      descriptorPreviewLimit: diff.descriptorPreviewLimit,
+      previewTruncated: diff.previewTruncated,
+      loadCandidates: diff.loadCandidates,
+      rejectedCandidates: diff.rejectedCandidates,
+      countsByRequestType: diff.countsByRequestType,
+      validationInvalid: diff.validationSummary.invalid,
+      validationErrors: diff.validationSummary.errors,
+      firstDescriptorRequestType: firstDescriptor ? firstDescriptor.requestType : '',
+      firstDescriptorSourceKind: firstDescriptor ? firstDescriptor.sourceKind : '',
+      firstDescriptorValid: firstDescriptor ? firstDescriptor.validTile : false,
+      firstDescriptorLoaderAllowed: false,
       baseSourceCount,
       overlaySourceCount,
       baseWanted,
