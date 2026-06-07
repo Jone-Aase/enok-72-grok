@@ -2784,11 +2784,22 @@ const norgeLeafletStyleEngine = {
   tileRegistry: new Map(),
   levels: new Map(),
   pendingRegistry: new Map(),
+  dryRun: {
+    visibleKeys: new Set(),
+    keepKeys: new Set(),
+    previousKeepKeys: new Set(),
+    enterKeys: new Set(),
+    stayKeys: new Set(),
+    leaveKeys: new Set(),
+    sourceStats: {},
+    rejected: false,
+    warnings: [],
+  },
   keepBuffer: 2,
   sourceVersion: 'v1',
   lastSnapshot: null,
   stats: {
-    phase: '2A-registry-snapshot-shell',
+    phase: '2B-wanted-keep-dry-run',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2802,6 +2813,14 @@ const norgeLeafletStyleEngine = {
     levelCount: 0,
     pendingCount: 0,
     keepBuffer: 2,
+    visibleTiles: 0,
+    keepTiles: 0,
+    enterTiles: 0,
+    stayTiles: 0,
+    leaveTiles: 0,
+    dryRunRejected: false,
+    dryRunWarnings: [],
+    dryRunSources: {},
     baseSourceCount: 0,
     overlaySourceCount: 0,
     baseWanted: 0,
@@ -2837,6 +2856,109 @@ const norgeLeafletStyleEngine = {
     const anchorMode = typeof source === 'string' ? 'norway' : (cleanSourceAnchorMode(source) || 'norway');
     const dprKey = Number.isFinite(dpr) ? Math.max(1, Math.round(dpr)) : 1;
     return `${sourceId}:${this.sourceVersion}:${role}:${anchorMode}:z${z}:nz${z}:x${x}:y${y}:dpr${dprKey}`;
+  },
+  countRangeTiles(range) {
+    if (!range) return 0;
+    const width = Math.max(0, range.xMax - range.xMin + 1);
+    const height = Math.max(0, range.yMax - range.yMin + 1);
+    return width * height;
+  },
+  expandRangeForKeep(range, zoom) {
+    if (!range || !Number.isFinite(zoom)) return null;
+    const worldTiles = Math.pow(2, zoom);
+    const pad = this.keepBuffer;
+    return {
+      xMin: Math.max(0, range.xMin - pad),
+      xMax: Math.min(worldTiles - 1, range.xMax + pad),
+      yMin: Math.max(0, range.yMin - pad),
+      yMax: Math.min(worldTiles - 1, range.yMax + pad),
+    };
+  },
+  addDryRunKeysForRange(keys, source, zoom, range) {
+    if (!range) return;
+    for (let x = range.xMin; x <= range.xMax; x += 1) {
+      for (let y = range.yMin; y <= range.yMax; y += 1) {
+        keys.add(this.getTileKey(source, zoom, x, y));
+      }
+    }
+  },
+  computeTileDiff(snapshot) {
+    const warnings = [];
+    const zoom = snapshot.zoom.tileZoom;
+    const visibleRange = snapshot.view.visibleRange;
+    const keepRange = this.expandRangeForKeep(visibleRange, zoom);
+    const sources = snapshot.sources.filter(source => source.enabled);
+    const visiblePerSource = this.countRangeTiles(visibleRange);
+    const keepPerSource = this.countRangeTiles(keepRange);
+    const totalKeep = keepPerSource * sources.length;
+    const maxDryRunKeys = Math.max(1, Math.min(NORGE_SURFACE_DETAIL.maxTiles, 5000));
+    const rejected = !visibleRange || !keepRange || !Number.isFinite(zoom) || totalKeep > maxDryRunKeys;
+    const visibleKeys = new Set();
+    const keepKeys = new Set();
+    const sourceStats = {};
+
+    if (!visibleRange) warnings.push('missing visibleRange');
+    if (!Number.isFinite(zoom)) warnings.push('missing tileZoom');
+    if (totalKeep > maxDryRunKeys) warnings.push(`keep key count ${totalKeep} exceeds dry-run cap ${maxDryRunKeys}`);
+
+    if (!rejected) {
+      sources.forEach(source => {
+        const sourceVisibleKeys = new Set();
+        const sourceKeepKeys = new Set();
+        this.addDryRunKeysForRange(sourceVisibleKeys, source, zoom, visibleRange);
+        this.addDryRunKeysForRange(sourceKeepKeys, source, zoom, keepRange);
+        sourceVisibleKeys.forEach(key => visibleKeys.add(key));
+        sourceKeepKeys.forEach(key => keepKeys.add(key));
+        sourceStats[source.id] = {
+          kind: source.role === 'overlay' ? 'overlay' : 'base',
+          visible: sourceVisibleKeys.size,
+          keep: sourceKeepKeys.size,
+          enter: 0,
+          stay: 0,
+          leave: 0,
+        };
+      });
+    } else {
+      sources.forEach(source => {
+        sourceStats[source.id] = {
+          kind: source.role === 'overlay' ? 'overlay' : 'base',
+          visible: visiblePerSource,
+          keep: keepPerSource,
+          enter: 0,
+          stay: 0,
+          leave: 0,
+        };
+      });
+    }
+
+    const previousKeepKeys = this.dryRun.keepKeys;
+    const enterKeys = new Set([...keepKeys].filter(key => !previousKeepKeys.has(key)));
+    const stayKeys = new Set([...keepKeys].filter(key => previousKeepKeys.has(key)));
+    const leaveKeys = new Set([...previousKeepKeys].filter(key => !keepKeys.has(key)));
+
+    if (!rejected) {
+      sources.forEach(source => {
+        const prefix = `${source.id}:${source.version}:${source.role}:${source.anchorMode}:`;
+        const stats = sourceStats[source.id];
+        stats.enter = [...enterKeys].filter(key => key.startsWith(prefix)).length;
+        stats.stay = [...stayKeys].filter(key => key.startsWith(prefix)).length;
+        stats.leave = [...leaveKeys].filter(key => key.startsWith(prefix)).length;
+      });
+    }
+
+    return {
+      visibleKeys,
+      keepKeys,
+      previousKeepKeys,
+      enterKeys,
+      stayKeys,
+      leaveKeys,
+      sourceStats,
+      rejected,
+      warnings,
+      visiblePerSource,
+      keepPerSource,
+    };
   },
   getCoreSnapshot() {
     const sources = currentNorgeDetailSources().map((source, index) => ({
@@ -2922,6 +3044,16 @@ const norgeLeafletStyleEngine = {
       pendingCount: this.pendingRegistry.size,
       snapshotReady: !!this.lastSnapshot,
       snapshot: this.lastSnapshot,
+      dryRun: {
+        visibleCount: this.dryRun.visibleKeys.size,
+        keepCount: this.dryRun.keepKeys.size,
+        enterCount: this.dryRun.enterKeys.size,
+        stayCount: this.dryRun.stayKeys.size,
+        leaveCount: this.dryRun.leaveKeys.size,
+        rejected: this.dryRun.rejected,
+        warnings: [...this.dryRun.warnings],
+        sources: { ...this.dryRun.sourceStats },
+      },
       stats: { ...this.stats },
     });
   },
@@ -2945,6 +3077,17 @@ const norgeLeafletStyleEngine = {
     this.tileRegistry.clear();
     this.levels.clear();
     this.pendingRegistry.clear();
+    this.dryRun = {
+      visibleKeys: new Set(),
+      keepKeys: new Set(),
+      previousKeepKeys: new Set(),
+      enterKeys: new Set(),
+      stayKeys: new Set(),
+      leaveKeys: new Set(),
+      sourceStats: {},
+      rejected: false,
+      warnings: [],
+    };
     this.lastSnapshot = null;
     this.stats = {
       ...this.stats,
@@ -2952,6 +3095,14 @@ const norgeLeafletStyleEngine = {
       registrySize: 0,
       levelCount: 0,
       pendingCount: 0,
+      visibleTiles: 0,
+      keepTiles: 0,
+      enterTiles: 0,
+      stayTiles: 0,
+      leaveTiles: 0,
+      dryRunRejected: false,
+      dryRunWarnings: [],
+      dryRunSources: {},
       baseSourceCount: 0,
       overlaySourceCount: 0,
       baseWanted: 0,
@@ -2996,16 +3147,24 @@ const norgeLeafletStyleEngine = {
     if (!status) return;
     const sourceText = this.stats.source || 'no source';
     const zoomText = this.stats.zoom === null ? '-' : `z${this.stats.zoom}`;
+    this.layer.dataset.engineState = this.stats.state;
     this.layer.dataset.snapshotReady = this.stats.snapshotReady ? '1' : '0';
     this.layer.dataset.registrySize = String(this.stats.registrySize);
     this.layer.dataset.levelCount = String(this.stats.levelCount);
     this.layer.dataset.pendingCount = String(this.stats.pendingCount);
+    this.layer.dataset.visibleTiles = String(this.stats.visibleTiles);
+    this.layer.dataset.keepTiles = String(this.stats.keepTiles);
+    this.layer.dataset.enterTiles = String(this.stats.enterTiles);
+    this.layer.dataset.stayTiles = String(this.stats.stayTiles);
+    this.layer.dataset.leaveTiles = String(this.stats.leaveTiles);
+    this.layer.dataset.dryRunRejected = this.stats.dryRunRejected ? '1' : '0';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
       `Kartmotor V2: ${this.stats.state}\n` +
       `${sourceText} ${zoomText}, snapshot ${this.stats.snapshotReady ? 'ready' : 'none'}\n` +
       `registry ${this.stats.registrySize}, levels ${this.stats.levelCount}, pending ${this.stats.pendingCount}\n` +
+      `dry-run visible ${this.stats.visibleTiles}, keep ${this.stats.keepTiles}, enter ${this.stats.enterTiles}, stay ${this.stats.stayTiles}, leave ${this.stats.leaveTiles}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -3013,13 +3172,21 @@ const norgeLeafletStyleEngine = {
     if (!this.enabled) return;
     const snapshot = this.getCoreSnapshot();
     this.lastSnapshot = snapshot;
+    const diff = this.computeTileDiff(snapshot);
+    this.dryRun = diff;
     const baseKey = this.selectedBaseKey();
     const seEnabled = document.getElementById('norge-layer-se-eiendom')?.checked === true;
     const baseSourceCount = snapshot.sources.filter(source => source.role !== 'overlay').length;
     const overlaySourceCount = snapshot.sources.filter(source => source.role === 'overlay').length;
+    const baseWanted = Object.values(diff.sourceStats)
+      .filter(source => source.kind === 'base')
+      .reduce((sum, source) => sum + source.keep, 0);
+    const overlayWanted = Object.values(diff.sourceStats)
+      .filter(source => source.kind === 'overlay')
+      .reduce((sum, source) => sum + source.keep, 0);
     this.stats = {
       ...this.stats,
-      state: 'shell',
+      state: 'dry-run',
       zoom: snapshot.zoom.detailZoom,
       tileZoom: snapshot.zoom.tileZoom,
       source: `${baseKey}${seEnabled ? ' + Se Eiendom' : ''}`,
@@ -3030,12 +3197,20 @@ const norgeLeafletStyleEngine = {
       levelCount: this.levels.size,
       pendingCount: this.pendingRegistry.size,
       keepBuffer: this.keepBuffer,
+      visibleTiles: diff.visibleKeys.size,
+      keepTiles: diff.keepKeys.size,
+      enterTiles: diff.enterKeys.size,
+      stayTiles: diff.stayKeys.size,
+      leaveTiles: diff.leaveKeys.size,
+      dryRunRejected: diff.rejected,
+      dryRunWarnings: diff.warnings,
+      dryRunSources: diff.sourceStats,
       baseSourceCount,
       overlaySourceCount,
-      baseWanted: 0,
+      baseWanted,
       baseLoaded: 0,
       baseReady: false,
-      overlayWanted: 0,
+      overlayWanted,
       overlayLoaded: 0,
       overlayReady: false,
       loadingCount: 0,
