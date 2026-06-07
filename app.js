@@ -2804,6 +2804,20 @@ const norgeLeafletStyleEngine = {
     validationSummary: { valid: 0, invalid: 0, errors: [] },
     loadCandidates: 0,
     rejectedCandidates: 0,
+    loaderGate: {
+      enabled: false,
+      loaderAllowed: false,
+      loadingEnabled: false,
+      wouldEnqueue: 0,
+      wouldSkip: 0,
+      wouldReject: 0,
+      futureLoadCandidates: 0,
+      maxConcurrentPlan: 0,
+      preview: [],
+      previewLimit: 12,
+      previewTruncated: false,
+      warnings: [],
+    },
     rejected: false,
     warnings: [],
   },
@@ -2811,10 +2825,24 @@ const norgeLeafletStyleEngine = {
   sourceVersion: 'v1',
   lastSnapshot: null,
   stats: {
-    phase: '2E-passive-tile-descriptors',
+    phase: '2F-noop-loader-gate',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
+    loaderAllowed: false,
+    loaderGateEnabled: false,
+    loaderGateState: 'closed',
+    maxConcurrentPlan: 0,
+    wouldEnqueue: 0,
+    wouldSkip: 0,
+    wouldReject: 0,
+    futureLoadCandidates: 0,
+    loaderPreviewCount: 0,
+    loaderPreviewLimit: 12,
+    loaderPreviewTruncated: false,
+    loaderGateWarnings: [],
+    pendingContractReady: true,
+    abortContractReady: true,
     zoom: null,
     tileZoom: null,
     source: '',
@@ -3092,6 +3120,70 @@ const norgeLeafletStyleEngine = {
         : diff.queueRejectedReason,
     };
   },
+  buildNoopLoaderGate(descriptorDiff) {
+    const previewLimit = 12;
+    const descriptors = Array.isArray(descriptorDiff.tileDescriptors) ? descriptorDiff.tileDescriptors : [];
+    const loadingEnabled = false;
+    const loaderAllowed = false;
+    const maxConcurrentPlan = 0;
+    const warnings = ['loader gate closed: 2F is no-op only'];
+    let wouldEnqueue = 0;
+    let wouldSkip = 0;
+    let wouldReject = 0;
+
+    const preview = descriptors.slice(0, previewLimit).map(descriptor => {
+      const reasons = [];
+      if (!descriptor.validTile) reasons.push(...descriptor.validationErrors);
+      if (!loaderAllowed) reasons.push('loaderAllowed=false');
+      if (!loadingEnabled) reasons.push('loadingEnabled=false');
+      const decision = descriptor.validTile && loaderAllowed && loadingEnabled ? 'enqueue' : descriptor.validTile ? 'skip' : 'reject';
+      if (decision === 'enqueue') wouldEnqueue += 1;
+      if (decision === 'skip') wouldSkip += 1;
+      if (decision === 'reject') wouldReject += 1;
+      return {
+        sourceId: descriptor.sourceId,
+        role: descriptor.role,
+        band: descriptor.band,
+        z: descriptor.z,
+        nativeZ: descriptor.nativeZ,
+        x: descriptor.x,
+        y: descriptor.y,
+        requestType: descriptor.requestType,
+        sourceKind: descriptor.sourceKind,
+        validTile: descriptor.validTile,
+        decision,
+        reasons,
+        loaderAllowed,
+        loadingEnabled,
+      };
+    });
+
+    if (descriptors.length > previewLimit) {
+      const rest = descriptors.slice(previewLimit);
+      rest.forEach(descriptor => {
+        if (!descriptor.validTile) {
+          wouldReject += 1;
+        } else {
+          wouldSkip += 1;
+        }
+      });
+    }
+
+    return {
+      enabled: false,
+      loaderAllowed,
+      loadingEnabled,
+      wouldEnqueue,
+      wouldSkip,
+      wouldReject,
+      futureLoadCandidates: descriptorDiff.loadCandidates,
+      maxConcurrentPlan,
+      preview,
+      previewLimit,
+      previewTruncated: descriptors.length > previewLimit,
+      warnings,
+    };
+  },
   computeTileDiff(snapshot) {
     const warnings = [];
     const zoom = snapshot.zoom.tileZoom;
@@ -3324,6 +3416,20 @@ const norgeLeafletStyleEngine = {
         },
         loadCandidates: this.dryRun.loadCandidates,
         rejectedCandidates: this.dryRun.rejectedCandidates,
+        loaderGate: {
+          enabled: this.dryRun.loaderGate.enabled,
+          loaderAllowed: this.dryRun.loaderGate.loaderAllowed,
+          loadingEnabled: this.dryRun.loaderGate.loadingEnabled,
+          wouldEnqueue: this.dryRun.loaderGate.wouldEnqueue,
+          wouldSkip: this.dryRun.loaderGate.wouldSkip,
+          wouldReject: this.dryRun.loaderGate.wouldReject,
+          futureLoadCandidates: this.dryRun.loaderGate.futureLoadCandidates,
+          maxConcurrentPlan: this.dryRun.loaderGate.maxConcurrentPlan,
+          preview: this.dryRun.loaderGate.preview.map(item => ({ ...item, reasons: [...item.reasons] })),
+          previewLimit: this.dryRun.loaderGate.previewLimit,
+          previewTruncated: this.dryRun.loaderGate.previewTruncated,
+          warnings: [...this.dryRun.loaderGate.warnings],
+        },
         rejected: this.dryRun.rejected,
         warnings: [...this.dryRun.warnings],
         sources: { ...this.dryRun.sourceStats },
@@ -3371,6 +3477,20 @@ const norgeLeafletStyleEngine = {
       validationSummary: { valid: 0, invalid: 0, errors: [] },
       loadCandidates: 0,
       rejectedCandidates: 0,
+      loaderGate: {
+        enabled: false,
+        loaderAllowed: false,
+        loadingEnabled: false,
+        wouldEnqueue: 0,
+        wouldSkip: 0,
+        wouldReject: 0,
+        futureLoadCandidates: 0,
+        maxConcurrentPlan: 0,
+        preview: [],
+        previewLimit: 12,
+        previewTruncated: false,
+        warnings: [],
+      },
       rejected: false,
       warnings: [],
     };
@@ -3408,6 +3528,20 @@ const norgeLeafletStyleEngine = {
       previewTruncated: false,
       loadCandidates: 0,
       rejectedCandidates: 0,
+      loaderAllowed: false,
+      loaderGateEnabled: false,
+      loaderGateState: 'closed',
+      maxConcurrentPlan: 0,
+      wouldEnqueue: 0,
+      wouldSkip: 0,
+      wouldReject: 0,
+      futureLoadCandidates: 0,
+      loaderPreviewCount: 0,
+      loaderPreviewLimit: 12,
+      loaderPreviewTruncated: false,
+      loaderGateWarnings: [],
+      pendingContractReady: true,
+      abortContractReady: true,
       countsByRequestType: {},
       validationInvalid: 0,
       validationErrors: [],
@@ -3496,6 +3630,20 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.firstDescriptorSourceKind = this.stats.firstDescriptorSourceKind;
     this.layer.dataset.firstDescriptorValid = this.stats.firstDescriptorValid ? '1' : '0';
     this.layer.dataset.firstDescriptorLoaderAllowed = this.stats.firstDescriptorLoaderAllowed ? '1' : '0';
+    this.layer.dataset.loaderAllowed = this.stats.loaderAllowed ? '1' : '0';
+    this.layer.dataset.loaderGateEnabled = this.stats.loaderGateEnabled ? '1' : '0';
+    this.layer.dataset.loaderGateState = this.stats.loaderGateState;
+    this.layer.dataset.maxConcurrentPlan = String(this.stats.maxConcurrentPlan);
+    this.layer.dataset.wouldEnqueue = String(this.stats.wouldEnqueue);
+    this.layer.dataset.wouldSkip = String(this.stats.wouldSkip);
+    this.layer.dataset.wouldReject = String(this.stats.wouldReject);
+    this.layer.dataset.futureLoadCandidates = String(this.stats.futureLoadCandidates);
+    this.layer.dataset.loaderPreviewCount = String(this.stats.loaderPreviewCount);
+    this.layer.dataset.loaderPreviewLimit = String(this.stats.loaderPreviewLimit);
+    this.layer.dataset.loaderPreviewTruncated = this.stats.loaderPreviewTruncated ? '1' : '0';
+    this.layer.dataset.loaderGateWarnings = (this.stats.loaderGateWarnings || []).join(' | ');
+    this.layer.dataset.pendingContractReady = this.stats.pendingContractReady ? '1' : '0';
+    this.layer.dataset.abortContractReady = this.stats.abortContractReady ? '1' : '0';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
@@ -3506,6 +3654,7 @@ const norgeLeafletStyleEngine = {
       `queue total ${this.stats.queueTotal}: base vis ${this.stats.queueVisibleBase}, overlay vis ${this.stats.queueVisibleOverlay}, base keep ${this.stats.queueKeepBase}, overlay keep ${this.stats.queueKeepOverlay}\n` +
       `queue center ${this.stats.queueCenterX === null ? '-' : this.stats.queueCenterX},${this.stats.queueCenterY === null ? '-' : this.stats.queueCenterY}; first ${this.stats.queueFirstRole || '-'} d ${this.stats.queueFirstDistance === null ? '-' : this.stats.queueFirstDistance}\n` +
       `descriptors preview ${this.stats.descriptorPreviewCount}/${this.stats.descriptorPreviewLimit}${this.stats.previewTruncated ? ' truncated' : ''}; requests ${this.layer.dataset.countsByRequestType || '-'}; invalid ${this.stats.validationInvalid}\n` +
+      `loader gate ${this.stats.loaderGateState}; would enqueue ${this.stats.wouldEnqueue}, skip ${this.stats.wouldSkip}, reject ${this.stats.wouldReject}; pending ${this.stats.pendingCount}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -3515,6 +3664,7 @@ const norgeLeafletStyleEngine = {
     this.lastSnapshot = snapshot;
     const rawDiff = this.computeTileDiff(snapshot);
     const descriptorDiff = this.buildPassiveTileDescriptors(snapshot, rawDiff);
+    const loaderGate = this.buildNoopLoaderGate(descriptorDiff);
     const diff = {
       ...rawDiff,
       tileDescriptors: descriptorDiff.tileDescriptors,
@@ -3525,6 +3675,7 @@ const norgeLeafletStyleEngine = {
       validationSummary: descriptorDiff.validationSummary,
       loadCandidates: descriptorDiff.loadCandidates,
       rejectedCandidates: descriptorDiff.rejectedCandidates,
+      loaderGate,
       rejected: rawDiff.rejected || descriptorDiff.rejected,
       queueRejectedReason: descriptorDiff.queueRejectedReason || rawDiff.queueRejectedReason,
     };
@@ -3597,6 +3748,20 @@ const norgeLeafletStyleEngine = {
       firstDescriptorSourceKind: firstDescriptor ? firstDescriptor.sourceKind : '',
       firstDescriptorValid: firstDescriptor ? firstDescriptor.validTile : false,
       firstDescriptorLoaderAllowed: false,
+      loaderAllowed: loaderGate.loaderAllowed,
+      loaderGateEnabled: loaderGate.enabled,
+      loaderGateState: loaderGate.enabled ? 'open' : 'closed',
+      maxConcurrentPlan: loaderGate.maxConcurrentPlan,
+      wouldEnqueue: loaderGate.wouldEnqueue,
+      wouldSkip: loaderGate.wouldSkip,
+      wouldReject: loaderGate.wouldReject,
+      futureLoadCandidates: loaderGate.futureLoadCandidates,
+      loaderPreviewCount: loaderGate.preview.length,
+      loaderPreviewLimit: loaderGate.previewLimit,
+      loaderPreviewTruncated: loaderGate.previewTruncated,
+      loaderGateWarnings: loaderGate.warnings,
+      pendingContractReady: true,
+      abortContractReady: true,
       baseSourceCount,
       overlaySourceCount,
       baseWanted,
