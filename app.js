@@ -2772,22 +2772,26 @@ const norgeCleanTileManager = {
   fallbackHits: 0,
   fallbackMisses: 0,
 };
+function deepFreezePlain(value) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  Object.keys(value).forEach(key => deepFreezePlain(value[key]));
+  return value;
+}
 const norgeLeafletStyleEngine = {
   enabled: false,
   layer: null,
-  mapEl: null,
   tileRegistry: new Map(),
   levels: new Map(),
   pendingRegistry: new Map(),
   keepBuffer: 2,
   sourceVersion: 'v1',
   lastSnapshot: null,
-  map: null,
-  baseLayers: {},
-  overlayLayers: {},
-  activeBase: null,
   stats: {
+    phase: '2A-registry-snapshot-shell',
     state: 'off',
+    loadingEnabled: false,
+    leafletRuntimeEnabled: false,
     zoom: null,
     tileZoom: null,
     source: '',
@@ -2819,10 +2823,7 @@ const norgeLeafletStyleEngine = {
   },
   init() {
     this.layer = document.getElementById('norge-leaflet-style-detail-layer');
-    this.mapEl = document.getElementById('norge-real-leaflet-map');
-    window.__norgeKartmotorV2 = this.publicState();
-    window.__enok72__ = window.__enok72__ || {};
-    window.__enok72__.kartmotorV2 = window.__norgeKartmotorV2;
+    this.publishState();
     this.sync();
   },
   makeSourceId(source) {
@@ -2835,10 +2836,10 @@ const norgeLeafletStyleEngine = {
     const role = typeof source === 'string' ? 'base' : (source?.role || 'base');
     const anchorMode = typeof source === 'string' ? 'norway' : (cleanSourceAnchorMode(source) || 'norway');
     const dprKey = Number.isFinite(dpr) ? Math.max(1, Math.round(dpr)) : 1;
-    return `${sourceId}:${this.sourceVersion}:${role}:${anchorMode}:z${z}:x${x}:y${y}:dpr${dprKey}`;
+    return `${sourceId}:${this.sourceVersion}:${role}:${anchorMode}:z${z}:nz${z}:x${x}:y${y}:dpr${dprKey}`;
   },
   getCoreSnapshot() {
-    const sources = currentNorgeDetailSources().map((source, index) => Object.freeze({
+    const sources = currentNorgeDetailSources().map((source, index) => ({
       id: this.makeSourceId(source),
       version: this.sourceVersion,
       type: source.type,
@@ -2853,11 +2854,11 @@ const norgeLeafletStyleEngine = {
       ? { ...norgeLastVisibleSourceBounds }
       : null;
     const diag = norgeCleanDiagnosticsV1;
-    return Object.freeze({
+    return deepFreezePlain({
       schema: 'kartmotor-v2-core-snapshot-v1',
       timestamp: Date.now(),
       frameId: Math.round(performance.now()),
-      geometry: Object.freeze({
+      geometry: {
         profileId: 'enok72-norge-clean-locked',
         transformId: 'cleanNorgeTransform',
         transformRevision: 'clean-v1',
@@ -2865,16 +2866,16 @@ const norgeLeafletStyleEngine = {
         aeProjectRevision: 'locked-aeProject',
         geGridRevision: 'locked-ge-grid',
         truthLocked: true,
-      }),
-      transform: Object.freeze({
+      },
+      transform: {
         tileSize: NORGE_SURFACE_DETAIL.tileSize,
         minZoom: NORGE_SURFACE_DETAIL.minZoom,
         maxZoom: NORGE_SURFACE_DETAIL.maxZoom,
         maxTiles: NORGE_SURFACE_DETAIL.maxTiles,
-        bounds: Object.freeze({ ...NORGE_SURFACE_DETAIL.bounds }),
+        bounds: { ...NORGE_SURFACE_DETAIL.bounds },
         axisY: 'tile-y-down',
-      }),
-      camera: Object.freeze({
+      },
+      camera: {
         dist: camState.dist,
         height: camState.height,
         tilt: camState.tilt,
@@ -2884,34 +2885,37 @@ const norgeLeafletStyleEngine = {
         viewportWidth: cw,
         viewportHeight: ch,
         devicePixelRatio: window.devicePixelRatio || 1,
-      }),
-      view: Object.freeze({
+      },
+      view: {
         boundsSource: diag.boundsSource || '',
         visibleBounds,
         visibleRange: diag.visibleRange ? { ...diag.visibleRange } : null,
         expandedRange: diag.expandedRange ? { ...diag.expandedRange } : null,
         fittedRange: diag.fittedRange ? { ...diag.fittedRange } : null,
-      }),
-      zoom: Object.freeze({
+      },
+      zoom: {
         detailZoom: diag.zoom,
         tileZoom: diag.zoom,
         screenKey: diag.screenKey || '',
-      }),
-      sources: Object.freeze(sources),
-      status: Object.freeze({
+      },
+      sources,
+      status: {
         coreReady: true,
         transformReady: true,
         sourcesReady: sources.length > 0,
         cameraStable: !norgeDetailTimer,
         cleanAvailable: true,
         freezeMode: norgeFreezeMode,
-      }),
+      },
     });
   },
   publicState() {
     return Object.freeze({
       enabled: this.enabled,
+      phase: this.stats.phase,
       state: this.stats.state,
+      loadingEnabled: this.stats.loadingEnabled,
+      leafletRuntimeEnabled: this.stats.leafletRuntimeEnabled,
       keepBuffer: this.keepBuffer,
       registrySize: this.tileRegistry.size,
       levelCount: this.levels.size,
@@ -2921,92 +2925,12 @@ const norgeLeafletStyleEngine = {
       stats: { ...this.stats },
     });
   },
-  ensureMap() {
-    if (!this.layer) this.layer = document.getElementById('norge-leaflet-style-detail-layer');
-    if (!this.mapEl) this.mapEl = document.getElementById('norge-real-leaflet-map');
-    if (this.map || !this.mapEl || !window.L) return this.map;
-    const L = window.L;
-    const kvBase = 'https://cache.kartverket.no/v1/wmts/1.0.0';
-    const worldBounds = [[-85.05112878, -180], [85.05112878, 180]];
-    const kvLayer = (layerName, opts = {}) => L.tileLayer(
-      `${kvBase}/${layerName}/default/webmercator/{z}/{y}/{x}.png`,
-      Object.assign({
-        attribution: '© Kartverket',
-        maxZoom: 20,
-        maxNativeZoom: 20,
-        noWrap: true,
-        bounds: worldBounds,
-        tileSize: 256,
-        keepBuffer: 4,
-        updateWhenIdle: false,
-        updateWhenZooming: true,
-      }, opts)
-    );
-    this.baseLayers = {
-      topograatone: kvLayer('topograatone'),
-      topo: kvLayer('topo'),
-      toporaster: kvLayer('toporaster'),
-      sjokartraster: kvLayer('sjokartraster'),
-      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 19,
-        noWrap: true,
-        bounds: worldBounds,
-        keepBuffer: 4,
-        updateWhenIdle: false,
-        updateWhenZooming: true,
-      }),
-    };
-    this.overlayLayers = {
-      seEiendom: L.tileLayer.wms('https://wms.geonorge.no/skwms1/wms.matrikkel', {
-        layers: 'eiendomsgrense,grensepunkt,adresse,eiendoms_id',
-        format: 'image/png',
-        transparent: true,
-        version: '1.3.0',
-        attribution: '© Kartverket Matrikkel',
-        opacity: 0.92,
-        maxZoom: 20,
-        noWrap: true,
-        bounds: worldBounds,
-        updateWhenIdle: false,
-      }),
-    };
-    this.map = L.map(this.mapEl, {
-      center: [59.9139, 10.7522],
-      zoom: 13,
-      minZoom: 0,
-      maxZoom: 20,
-      zoomControl: true,
-      attributionControl: true,
-      fadeAnimation: true,
-      markerZoomAnimation: false,
-      preferCanvas: false,
-      worldCopyJump: false,
-    });
-    this.map.on('zoomend moveend', () => {
-      this.stats.zoom = this.map.getZoom();
-      this.updateStatus();
-    });
-    window.__norgeRealLeafletMap = this.map;
-    window.__norgeLeafletStyleEngine = this;
-    const tileEvent = (deltaRequested, deltaLoaded, deltaFailed = 0) => {
-      this.stats.wanted = Math.max(0, this.stats.wanted + deltaRequested);
-      this.stats.loaded = Math.max(0, this.stats.loaded + deltaLoaded);
-      this.stats.failed = Math.max(0, this.stats.failed + deltaFailed);
-      this.stats.pending = Math.max(0, this.stats.wanted - this.stats.loaded - this.stats.failed);
-      this.updateStatus();
-    };
-    Object.values(this.baseLayers).forEach(layer => {
-      layer.on('tileloadstart', () => tileEvent(1, 0));
-      layer.on('tileload', () => tileEvent(0, 1));
-      layer.on('tileerror', () => tileEvent(0, 0, 1));
-    });
-    Object.values(this.overlayLayers).forEach(layer => {
-      layer.on('tileloadstart', () => tileEvent(1, 0));
-      layer.on('tileload', () => tileEvent(0, 1));
-      layer.on('tileerror', () => tileEvent(0, 0, 1));
-    });
-    return this.map;
+  publishState() {
+    const state = this.publicState();
+    globalThis.__norgeKartmotorV2 = state;
+    globalThis.__enok72__ = globalThis.__enok72__ || {};
+    globalThis.__enok72__.kartmotorV2 = state;
+    return state;
   },
   enable() {
     this.enabled = true;
@@ -3018,11 +2942,6 @@ const norgeLeafletStyleEngine = {
     this.sync();
   },
   clear() {
-    if (this.map) {
-      Object.values(this.baseLayers).forEach(layer => this.map.removeLayer(layer));
-      Object.values(this.overlayLayers).forEach(layer => this.map.removeLayer(layer));
-      this.activeBase = null;
-    }
     this.tileRegistry.clear();
     this.levels.clear();
     this.pendingRegistry.clear();
@@ -3052,17 +2971,12 @@ const norgeLeafletStyleEngine = {
       retired: 0,
       failed: 0,
     };
-    window.__norgeKartmotorV2 = this.publicState();
-    window.__enok72__ = window.__enok72__ || {};
-    window.__enok72__.kartmotorV2 = window.__norgeKartmotorV2;
+    this.publishState();
   },
   sync() {
     if (!this.layer) this.layer = document.getElementById('norge-leaflet-style-detail-layer');
     if (!this.layer) return;
-    if (!this.mapEl) this.mapEl = document.getElementById('norge-real-leaflet-map');
-    const visibleToggle = document.getElementById('norge-clean-visible');
-    const visible = visibleToggle?.checked !== false;
-    this.layer.style.display = this.enabled && visible ? 'block' : 'none';
+    this.layer.style.display = this.enabled ? 'block' : 'none';
     this.layer.style.pointerEvents = 'none';
     this.stats.state = this.enabled ? 'shell' : 'off';
     this.layer.dataset.engineState = this.stats.state;
@@ -3131,9 +3045,7 @@ const norgeLeafletStyleEngine = {
       pending: 0,
       failed: 0,
     };
-    window.__norgeKartmotorV2 = this.publicState();
-    window.__enok72__ = window.__enok72__ || {};
-    window.__enok72__.kartmotorV2 = window.__norgeKartmotorV2;
+    this.publishState();
     this.updateStatus();
   },
 };

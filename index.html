@@ -316,22 +316,6 @@
     display: none;
     opacity: 0.52;
   }
-  #norge-real-leaflet-map {
-    position: absolute;
-    inset: 0;
-    background: transparent;
-    z-index: 0;
-    pointer-events: auto;
-  }
-  #norge-real-leaflet-map.leaflet-container {
-    background: transparent;
-    font: inherit;
-  }
-  #norge-real-leaflet-map .leaflet-control-attribution {
-    background: rgba(0, 0, 0, 0.55);
-    color: #cfcfcf;
-    font-size: 10px;
-  }
   .norge-leaflet-style-status {
     position: absolute;
     left: 8px;
@@ -1789,8 +1773,7 @@
       <div id="norge-screen-detail-layer" aria-hidden="true"></div>
       <div id="norge-clean-detail-layer" aria-hidden="true"></div>
       <div id="norge-leaflet-style-detail-layer" aria-hidden="true">
-        <div id="norge-real-leaflet-map" aria-label="Leaflet Kartverket motor"></div>
-        <div class="norge-leaflet-style-status">Leaflet-style engine: ready<br>No tile loading yet</div>
+        <div class="norge-leaflet-style-status">Kartmotor V2: ready<br>No tile loading yet</div>
       </div>
       <div id="tooltip"></div>
       <div id="zoom-indicator">100% Â· Enoch scale</div>
@@ -1967,9 +1950,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-<script src="vendor/leaflet/leaflet.js"></script>
-
 <!-- Marker info modal -->
 <div id="marker-modal-backdrop">
   <div id="marker-modal" role="dialog" aria-modal="true">
