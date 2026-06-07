@@ -2834,9 +2834,12 @@ const norgeLeafletStyleEngine = {
   sourceVersion: 'v1',
   threeAMaxConcurrent: 1,
   threeAExplicitlyOpened: false,
+  threeBMaxTiles: 4,
+  threeBMaxConcurrent: 1,
+  threeBExplicitlyOpened: false,
   lastSnapshot: null,
   stats: {
-    phase: '3A-single-base-visible-tile',
+    phase: '3B-base-visible-4-tiles',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2941,11 +2944,26 @@ const norgeLeafletStyleEngine = {
     firstLoadedSourceId: '',
     firstLoadedZXY: '',
     lastLoadError: '',
+    loaderMode: '',
+    threeBRequested: 0,
+    threeBPending: 0,
+    threeBLoaded: 0,
+    threeBFailed: 0,
+    threeBAppended: 0,
+    threeBRejectedByGate: 0,
+    threeBRejectedOverlay: 0,
+    threeBRejectedNonVisible: 0,
+    threeBRejectedInvalid: 0,
+    threeBFirstSourceId: '',
+    threeBLoadedZXY: '',
+    threeBLastError: '',
   },
   init() {
     this.layer = document.getElementById('norge-leaflet-style-detail-layer');
     globalThis.__openKartmotorV2ThreeATestGate = () => this.openThreeATestGate();
     globalThis.__closeKartmotorV2ThreeATestGate = () => this.closeThreeATestGate();
+    globalThis.__openKartmotorV2ThreeBTestGate = () => this.openThreeBTestGate();
+    globalThis.__closeKartmotorV2ThreeBTestGate = () => this.closeThreeBTestGate();
     this.publishState();
     this.sync();
   },
@@ -3191,6 +3209,10 @@ const norgeLeafletStyleEngine = {
         nativeZ: descriptor.nativeZ,
         x: descriptor.x,
         y: descriptor.y,
+        key: `${descriptor.sourceId}:${descriptor.z}:${descriptor.x}:${descriptor.y}`,
+        priorityGroup: descriptor.priorityGroup,
+        sourceOrder: descriptor.sourceOrder,
+        distanceToCenter: descriptor.distanceToCenter,
         requestType: descriptor.requestType,
         sourceKind: descriptor.sourceKind,
         validTile: descriptor.validTile,
@@ -3487,6 +3509,35 @@ const norgeLeafletStyleEngine = {
     if (!this.layer) return;
     this.layer.querySelectorAll('.norge-leaflet-style-pixelflate').forEach(element => element.remove());
   },
+  clearRuntimeState() {
+    this.clearRuntimeTiles();
+    this.tileRegistry.clear();
+    this.pendingRegistry.clear();
+    this.levels.clear();
+  },
+  isEiendomCandidate(candidate, source = null) {
+    const sourceId = candidate?.sourceId || '';
+    const layer = source?.layer || candidate?.layer || '';
+    const kind = candidate?.sourceKind || '';
+    return kind === 'se-eiendom'
+      || /se[-_ ]?eiendom|matrikkel|eiendom/i.test(sourceId)
+      || /se[-_ ]?eiendom|matrikkel|eiendom/i.test(layer);
+  },
+  sortUrlCandidatesForLoading(candidates) {
+    return [...candidates].sort((a, b) => {
+      const priorityDelta = (a.priorityGroup ?? 99) - (b.priorityGroup ?? 99);
+      if (priorityDelta) return priorityDelta;
+      const sourceDelta = (a.sourceOrder ?? 0) - (b.sourceOrder ?? 0);
+      if (sourceDelta) return sourceDelta;
+      const distanceDelta = (a.distanceToCenter ?? Number.MAX_SAFE_INTEGER) - (b.distanceToCenter ?? Number.MAX_SAFE_INTEGER);
+      if (distanceDelta) return distanceDelta;
+      const yDelta = (a.y ?? 0) - (b.y ?? 0);
+      if (yDelta) return yDelta;
+      const xDelta = (a.x ?? 0) - (b.x ?? 0);
+      if (xDelta) return xDelta;
+      return String(a.key || '').localeCompare(String(b.key || ''));
+    });
+  },
   isThreeATestGateOpen() {
     return this.threeAExplicitlyOpened === true
       || globalThis.__enableKartmotorV2ThreeATest === true
@@ -3500,10 +3551,32 @@ const norgeLeafletStyleEngine = {
   },
   closeThreeATestGate() {
     this.threeAExplicitlyOpened = false;
-    this.clearRuntimeTiles();
-    this.tileRegistry.clear();
-    this.pendingRegistry.clear();
-    this.levels.clear();
+    this.clearRuntimeState();
+    if (this.enabled) this.update();
+    return this.publicState();
+  },
+  isThreeBTestGateOpen() {
+    return this.threeBExplicitlyOpened === true
+      || globalThis.__enableKartmotorV2ThreeBTest === true
+      || globalThis.__enok72__?.enableKartmotorV2ThreeBTest === true
+      || new URLSearchParams(window.location.search).get('kartmotorV2ThreeBTest') === '1';
+  },
+  openThreeBTestGate() {
+    this.threeBExplicitlyOpened = true;
+    if (this.enabled) this.update();
+    return this.publicState();
+  },
+  closeThreeBTestGate() {
+    this.threeBExplicitlyOpened = false;
+    this.clearRuntimeState();
+    this.stats.threeBRequested = 0;
+    this.stats.threeBPending = 0;
+    this.stats.threeBLoaded = 0;
+    this.stats.threeBFailed = 0;
+    this.stats.threeBAppended = 0;
+    this.stats.threeBFirstSourceId = '';
+    this.stats.threeBLoadedZXY = '';
+    this.stats.threeBLastError = '';
     if (this.enabled) this.update();
     return this.publicState();
   },
@@ -3511,17 +3584,31 @@ const norgeLeafletStyleEngine = {
     const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
     const candidates = Array.isArray(diff.urlCandidates) ? diff.urlCandidates : [];
     return candidates.find(candidate => {
-      const sourceId = candidate.sourceId || '';
-      const source = sourceMap.get(sourceId) || null;
-      const isSeEiendom = /se[-_ ]?eiendom|matrikkel|eiendom/i.test(sourceId) || /se[-_ ]?eiendom|matrikkel|eiendom/i.test(source?.layer || '');
+      const source = sourceMap.get(candidate.sourceId || '') || null;
       return candidate.role === 'base'
         && candidate.band === 'visible'
         && candidate.validTile === true
         && candidate.validUrl === true
         && candidate.futureLoaderEligible === true
         && candidate.sourceKind !== 'se-eiendom'
-        && !isSeEiendom;
+        && !this.isEiendomCandidate(candidate, source);
     }) || null;
+  },
+  selectThreeBBaseCandidates(snapshot, diff) {
+    const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
+    const candidates = Array.isArray(diff.urlCandidates) ? diff.urlCandidates : [];
+    return this.sortUrlCandidatesForLoading(candidates)
+      .filter(candidate => {
+        const source = sourceMap.get(candidate.sourceId || '') || null;
+        return candidate.role === 'base'
+          && candidate.band === 'visible'
+          && candidate.validTile === true
+          && candidate.validUrl === true
+          && candidate.futureLoaderEligible === true
+          && candidate.sourceKind !== 'se-eiendom'
+          && !this.isEiendomCandidate(candidate, source);
+      })
+      .slice(0, this.threeBMaxTiles);
   },
   threeAStopReasons(candidate) {
     const reasons = [];
@@ -3541,6 +3628,34 @@ const norgeLeafletStyleEngine = {
     if (candidate && candidate.sourceKind === 'se-eiendom') reasons.push('sourceKind is Se Eiendom');
     if (candidate && /se[-_ ]?eiendom|matrikkel|eiendom/i.test(candidate.sourceId || '')) reasons.push('sourceId is Se Eiendom/Matrikkel');
     return reasons;
+  },
+  threeBStopReasons(candidates) {
+    const reasons = [];
+    const cleanLayer = document.getElementById('norge-clean-detail-layer');
+    const cleanDisplay = cleanLayer ? getComputedStyle(cleanLayer).display : '';
+    const pointerEvents = this.layer ? getComputedStyle(this.layer).pointerEvents : '';
+    if (cleanDisplay !== 'block') reasons.push(`cleanDisplay=${cleanDisplay || 'missing'}`);
+    if (pointerEvents !== 'none') reasons.push(`v2 pointer-events=${pointerEvents || 'missing'}`);
+    if (!this.isThreeBTestGateOpen()) reasons.push('3B loader gate not explicitly opened');
+    if (this.isThreeATestGateOpen()) reasons.push('3A loader gate is also open');
+    if (!Array.isArray(candidates) || candidates.length === 0) reasons.push('missing base:visible candidates');
+    if (Array.isArray(candidates) && candidates.length > this.threeBMaxTiles) reasons.push(`candidate count=${candidates.length}`);
+    if (this.threeBMaxConcurrent > 1) reasons.push(`maxConcurrent=${this.threeBMaxConcurrent}`);
+    if (this.tileRegistry.size > this.threeBMaxTiles) reasons.push(`actualLoaded=${this.tileRegistry.size}`);
+    if ((this.stats.actualLoaded || 0) > this.threeBMaxTiles) reasons.push(`actualLoaded=${this.stats.actualLoaded}`);
+    if ((this.stats.actualAppended || 0) > this.threeBMaxTiles) reasons.push(`actualAppended=${this.stats.actualAppended}`);
+    if ((this.stats.threeBLoaded || 0) > this.threeBMaxTiles) reasons.push(`threeBLoaded=${this.stats.threeBLoaded}`);
+    if ((this.stats.threeBAppended || 0) > this.threeBMaxTiles) reasons.push(`threeBAppended=${this.stats.threeBAppended}`);
+    if (this.pendingRegistry.size > this.threeBMaxTiles) reasons.push(`pendingRegistry.size=${this.pendingRegistry.size}`);
+    (candidates || []).forEach(candidate => {
+      if (candidate.role !== 'base') reasons.push(`candidate role=${candidate.role}`);
+      if (candidate.band !== 'visible') reasons.push(`candidate band=${candidate.band}`);
+      if (candidate.validTile !== true) reasons.push('validTile is not true');
+      if (candidate.validUrl !== true) reasons.push('validUrl is not true');
+      if (candidate.sourceKind === 'se-eiendom') reasons.push('sourceKind is Se Eiendom');
+      if (/se[-_ ]?eiendom|matrikkel|eiendom/i.test(candidate.sourceId || '')) reasons.push('sourceId is Se Eiendom/Matrikkel');
+    });
+    return [...new Set(reasons)];
   },
   runThreeASingleBaseTile(snapshot, diff) {
     if (!this.enabled || !this.layer) return { started: false, reasons: ['engine disabled'] };
@@ -3666,6 +3781,199 @@ const norgeLeafletStyleEngine = {
     };
     img.src = candidate.urlText;
     return { started: true, key, candidate };
+  },
+  runThreeBBaseVisibleTiles(snapshot, diff) {
+    if (!this.enabled || !this.layer) return { started: false, reasons: ['engine disabled'] };
+    if (this.tileRegistry.size > 0 || this.pendingRegistry.size > 0) {
+      return { started: false, reasons: ['3B tiles already loaded or pending'] };
+    }
+    const candidates = this.selectThreeBBaseCandidates(snapshot, diff);
+    const stopReasons = this.threeBStopReasons(candidates);
+    if (stopReasons.length) {
+      return { started: false, rejected: true, reasons: stopReasons };
+    }
+
+    const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+    const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
+    this.stats.state = '3b-loading';
+    this.stats.loaderMode = '3b-base-visible-only';
+    this.stats.loaderAllowed = true;
+    this.stats.loadingEnabled = true;
+    this.stats.loaderGateEnabled = true;
+    this.stats.loaderGateState = 'open-3b-base-visible-only';
+    this.stats.maxConcurrentPlan = this.threeBMaxConcurrent;
+    this.stats.threeBRequested = candidates.length;
+    this.stats.threeBPending = 0;
+    this.stats.threeBLoaded = 0;
+    this.stats.threeBFailed = 0;
+    this.stats.threeBAppended = 0;
+    this.stats.threeBLastError = '';
+    this.updateStatus();
+    this.publishState();
+
+    const startTile = index => {
+      if (index >= candidates.length) {
+        if (this.pendingRegistry.size === 0) {
+          this.stats.state = this.stats.threeBFailed > 0 ? '3b-partial' : '3b-loaded';
+          this.stats.baseReady = this.stats.threeBLoaded === candidates.length;
+          this.updateStatus();
+          this.publishState();
+        }
+        return;
+      }
+      if (this.pendingRegistry.size >= this.threeBMaxConcurrent) return;
+      if (this.tileRegistry.size >= this.threeBMaxTiles) {
+        this.stats.threeBLastError = '3B hard cap reached';
+        this.updateStatus();
+        this.publishState();
+        return;
+      }
+
+      const candidate = candidates[index];
+      const originX = candidate.x * tileSize;
+      const originY = candidate.y * tileSize;
+      const source = sourceMap.get(candidate.sourceId) || null;
+      const anchorMode = source?.anchorMode || 'norway';
+      const transform = cleanNorgeTransform(candidate.z, originX, originY, anchorMode);
+      if (!transform) {
+        this.stats.threeBRejectedInvalid += 1;
+        this.stats.threeBLastError = `missing cleanNorgeTransform for ${candidate.sourceId} ${candidate.z}/${candidate.x}/${candidate.y}`;
+        this.updateStatus();
+        this.publishState();
+        startTile(index + 1);
+        return;
+      }
+
+      const pane = document.createElement('div');
+      pane.className = 'norge-leaflet-style-pixelflate v2-pixelflate-3b';
+      pane.style.width = `${tileSize}px`;
+      pane.style.height = `${tileSize}px`;
+      pane.style.transform = transform.css;
+      pane.dataset.v2Pane = '1';
+      pane.dataset.phase = '3B';
+      pane.dataset.zoom = String(candidate.z);
+      pane.dataset.anchorMode = anchorMode;
+      pane.dataset.sourceId = candidate.sourceId;
+
+      const img = document.createElement('img');
+      img.className = 'norge-leaflet-style-tile v2-tile v2-tile-base v2-tile-visible v2-tile-3b';
+      img.loading = 'eager';
+      img.decoding = 'async';
+      img.style.left = '0px';
+      img.style.top = '0px';
+      img.style.width = `${tileSize}px`;
+      img.style.height = `${tileSize}px`;
+      img.dataset.phase = '3B';
+      img.dataset.sourceId = candidate.sourceId;
+      img.dataset.role = 'base';
+      img.dataset.band = 'visible';
+      img.dataset.z = String(candidate.z);
+      img.dataset.nativeZ = String(candidate.nativeZ);
+      img.dataset.x = String(candidate.x);
+      img.dataset.y = String(candidate.y);
+      img.dataset.loadOrder = String(index + 1);
+      img.dataset.distanceToCenter = String(Number((candidate.distanceToCenter ?? 0).toFixed(3)));
+
+      const key = candidate.sourceId + ':3B:z' + candidate.z + ':x' + candidate.x + ':y' + candidate.y;
+      this.pendingRegistry.set(key, {
+        key,
+        candidate,
+        startedAt: Date.now(),
+        maxConcurrent: this.threeBMaxConcurrent,
+        status: 'loading',
+      });
+      this.stats.pendingCount = this.pendingRegistry.size;
+      this.stats.actualPending = this.pendingRegistry.size;
+      this.stats.threeBPending = this.pendingRegistry.size;
+      this.stats.loadingCount = this.pendingRegistry.size;
+      this.stats.pending = this.pendingRegistry.size;
+      this.updateStatus();
+      this.publishState();
+
+      img.onload = () => {
+        if (pane.dataset.v2Pane !== '1' || !pane.classList.contains('norge-leaflet-style-pixelflate')) {
+          this.pendingRegistry.delete(key);
+          this.stats.pendingCount = this.pendingRegistry.size;
+          this.stats.actualPending = this.pendingRegistry.size;
+          this.stats.threeBPending = this.pendingRegistry.size;
+          this.stats.actualFailed += 1;
+          this.stats.threeBFailed += 1;
+          this.stats.threeBLastError = '3B append target is not V2-pane';
+          this.updateStatus();
+          this.publishState();
+          startTile(index + 1);
+          return;
+        }
+        if (this.tileRegistry.size >= this.threeBMaxTiles) {
+          this.pendingRegistry.delete(key);
+          this.stats.pendingCount = this.pendingRegistry.size;
+          this.stats.actualPending = this.pendingRegistry.size;
+          this.stats.threeBPending = this.pendingRegistry.size;
+          this.stats.threeBRejectedInvalid += 1;
+          this.stats.threeBLastError = '3B append blocked by hard cap';
+          this.updateStatus();
+          this.publishState();
+          return;
+        }
+        pane.appendChild(img);
+        this.layer.appendChild(pane);
+        this.pendingRegistry.delete(key);
+        this.tileRegistry.set(key, {
+          key,
+          candidate,
+          el: img,
+          pane,
+          loadedAt: Date.now(),
+          status: 'loaded',
+        });
+        this.levels.set(`z${candidate.z}:x${candidate.x}:y${candidate.y}`, pane);
+        const loadedZxy = `${candidate.z}/${candidate.x}/${candidate.y}`;
+        this.stats.registrySize = this.tileRegistry.size;
+        this.stats.levelCount = this.levels.size;
+        this.stats.pendingCount = this.pendingRegistry.size;
+        this.stats.actualPending = this.pendingRegistry.size;
+        this.stats.actualLoaded = this.tileRegistry.size;
+        this.stats.actualAppended = this.tileRegistry.size;
+        this.stats.threeBPending = this.pendingRegistry.size;
+        this.stats.threeBLoaded = this.tileRegistry.size;
+        this.stats.threeBAppended = this.tileRegistry.size;
+        this.stats.baseLoaded = this.tileRegistry.size;
+        this.stats.loadingCount = this.pendingRegistry.size;
+        this.stats.loaded = this.tileRegistry.size;
+        this.stats.pending = this.pendingRegistry.size;
+        if (!this.stats.threeBFirstSourceId) this.stats.threeBFirstSourceId = candidate.sourceId;
+        this.stats.threeBLoadedZXY = this.stats.threeBLoadedZXY ? `${this.stats.threeBLoadedZXY},${loadedZxy}` : loadedZxy;
+        if (!this.stats.firstLoadedSourceId) this.stats.firstLoadedSourceId = candidate.sourceId;
+        this.stats.firstLoadedZXY = this.stats.threeBLoadedZXY;
+        this.stats.threeBLastError = '';
+        this.stats.lastLoadError = '';
+        this.updateStatus();
+        this.publishState();
+        startTile(index + 1);
+      };
+      img.onerror = () => {
+        this.pendingRegistry.delete(key);
+        this.stats.registrySize = this.tileRegistry.size;
+        this.stats.levelCount = this.levels.size;
+        this.stats.pendingCount = this.pendingRegistry.size;
+        this.stats.actualPending = this.pendingRegistry.size;
+        this.stats.actualFailed += 1;
+        this.stats.threeBPending = this.pendingRegistry.size;
+        this.stats.threeBFailed += 1;
+        this.stats.failed += 1;
+        this.stats.loadingCount = this.pendingRegistry.size;
+        this.stats.pending = this.pendingRegistry.size;
+        this.stats.threeBLastError = `${candidate.sourceId} ${candidate.z}/${candidate.x}/${candidate.y}`;
+        this.stats.lastLoadError = this.stats.threeBLastError;
+        this.updateStatus();
+        this.publishState();
+        startTile(index + 1);
+      };
+      img.src = candidate.urlText;
+    };
+
+    startTile(0);
+    return { started: true, candidates };
   },
   computeTileDiff(snapshot) {
     const warnings = [];
@@ -3952,6 +4260,22 @@ const norgeLeafletStyleEngine = {
         firstLoadedZXY: this.stats.firstLoadedZXY,
         lastLoadError: this.stats.lastLoadError,
       },
+      runtime3B: {
+        testGateOpen: this.isThreeBTestGateOpen(),
+        loaderMode: this.stats.loaderMode,
+        requested: this.stats.threeBRequested,
+        pending: this.stats.threeBPending,
+        loaded: this.stats.threeBLoaded,
+        failed: this.stats.threeBFailed,
+        appended: this.stats.threeBAppended,
+        rejectedByGate: this.stats.threeBRejectedByGate,
+        rejectedOverlay: this.stats.threeBRejectedOverlay,
+        rejectedNonVisible: this.stats.threeBRejectedNonVisible,
+        rejectedInvalid: this.stats.threeBRejectedInvalid,
+        firstSourceId: this.stats.threeBFirstSourceId,
+        loadedZXY: this.stats.threeBLoadedZXY,
+        lastError: this.stats.threeBLastError,
+      },
     });
   },
   publishState() {
@@ -4120,6 +4444,19 @@ const norgeLeafletStyleEngine = {
       firstLoadedSourceId: '',
       firstLoadedZXY: '',
       lastLoadError: '',
+      loaderMode: '',
+      threeBRequested: 0,
+      threeBPending: 0,
+      threeBLoaded: 0,
+      threeBFailed: 0,
+      threeBAppended: 0,
+      threeBRejectedByGate: 0,
+      threeBRejectedOverlay: 0,
+      threeBRejectedNonVisible: 0,
+      threeBRejectedInvalid: 0,
+      threeBFirstSourceId: '',
+      threeBLoadedZXY: '',
+      threeBLastError: '',
     };
     this.publishState();
   },
@@ -4221,6 +4558,20 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.firstLoadedSourceId = this.stats.firstLoadedSourceId || '';
     this.layer.dataset.firstLoadedZXY = this.stats.firstLoadedZXY || '';
     this.layer.dataset.lastLoadError = this.stats.lastLoadError || '';
+    this.layer.dataset.loaderMode = this.stats.loaderMode || '';
+    this.layer.dataset.threeBTestGateOpen = this.isThreeBTestGateOpen() ? '1' : '0';
+    this.layer.dataset.threeBRequested = String(this.stats.threeBRequested || 0);
+    this.layer.dataset.threeBPending = String(this.stats.threeBPending || 0);
+    this.layer.dataset.threeBLoaded = String(this.stats.threeBLoaded || 0);
+    this.layer.dataset.threeBFailed = String(this.stats.threeBFailed || 0);
+    this.layer.dataset.threeBAppended = String(this.stats.threeBAppended || 0);
+    this.layer.dataset.threeBRejectedByGate = String(this.stats.threeBRejectedByGate || 0);
+    this.layer.dataset.threeBRejectedOverlay = String(this.stats.threeBRejectedOverlay || 0);
+    this.layer.dataset.threeBRejectedNonVisible = String(this.stats.threeBRejectedNonVisible || 0);
+    this.layer.dataset.threeBRejectedInvalid = String(this.stats.threeBRejectedInvalid || 0);
+    this.layer.dataset.threeBFirstSourceId = this.stats.threeBFirstSourceId || '';
+    this.layer.dataset.threeBLoadedZXY = this.stats.threeBLoadedZXY || '';
+    this.layer.dataset.threeBLastError = this.stats.threeBLastError || '';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
@@ -4234,6 +4585,7 @@ const norgeLeafletStyleEngine = {
       `url hardening ${this.stats.validUrlCandidates}/${this.stats.validUrlCandidates + this.stats.rejectedUrlCandidates} valid; kinds ${this.layer.dataset.countsByUrlKind || '-'}; invalid ${this.stats.urlValidationInvalid}; warnings ${this.stats.urlWarningCount || 0}\n` +
       `loader gate ${this.stats.loaderGateState}; would enqueue ${this.stats.wouldEnqueue}, skip ${this.stats.wouldSkip}, reject ${this.stats.wouldReject}; pending ${this.stats.pendingCount}\n` +
       `3A test gate ${this.isThreeATestGateOpen() ? 'open' : 'closed'}; actual pending ${this.stats.actualPending || 0}, loaded ${this.stats.actualLoaded || 0}, failed ${this.stats.actualFailed || 0}, appended ${this.stats.actualAppended || 0}\n` +
+      `3B test gate ${this.isThreeBTestGateOpen() ? 'open' : 'closed'}; requested ${this.stats.threeBRequested || 0}, pending ${this.stats.threeBPending || 0}, loaded ${this.stats.threeBLoaded || 0}, failed ${this.stats.threeBFailed || 0}, appended ${this.stats.threeBAppended || 0}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -4369,24 +4721,29 @@ const norgeLeafletStyleEngine = {
       baseSourceCount,
       overlaySourceCount,
       baseWanted,
-      baseLoaded: 0,
-      baseReady: false,
+      baseLoaded: this.tileRegistry.size,
+      baseReady: this.tileRegistry.size > 0,
       overlayWanted,
       overlayLoaded: 0,
       overlayReady: false,
       loadingCount: 0,
       retiringCount: 0,
       wanted: 0,
-      loaded: 0,
-      pending: 0,
-      failed: 0,
+      loaded: this.tileRegistry.size,
+      pending: this.pendingRegistry.size,
+      failed: this.stats.failed || 0,
     };
-    const loaderAttempt = this.runThreeASingleBaseTile(snapshot, diff);
+    const loaderAttempt = this.isThreeBTestGateOpen()
+      ? this.runThreeBBaseVisibleTiles(snapshot, diff)
+      : this.runThreeASingleBaseTile(snapshot, diff);
     if (loaderAttempt.rejected) {
-      this.stats.actualRejectedInvalid += 1;
+      if (this.isThreeBTestGateOpen()) this.stats.threeBRejectedByGate += 1;
+      else this.stats.actualRejectedInvalid += 1;
       this.stats.lastLoadError = loaderAttempt.reasons.join(' | ');
+      if (this.isThreeBTestGateOpen()) this.stats.threeBLastError = this.stats.lastLoadError;
     } else if (!loaderAttempt.started) {
-      this.stats.actualSkippedByGate += 1;
+      if (this.isThreeBTestGateOpen()) this.stats.threeBRejectedByGate += 1;
+      else this.stats.actualSkippedByGate += 1;
     }
     this.publishState();
     this.updateStatus();
