@@ -2792,6 +2792,7 @@ const norgeLeafletStyleEngine = {
     stayKeys: new Set(),
     leaveKeys: new Set(),
     sourceStats: {},
+    priorityQueue: [],
     rejected: false,
     warnings: [],
   },
@@ -2799,7 +2800,7 @@ const norgeLeafletStyleEngine = {
   sourceVersion: 'v1',
   lastSnapshot: null,
   stats: {
-    phase: '2B-wanted-keep-dry-run',
+    phase: '2C-dry-run-priority-queue',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2821,6 +2822,14 @@ const norgeLeafletStyleEngine = {
     dryRunRejected: false,
     dryRunWarnings: [],
     dryRunSources: {},
+    queueTotal: 0,
+    queueVisibleBase: 0,
+    queueVisibleOverlay: 0,
+    queueKeepBase: 0,
+    queueKeepOverlay: 0,
+    queueFirstRole: '',
+    queuePreview: [],
+    queueRejected: false,
     baseSourceCount: 0,
     overlaySourceCount: 0,
     baseWanted: 0,
@@ -2882,6 +2891,55 @@ const norgeLeafletStyleEngine = {
       }
     }
   },
+  buildPriorityQueue(sources, zoom, visibleRange, keepRange, visibleKeys, keepKeys) {
+    const queue = [];
+    const pushQueueItem = (source, key, x, y, band) => {
+      const role = source.role === 'overlay' ? 'overlay' : 'base';
+      const visible = band === 'visible';
+      const priorityGroup = role === 'base' && visible
+        ? 0
+        : role === 'overlay' && visible
+          ? 1
+          : role === 'base'
+            ? 2
+            : 3;
+      queue.push({
+        key,
+        sourceId: source.id,
+        role,
+        band,
+        visible,
+        keep: true,
+        z: zoom,
+        nativeZ: zoom,
+        x,
+        y,
+        priorityGroup,
+        sourceOrder: source.order,
+      });
+    };
+
+    sources.forEach(source => {
+      for (let x = keepRange.xMin; x <= keepRange.xMax; x += 1) {
+        for (let y = keepRange.yMin; y <= keepRange.yMax; y += 1) {
+          const key = this.getTileKey(source, zoom, x, y);
+          if (!keepKeys.has(key)) continue;
+          const visible = visibleKeys.has(key)
+            || (x >= visibleRange.xMin && x <= visibleRange.xMax && y >= visibleRange.yMin && y <= visibleRange.yMax);
+          pushQueueItem(source, key, x, y, visible ? 'visible' : 'keep');
+        }
+      }
+    });
+
+    queue.sort((a, b) =>
+      (a.priorityGroup - b.priorityGroup)
+      || (a.sourceOrder - b.sourceOrder)
+      || (a.y - b.y)
+      || (a.x - b.x)
+      || a.key.localeCompare(b.key)
+    );
+    return queue;
+  },
   computeTileDiff(snapshot) {
     const warnings = [];
     const zoom = snapshot.zoom.tileZoom;
@@ -2896,6 +2954,7 @@ const norgeLeafletStyleEngine = {
     const visibleKeys = new Set();
     const keepKeys = new Set();
     const sourceStats = {};
+    let priorityQueue = [];
 
     if (!visibleRange) warnings.push('missing visibleRange');
     if (!Number.isFinite(zoom)) warnings.push('missing tileZoom');
@@ -2913,6 +2972,8 @@ const norgeLeafletStyleEngine = {
           kind: source.role === 'overlay' ? 'overlay' : 'base',
           visible: sourceVisibleKeys.size,
           keep: sourceKeepKeys.size,
+          queueVisible: 0,
+          queueKeep: 0,
           enter: 0,
           stay: 0,
           leave: 0,
@@ -2924,6 +2985,8 @@ const norgeLeafletStyleEngine = {
           kind: source.role === 'overlay' ? 'overlay' : 'base',
           visible: visiblePerSource,
           keep: keepPerSource,
+          queueVisible: 0,
+          queueKeep: 0,
           enter: 0,
           stay: 0,
           leave: 0,
@@ -2937,12 +3000,15 @@ const norgeLeafletStyleEngine = {
     const leaveKeys = new Set([...previousKeepKeys].filter(key => !keepKeys.has(key)));
 
     if (!rejected) {
+      priorityQueue = this.buildPriorityQueue(sources, zoom, visibleRange, keepRange, visibleKeys, keepKeys);
       sources.forEach(source => {
         const prefix = `${source.id}:${source.version}:${source.role}:${source.anchorMode}:`;
         const stats = sourceStats[source.id];
         stats.enter = [...enterKeys].filter(key => key.startsWith(prefix)).length;
         stats.stay = [...stayKeys].filter(key => key.startsWith(prefix)).length;
         stats.leave = [...leaveKeys].filter(key => key.startsWith(prefix)).length;
+        stats.queueVisible = priorityQueue.filter(item => item.sourceId === source.id && item.band === 'visible').length;
+        stats.queueKeep = priorityQueue.filter(item => item.sourceId === source.id && item.band === 'keep').length;
       });
     }
 
@@ -2954,6 +3020,7 @@ const norgeLeafletStyleEngine = {
       stayKeys,
       leaveKeys,
       sourceStats,
+      priorityQueue,
       rejected,
       warnings,
       visiblePerSource,
@@ -3050,6 +3117,17 @@ const norgeLeafletStyleEngine = {
         enterCount: this.dryRun.enterKeys.size,
         stayCount: this.dryRun.stayKeys.size,
         leaveCount: this.dryRun.leaveKeys.size,
+        queueTotal: this.dryRun.priorityQueue.length,
+        queuePreview: this.dryRun.priorityQueue.slice(0, 12).map(item => ({
+          sourceId: item.sourceId,
+          role: item.role,
+          band: item.band,
+          z: item.z,
+          nativeZ: item.nativeZ,
+          x: item.x,
+          y: item.y,
+          priorityGroup: item.priorityGroup,
+        })),
         rejected: this.dryRun.rejected,
         warnings: [...this.dryRun.warnings],
         sources: { ...this.dryRun.sourceStats },
@@ -3085,6 +3163,7 @@ const norgeLeafletStyleEngine = {
       stayKeys: new Set(),
       leaveKeys: new Set(),
       sourceStats: {},
+      priorityQueue: [],
       rejected: false,
       warnings: [],
     };
@@ -3103,6 +3182,14 @@ const norgeLeafletStyleEngine = {
       dryRunRejected: false,
       dryRunWarnings: [],
       dryRunSources: {},
+      queueTotal: 0,
+      queueVisibleBase: 0,
+      queueVisibleOverlay: 0,
+      queueKeepBase: 0,
+      queueKeepOverlay: 0,
+      queueFirstRole: '',
+      queuePreview: [],
+      queueRejected: false,
       baseSourceCount: 0,
       overlaySourceCount: 0,
       baseWanted: 0,
@@ -3158,6 +3245,13 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.stayTiles = String(this.stats.stayTiles);
     this.layer.dataset.leaveTiles = String(this.stats.leaveTiles);
     this.layer.dataset.dryRunRejected = this.stats.dryRunRejected ? '1' : '0';
+    this.layer.dataset.queueTotal = String(this.stats.queueTotal);
+    this.layer.dataset.queueVisibleBase = String(this.stats.queueVisibleBase);
+    this.layer.dataset.queueVisibleOverlay = String(this.stats.queueVisibleOverlay);
+    this.layer.dataset.queueKeepBase = String(this.stats.queueKeepBase);
+    this.layer.dataset.queueKeepOverlay = String(this.stats.queueKeepOverlay);
+    this.layer.dataset.queueFirstRole = this.stats.queueFirstRole;
+    this.layer.dataset.queueRejected = this.stats.queueRejected ? '1' : '0';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
@@ -3165,6 +3259,7 @@ const norgeLeafletStyleEngine = {
       `${sourceText} ${zoomText}, snapshot ${this.stats.snapshotReady ? 'ready' : 'none'}\n` +
       `registry ${this.stats.registrySize}, levels ${this.stats.levelCount}, pending ${this.stats.pendingCount}\n` +
       `dry-run visible ${this.stats.visibleTiles}, keep ${this.stats.keepTiles}, enter ${this.stats.enterTiles}, stay ${this.stats.stayTiles}, leave ${this.stats.leaveTiles}\n` +
+      `queue total ${this.stats.queueTotal}: base vis ${this.stats.queueVisibleBase}, overlay vis ${this.stats.queueVisibleOverlay}, base keep ${this.stats.queueKeepBase}, overlay keep ${this.stats.queueKeepOverlay}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -3184,6 +3279,11 @@ const norgeLeafletStyleEngine = {
     const overlayWanted = Object.values(diff.sourceStats)
       .filter(source => source.kind === 'overlay')
       .reduce((sum, source) => sum + source.keep, 0);
+    const queueVisibleBase = diff.priorityQueue.filter(item => item.role === 'base' && item.band === 'visible').length;
+    const queueVisibleOverlay = diff.priorityQueue.filter(item => item.role === 'overlay' && item.band === 'visible').length;
+    const queueKeepBase = diff.priorityQueue.filter(item => item.role === 'base' && item.band === 'keep').length;
+    const queueKeepOverlay = diff.priorityQueue.filter(item => item.role === 'overlay' && item.band === 'keep').length;
+    const firstQueueItem = diff.priorityQueue[0] || null;
     this.stats = {
       ...this.stats,
       state: 'dry-run',
@@ -3205,6 +3305,14 @@ const norgeLeafletStyleEngine = {
       dryRunRejected: diff.rejected,
       dryRunWarnings: diff.warnings,
       dryRunSources: diff.sourceStats,
+      queueTotal: diff.priorityQueue.length,
+      queueVisibleBase,
+      queueVisibleOverlay,
+      queueKeepBase,
+      queueKeepOverlay,
+      queueFirstRole: firstQueueItem ? `${firstQueueItem.role}:${firstQueueItem.band}` : '',
+      queuePreview: diff.priorityQueue.slice(0, 12),
+      queueRejected: diff.rejected,
       baseSourceCount,
       overlaySourceCount,
       baseWanted,
