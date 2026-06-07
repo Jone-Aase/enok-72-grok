@@ -2832,9 +2832,11 @@ const norgeLeafletStyleEngine = {
   },
   keepBuffer: 2,
   sourceVersion: 'v1',
+  threeAMaxConcurrent: 1,
+  threeAExplicitlyOpened: true,
   lastSnapshot: null,
   stats: {
-    phase: '2H-url-validation-hardening',
+    phase: '3A-single-base-visible-tile',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2916,8 +2918,29 @@ const norgeLeafletStyleEngine = {
     failed: 0,
     validUrl: 0,
     invalidUrl: 0,
+    validUrlCandidates: 0,
+    rejectedUrlCandidates: 0,
+    urlPreviewCount: 0,
+    urlPreviewLimit: 12,
+    urlPreviewTruncated: false,
+    countsByUrlKind: {},
+    urlValidationInvalid: 0,
+    urlValidationErrors: [],
     urlWarningCount: 0,
+    urlWarnings: [],
+    firstUrlKind: '',
+    firstUrlValid: false,
+    firstUrlLoaderAllowed: false,
     firstUrlWarnings: [],
+    actualPending: 0,
+    actualLoaded: 0,
+    actualFailed: 0,
+    actualAppended: 0,
+    actualSkippedByGate: 0,
+    actualRejectedInvalid: 0,
+    firstLoadedSourceId: '',
+    firstLoadedZXY: '',
+    lastLoadError: '',
   },
   init() {
     this.layer = document.getElementById('norge-leaflet-style-detail-layer');
@@ -3458,6 +3481,170 @@ const norgeLeafletStyleEngine = {
       urlWarningSummary,
     };
   },
+  clearRuntimeTiles() {
+    if (!this.layer) return;
+    this.layer.querySelectorAll('.norge-leaflet-style-pixelflate').forEach(element => element.remove());
+  },
+  selectThreeABaseCandidate(snapshot, diff) {
+    const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
+    const candidates = Array.isArray(diff.urlCandidates) ? diff.urlCandidates : [];
+    return candidates.find(candidate => {
+      const sourceId = candidate.sourceId || '';
+      const source = sourceMap.get(sourceId) || null;
+      const isSeEiendom = /se[-_ ]?eiendom|matrikkel|eiendom/i.test(sourceId) || /se[-_ ]?eiendom|matrikkel|eiendom/i.test(source?.layer || '');
+      return candidate.role === 'base'
+        && candidate.band === 'visible'
+        && candidate.validTile === true
+        && candidate.validUrl === true
+        && candidate.futureLoaderEligible === true
+        && candidate.sourceKind !== 'se-eiendom'
+        && !isSeEiendom;
+    }) || null;
+  },
+  threeAStopReasons(candidate) {
+    const reasons = [];
+    const cleanLayer = document.getElementById('norge-clean-detail-layer');
+    const cleanDisplay = cleanLayer ? getComputedStyle(cleanLayer).display : '';
+    const pointerEvents = this.layer ? getComputedStyle(this.layer).pointerEvents : '';
+    const maxConcurrent = this.threeAMaxConcurrent;
+    if (cleanDisplay !== 'block') reasons.push(`cleanDisplay=${cleanDisplay || 'missing'}`);
+    if (pointerEvents !== 'none') reasons.push(`v2 pointer-events=${pointerEvents || 'missing'}`);
+    if (!candidate) reasons.push('missing base:visible candidate');
+    if (candidate && candidate.role !== 'base') reasons.push(`candidate role=${candidate.role}`);
+    if (candidate && candidate.band !== 'visible') reasons.push(`candidate band=${candidate.band}`);
+    if (candidate && candidate.validTile !== true) reasons.push('validTile is not true');
+    if (candidate && candidate.validUrl !== true) reasons.push('validUrl is not true');
+    if (!this.threeAExplicitlyOpened) reasons.push('3A loader gate not explicitly opened');
+    if (maxConcurrent > 1) reasons.push(`maxConcurrent=${maxConcurrent}`);
+    if (candidate && candidate.sourceKind === 'se-eiendom') reasons.push('sourceKind is Se Eiendom');
+    if (candidate && /se[-_ ]?eiendom|matrikkel|eiendom/i.test(candidate.sourceId || '')) reasons.push('sourceId is Se Eiendom/Matrikkel');
+    return reasons;
+  },
+  runThreeASingleBaseTile(snapshot, diff) {
+    if (!this.enabled || !this.layer) return { started: false, reasons: ['engine disabled'] };
+    if (this.tileRegistry.size > 0 || this.pendingRegistry.size > 0) {
+      return { started: false, reasons: ['3A single tile already loaded or pending'] };
+    }
+    const candidate = this.selectThreeABaseCandidate(snapshot, diff);
+    const stopReasons = this.threeAStopReasons(candidate);
+    if (stopReasons.length) {
+      return { started: false, rejected: true, reasons: stopReasons };
+    }
+
+    const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+    const originX = candidate.x * tileSize;
+    const originY = candidate.y * tileSize;
+    const source = (snapshot.sources || []).find(item => item.id === candidate.sourceId) || null;
+    const anchorMode = source?.anchorMode || 'norway';
+    const transform = cleanNorgeTransform(candidate.z, originX, originY, anchorMode);
+    if (!transform) {
+      return { started: false, rejected: true, reasons: ['missing cleanNorgeTransform for candidate'] };
+    }
+
+    const pane = document.createElement('div');
+    pane.className = 'norge-leaflet-style-pixelflate v2-pixelflate-3a';
+    pane.style.width = `${tileSize}px`;
+    pane.style.height = `${tileSize}px`;
+    pane.style.transform = transform.css;
+    pane.dataset.v2Pane = '1';
+    pane.dataset.phase = '3A';
+    pane.dataset.zoom = String(candidate.z);
+    pane.dataset.anchorMode = anchorMode;
+    pane.dataset.sourceId = candidate.sourceId;
+
+    const img = document.createElement('img');
+    img.className = 'norge-leaflet-style-tile v2-tile v2-tile-base v2-tile-visible';
+    img.loading = 'eager';
+    img.decoding = 'async';
+    img.style.left = '0px';
+    img.style.top = '0px';
+    img.style.width = `${tileSize}px`;
+    img.style.height = `${tileSize}px`;
+    img.dataset.phase = '3A';
+    img.dataset.sourceId = candidate.sourceId;
+    img.dataset.role = 'base';
+    img.dataset.band = 'visible';
+    img.dataset.z = String(candidate.z);
+    img.dataset.nativeZ = String(candidate.nativeZ);
+    img.dataset.x = String(candidate.x);
+    img.dataset.y = String(candidate.y);
+
+    const key = candidate.sourceId + ':3A:z' + candidate.z + ':x' + candidate.x + ':y' + candidate.y;
+    this.pendingRegistry.set(key, {
+      key,
+      candidate,
+      startedAt: Date.now(),
+      maxConcurrent: this.threeAMaxConcurrent,
+      status: 'loading',
+    });
+    this.stats.state = '3a-loading';
+    this.stats.actualPending = this.pendingRegistry.size;
+    this.stats.loaderAllowed = true;
+    this.stats.loadingEnabled = true;
+    this.stats.loaderGateEnabled = true;
+    this.stats.loaderGateState = 'open-3a';
+    this.stats.maxConcurrentPlan = this.threeAMaxConcurrent;
+    this.updateStatus();
+    this.publishState();
+
+    img.onload = () => {
+      if (pane.dataset.v2Pane !== '1' || !pane.classList.contains('norge-leaflet-style-pixelflate')) {
+        this.pendingRegistry.delete(key);
+        this.stats.actualPending = this.pendingRegistry.size;
+        this.stats.actualFailed += 1;
+        this.stats.lastLoadError = '3A append target is not V2-pane';
+        this.updateStatus();
+        this.publishState();
+        return;
+      }
+      pane.appendChild(img);
+      this.layer.appendChild(pane);
+      this.pendingRegistry.delete(key);
+      this.tileRegistry.set(key, {
+        key,
+        candidate,
+        el: img,
+        pane,
+        loadedAt: Date.now(),
+        status: 'loaded',
+      });
+      this.levels.set(`z${candidate.z}`, pane);
+      this.stats.registrySize = this.tileRegistry.size;
+      this.stats.levelCount = this.levels.size;
+      this.stats.pendingCount = this.pendingRegistry.size;
+      this.stats.actualPending = this.pendingRegistry.size;
+      this.stats.actualLoaded = this.tileRegistry.size;
+      this.stats.actualAppended += 1;
+      this.stats.state = '3a-loaded';
+      this.stats.baseLoaded = this.tileRegistry.size;
+      this.stats.baseReady = true;
+      this.stats.loadingCount = this.pendingRegistry.size;
+      this.stats.loaded = this.tileRegistry.size;
+      this.stats.pending = this.pendingRegistry.size;
+      this.stats.firstLoadedSourceId = candidate.sourceId;
+      this.stats.firstLoadedZXY = `${candidate.z}/${candidate.x}/${candidate.y}`;
+      this.stats.lastLoadError = '';
+      this.updateStatus();
+      this.publishState();
+    };
+    img.onerror = () => {
+      this.pendingRegistry.delete(key);
+      this.stats.registrySize = this.tileRegistry.size;
+      this.stats.levelCount = this.levels.size;
+      this.stats.pendingCount = this.pendingRegistry.size;
+      this.stats.actualPending = this.pendingRegistry.size;
+      this.stats.actualFailed += 1;
+      this.stats.state = '3a-failed';
+      this.stats.failed += 1;
+      this.stats.loadingCount = this.pendingRegistry.size;
+      this.stats.pending = this.pendingRegistry.size;
+      this.stats.lastLoadError = `${candidate.sourceId} ${candidate.z}/${candidate.x}/${candidate.y}`;
+      this.updateStatus();
+      this.publishState();
+    };
+    img.src = candidate.urlText;
+    return { started: true, key, candidate };
+  },
   computeTileDiff(snapshot) {
     const warnings = [];
     const zoom = snapshot.zoom.tileZoom;
@@ -3731,6 +3918,17 @@ const norgeLeafletStyleEngine = {
         sources: { ...this.dryRun.sourceStats },
       },
       stats: { ...this.stats },
+      runtime3A: {
+        actualPending: this.stats.actualPending,
+        actualLoaded: this.stats.actualLoaded,
+        actualFailed: this.stats.actualFailed,
+        actualAppended: this.stats.actualAppended,
+        actualSkippedByGate: this.stats.actualSkippedByGate,
+        actualRejectedInvalid: this.stats.actualRejectedInvalid,
+        firstLoadedSourceId: this.stats.firstLoadedSourceId,
+        firstLoadedZXY: this.stats.firstLoadedZXY,
+        lastLoadError: this.stats.lastLoadError,
+      },
     });
   },
   publishState() {
@@ -3747,9 +3945,14 @@ const norgeLeafletStyleEngine = {
   },
   disable() {
     this.enabled = false;
+    this.clearRuntimeTiles();
+    this.tileRegistry.clear();
+    this.levels.clear();
+    this.pendingRegistry.clear();
     this.sync();
   },
   clear() {
+    this.clearRuntimeTiles();
     this.tileRegistry.clear();
     this.levels.clear();
     this.pendingRegistry.clear();
@@ -3885,6 +4088,15 @@ const norgeLeafletStyleEngine = {
       kept: 0,
       retired: 0,
       failed: 0,
+      actualPending: 0,
+      actualLoaded: 0,
+      actualFailed: 0,
+      actualAppended: 0,
+      actualSkippedByGate: 0,
+      actualRejectedInvalid: 0,
+      firstLoadedSourceId: '',
+      firstLoadedZXY: '',
+      lastLoadError: '',
     };
     this.publishState();
   },
@@ -3977,6 +4189,15 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.loaderGateWarnings = (this.stats.loaderGateWarnings || []).join(' | ');
     this.layer.dataset.pendingContractReady = this.stats.pendingContractReady ? '1' : '0';
     this.layer.dataset.abortContractReady = this.stats.abortContractReady ? '1' : '0';
+    this.layer.dataset.actualPending = String(this.stats.actualPending || 0);
+    this.layer.dataset.actualLoaded = String(this.stats.actualLoaded || 0);
+    this.layer.dataset.actualFailed = String(this.stats.actualFailed || 0);
+    this.layer.dataset.actualAppended = String(this.stats.actualAppended || 0);
+    this.layer.dataset.actualSkippedByGate = String(this.stats.actualSkippedByGate || 0);
+    this.layer.dataset.actualRejectedInvalid = String(this.stats.actualRejectedInvalid || 0);
+    this.layer.dataset.firstLoadedSourceId = this.stats.firstLoadedSourceId || '';
+    this.layer.dataset.firstLoadedZXY = this.stats.firstLoadedZXY || '';
+    this.layer.dataset.lastLoadError = this.stats.lastLoadError || '';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
@@ -3989,6 +4210,7 @@ const norgeLeafletStyleEngine = {
       `descriptors preview ${this.stats.descriptorPreviewCount}/${this.stats.descriptorPreviewLimit}${this.stats.previewTruncated ? ' truncated' : ''}; requests ${this.layer.dataset.countsByRequestType || '-'}; invalid ${this.stats.validationInvalid}\n` +
       `url hardening ${this.stats.validUrlCandidates}/${this.stats.validUrlCandidates + this.stats.rejectedUrlCandidates} valid; kinds ${this.layer.dataset.countsByUrlKind || '-'}; invalid ${this.stats.urlValidationInvalid}; warnings ${this.stats.urlWarningCount || 0}\n` +
       `loader gate ${this.stats.loaderGateState}; would enqueue ${this.stats.wouldEnqueue}, skip ${this.stats.wouldSkip}, reject ${this.stats.wouldReject}; pending ${this.stats.pendingCount}\n` +
+      `3A actual pending ${this.stats.actualPending || 0}, loaded ${this.stats.actualLoaded || 0}, failed ${this.stats.actualFailed || 0}, appended ${this.stats.actualAppended || 0}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -4136,6 +4358,13 @@ const norgeLeafletStyleEngine = {
       pending: 0,
       failed: 0,
     };
+    const loaderAttempt = this.runThreeASingleBaseTile(snapshot, diff);
+    if (loaderAttempt.rejected) {
+      this.stats.actualRejectedInvalid += 1;
+      this.stats.lastLoadError = loaderAttempt.reasons.join(' | ');
+    } else if (!loaderAttempt.started) {
+      this.stats.actualSkippedByGate += 1;
+    }
     this.publishState();
     this.updateStatus();
   },
