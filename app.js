@@ -2833,7 +2833,7 @@ const norgeLeafletStyleEngine = {
   keepBuffer: 2,
   sourceVersion: 'v1',
   threeAMaxConcurrent: 1,
-  threeAExplicitlyOpened: true,
+  threeAExplicitlyOpened: false,
   lastSnapshot: null,
   stats: {
     phase: '3A-single-base-visible-tile',
@@ -2944,6 +2944,8 @@ const norgeLeafletStyleEngine = {
   },
   init() {
     this.layer = document.getElementById('norge-leaflet-style-detail-layer');
+    globalThis.__openKartmotorV2ThreeATestGate = () => this.openThreeATestGate();
+    globalThis.__closeKartmotorV2ThreeATestGate = () => this.closeThreeATestGate();
     this.publishState();
     this.sync();
   },
@@ -3485,6 +3487,26 @@ const norgeLeafletStyleEngine = {
     if (!this.layer) return;
     this.layer.querySelectorAll('.norge-leaflet-style-pixelflate').forEach(element => element.remove());
   },
+  isThreeATestGateOpen() {
+    return this.threeAExplicitlyOpened === true
+      || globalThis.__enableKartmotorV2ThreeATest === true
+      || globalThis.__enok72__?.enableKartmotorV2ThreeATest === true
+      || new URLSearchParams(window.location.search).get('kartmotorV2ThreeATest') === '1';
+  },
+  openThreeATestGate() {
+    this.threeAExplicitlyOpened = true;
+    if (this.enabled) this.update();
+    return this.publicState();
+  },
+  closeThreeATestGate() {
+    this.threeAExplicitlyOpened = false;
+    this.clearRuntimeTiles();
+    this.tileRegistry.clear();
+    this.pendingRegistry.clear();
+    this.levels.clear();
+    if (this.enabled) this.update();
+    return this.publicState();
+  },
   selectThreeABaseCandidate(snapshot, diff) {
     const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
     const candidates = Array.isArray(diff.urlCandidates) ? diff.urlCandidates : [];
@@ -3514,7 +3536,7 @@ const norgeLeafletStyleEngine = {
     if (candidate && candidate.band !== 'visible') reasons.push(`candidate band=${candidate.band}`);
     if (candidate && candidate.validTile !== true) reasons.push('validTile is not true');
     if (candidate && candidate.validUrl !== true) reasons.push('validUrl is not true');
-    if (!this.threeAExplicitlyOpened) reasons.push('3A loader gate not explicitly opened');
+    if (!this.isThreeATestGateOpen()) reasons.push('3A loader gate not explicitly opened');
     if (maxConcurrent > 1) reasons.push(`maxConcurrent=${maxConcurrent}`);
     if (candidate && candidate.sourceKind === 'se-eiendom') reasons.push('sourceKind is Se Eiendom');
     if (candidate && /se[-_ ]?eiendom|matrikkel|eiendom/i.test(candidate.sourceId || '')) reasons.push('sourceId is Se Eiendom/Matrikkel');
@@ -3919,6 +3941,7 @@ const norgeLeafletStyleEngine = {
       },
       stats: { ...this.stats },
       runtime3A: {
+        testGateOpen: this.isThreeATestGateOpen(),
         actualPending: this.stats.actualPending,
         actualLoaded: this.stats.actualLoaded,
         actualFailed: this.stats.actualFailed,
@@ -4210,7 +4233,7 @@ const norgeLeafletStyleEngine = {
       `descriptors preview ${this.stats.descriptorPreviewCount}/${this.stats.descriptorPreviewLimit}${this.stats.previewTruncated ? ' truncated' : ''}; requests ${this.layer.dataset.countsByRequestType || '-'}; invalid ${this.stats.validationInvalid}\n` +
       `url hardening ${this.stats.validUrlCandidates}/${this.stats.validUrlCandidates + this.stats.rejectedUrlCandidates} valid; kinds ${this.layer.dataset.countsByUrlKind || '-'}; invalid ${this.stats.urlValidationInvalid}; warnings ${this.stats.urlWarningCount || 0}\n` +
       `loader gate ${this.stats.loaderGateState}; would enqueue ${this.stats.wouldEnqueue}, skip ${this.stats.wouldSkip}, reject ${this.stats.wouldReject}; pending ${this.stats.pendingCount}\n` +
-      `3A actual pending ${this.stats.actualPending || 0}, loaded ${this.stats.actualLoaded || 0}, failed ${this.stats.actualFailed || 0}, appended ${this.stats.actualAppended || 0}\n` +
+      `3A test gate ${this.isThreeATestGateOpen() ? 'open' : 'closed'}; actual pending ${this.stats.actualPending || 0}, loaded ${this.stats.actualLoaded || 0}, failed ${this.stats.actualFailed || 0}, appended ${this.stats.actualAppended || 0}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
