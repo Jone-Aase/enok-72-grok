@@ -3891,6 +3891,17 @@ const norgeLeafletStyleEngine = {
       this.publishState();
 
       img.onload = () => {
+        if (!this.isThreeBTestGateOpen() || !this.pendingRegistry.has(key)) {
+          this.pendingRegistry.delete(key);
+          this.stats.pendingCount = this.pendingRegistry.size;
+          this.stats.actualPending = this.pendingRegistry.size;
+          this.stats.threeBPending = this.pendingRegistry.size;
+          this.stats.loadingCount = this.pendingRegistry.size;
+          this.stats.pending = this.pendingRegistry.size;
+          this.updateStatus();
+          this.publishState();
+          return;
+        }
         if (pane.dataset.v2Pane !== '1' || !pane.classList.contains('norge-leaflet-style-pixelflate')) {
           this.pendingRegistry.delete(key);
           this.stats.pendingCount = this.pendingRegistry.size;
@@ -3952,6 +3963,17 @@ const norgeLeafletStyleEngine = {
         startTile(index + 1);
       };
       img.onerror = () => {
+        if (!this.isThreeBTestGateOpen() || !this.pendingRegistry.has(key)) {
+          this.pendingRegistry.delete(key);
+          this.stats.pendingCount = this.pendingRegistry.size;
+          this.stats.actualPending = this.pendingRegistry.size;
+          this.stats.threeBPending = this.pendingRegistry.size;
+          this.stats.loadingCount = this.pendingRegistry.size;
+          this.stats.pending = this.pendingRegistry.size;
+          this.updateStatus();
+          this.publishState();
+          return;
+        }
         this.pendingRegistry.delete(key);
         this.stats.registrySize = this.tileRegistry.size;
         this.stats.levelCount = this.levels.size;
