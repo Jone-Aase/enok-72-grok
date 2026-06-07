@@ -307,14 +307,65 @@
     display: none;
     opacity: 0.52;
   }
-  #norge-clean-overview-layer {
+  #norge-leaflet-style-detail-layer {
     position: absolute;
     inset: 0;
     overflow: hidden;
     pointer-events: none;
-    z-index: 3;
+    z-index: 5;
     display: none;
-    opacity: 0.34;
+    opacity: 0.52;
+  }
+  #norge-real-leaflet-map {
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    z-index: 0;
+    pointer-events: auto;
+  }
+  #norge-real-leaflet-map.leaflet-container {
+    background: transparent;
+    font: inherit;
+  }
+  #norge-real-leaflet-map .leaflet-control-attribution {
+    background: rgba(0, 0, 0, 0.55);
+    color: #cfcfcf;
+    font-size: 10px;
+  }
+  .norge-leaflet-style-status {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    padding: 4px 6px;
+    border: 1px solid rgba(255, 214, 107, 0.35);
+    background: rgba(0, 0, 0, 0.62);
+    color: #ffd66b;
+    font-size: 10px;
+    line-height: 1.35;
+    letter-spacing: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .norge-leaflet-style-pixelflate {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  .norge-leaflet-style-tile {
+    position: absolute;
+    object-fit: fill;
+    transform-origin: top left;
+    image-rendering: auto;
+    opacity: 1;
+    backface-visibility: hidden;
+    box-sizing: border-box;
+    user-select: none;
+    pointer-events: none;
+  }
+  .norge-leaflet-style-tile.retiring {
+    opacity: 0.65;
   }
   .norge-clean-pixelflate {
     position: absolute;
@@ -476,9 +527,6 @@
     display: block;
   }
   #canvas-wrap.norge-active #norge-screen-detail-layer {
-    display: block;
-  }
-  #canvas-wrap.norge-active #norge-clean-overview-layer {
     display: block;
   }
   #canvas-wrap.norge-active #norge-clean-detail-layer {
@@ -1520,21 +1568,27 @@
         <div id="norge-controls">
           <div class="norge-section">
             <div class="norge-title">Bakgrunnskart</div>
+            <div style="font-size:10px;color:#9a8a58;margin:2px 0 5px">Kartverket / gamle Leaflet-valg</div>
+            <label><input type="radio" name="norge-base" value="topograatone"> Topografisk gråtone</label>
+            <label><input type="radio" name="norge-base" value="topo"> Topografisk farge</label>
+            <label><input type="radio" name="norge-base" value="toporaster"> Turkart-raster (N50/N5)</label>
+            <label><input type="radio" name="norge-base" value="osm"> OpenStreetMap</label>
+            <div style="font-size:10px;color:#9a8a58;margin:8px 0 5px">Sjøkart og regionale testflater</div>
             <label><input type="radio" name="norge-base" value="sjokartraster" checked> SjÃ¸kart hovedlag</label>
             <label><input type="radio" name="norge-base" value="iceland-sjokart"> Island sjÃƒÂ¸kart (offisiell)</label>
             <label><input type="radio" name="norge-base" value="denmark-havplan"> Denmark marine plan (official WMS)</label>
             <label><input type="radio" name="norge-base" value="sweden-seachart"> Sweden seachart (official WMS)</label>
             <label><input type="radio" name="norge-base" value="assembled-nordic"> Assembled Nordic surface</label>
-            <label><input type="radio" name="norge-base" value="topo"> Land/vei topo</label>
-            <label><input type="radio" name="norge-base" value="osm"> Verdenskart / vei (OSM)</label>
           </div>
           <div class="norge-section">
             <div class="norge-title">Kartlag</div>
             <label><input type="checkbox" id="norge-layer-geo-grid" checked> Geografisk grid</label>
             <label><input type="checkbox" id="norge-layer-square-grid" checked> Square grid 110.593 km/Â°</label>
+            <label><input type="checkbox" id="norge-layer-sjokart"> Sjøkart som overlay</label>
+            <label><input type="checkbox" id="norge-layer-nib"> Norge i bilder / ortofoto</label>
+            <label><input type="checkbox" id="norge-layer-se-eiendom"> Se eiendom</label>
             <label><input type="checkbox" id="norge-layer-cities" checked> Kontrollpunkter og landemerker</label>
             <label><input type="checkbox" id="norge-layer-both-seacharts"> Norge + Island sjÃƒÂ¸kart samtidig</label>
-            <label><input type="checkbox" id="norge-layer-osm"> Verdenskart / vei (OSM) over Norgeskart</label>
             <button id="norge-focus-grimsey" type="button">GÃƒÂ¥ til GrÃƒÂ­msey</button>
             <button id="norge-focus-iceland" type="button">GÃƒÂ¥ til Island</button>
             <button id="norge-focus-jan-mayen" type="button">GÃƒÂ¥ til Jan Mayen</button>
@@ -1551,6 +1605,9 @@
             </label>
             <label title="Skjuler bare baseline-detail-tiles i laben, slik at clean-flaten kan vurderes alene.">
               <input type="checkbox" id="norge-clean-hide-baseline"> Hide old map layers
+            </label>
+            <label title="Experimental parallel map engine shell. No tile loading yet.">
+              <input type="checkbox" id="norge-leaflet-style-engine"> Leaflet-style map engine
             </label>
             <div class="norge-range-row">
               <span>Clean opacity</span>
@@ -1730,8 +1787,11 @@
         <svg id="norge-surface-overlay" viewBox="0 0 2048 2048" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
       </div>
       <div id="norge-screen-detail-layer" aria-hidden="true"></div>
-      <div id="norge-clean-overview-layer" aria-hidden="true"></div>
       <div id="norge-clean-detail-layer" aria-hidden="true"></div>
+      <div id="norge-leaflet-style-detail-layer" aria-hidden="true">
+        <div id="norge-real-leaflet-map" aria-label="Leaflet Kartverket motor"></div>
+        <div class="norge-leaflet-style-status">Leaflet-style engine: ready<br>No tile loading yet</div>
+      </div>
       <div id="tooltip"></div>
       <div id="zoom-indicator">100% Â· Enoch scale</div>
       <!-- v16.36: Port-progresjons-indikator fjernet etter Jone-Aase 2026-05-28. -->
@@ -1907,6 +1967,8 @@
   }
 }
 </script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
 
 <!-- Marker info modal -->
 <div id="marker-modal-backdrop">

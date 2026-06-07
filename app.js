@@ -1,4 +1,4 @@
-// =================================================================
+﻿// =================================================================
 // ENOCH 72 — THE TRUTH INSTRUMENT v2.0 (3D)
 // v16.70 (2026-05-30): RENE FLATE FARGER. Hav: marin blaa RGB(0,0,196) over hele havet. Land: dyp groenn RGB(118,181,49) over alle kontinenter og oeyer. Antarktis: ren hvit (255,255,255). Kystlinje: moerk (40,40,60) width=4. Bygget fra Natural Earth ne_10m_land via build_k2_8192_v12.py. Backup: un-map-v16.69-backup.webp.
 // v16.69 (2026-05-30): IS-GRENSE PAA KYSTLINJEN. Antarktis hvit-fyll er bygget som VIFTE-POLYGON fra kystkurven ut til R_FULL (ikke en fast sirkel). Hav-blaa (126,176,203 - GE-stil samplet fra hypso r=0.70R) fylles fra lat=-51S helt inn til kystlinjen. Resultat: hav moeter kystlinjen direkte, hvit is moeter kystlinjen direkte. Ingen mellom-gradient. Kystlinje (40,40,60) width=4. Bygget med build_k2_8192_v11.py. Backup: un-map-v16.68-backup.webp.
@@ -2748,7 +2748,6 @@ let norgeSurfaceMeasurePoints = [];
 let norgeDetailTimer = null;
 let norgeDetailKey = '';
 let norgeCleanDetailKey = '';
-let norgeCleanOverviewKey = '';
 let norgeCleanLastContext = null;
 let norgeFrozenDetailLayer = false;
 let norgeFreezeMode = 'dynamic';
@@ -2773,6 +2772,392 @@ const norgeCleanTileManager = {
   fallbackHits: 0,
   fallbackMisses: 0,
 };
+const norgeLeafletStyleEngine = {
+  enabled: false,
+  layer: null,
+  mapEl: null,
+  tileRegistry: new Map(),
+  levels: new Map(),
+  pendingRegistry: new Map(),
+  keepBuffer: 2,
+  sourceVersion: 'v1',
+  lastSnapshot: null,
+  map: null,
+  baseLayers: {},
+  overlayLayers: {},
+  activeBase: null,
+  stats: {
+    state: 'off',
+    zoom: null,
+    tileZoom: null,
+    source: '',
+    snapshotReady: false,
+    coreReady: false,
+    transformReady: false,
+    registrySize: 0,
+    levelCount: 0,
+    pendingCount: 0,
+    keepBuffer: 2,
+    baseSourceCount: 0,
+    overlaySourceCount: 0,
+    baseWanted: 0,
+    baseLoaded: 0,
+    baseReady: false,
+    overlayWanted: 0,
+    overlayLoaded: 0,
+    overlayReady: false,
+    loadingCount: 0,
+    retiringCount: 0,
+    prunedCount: 0,
+    blackFramePrevented: 0,
+    wanted: 0,
+    loaded: 0,
+    pending: 0,
+    kept: 0,
+    retired: 0,
+    failed: 0,
+  },
+  init() {
+    this.layer = document.getElementById('norge-leaflet-style-detail-layer');
+    this.mapEl = document.getElementById('norge-real-leaflet-map');
+    window.__norgeKartmotorV2 = this.publicState();
+    window.__enok72__ = window.__enok72__ || {};
+    window.__enok72__.kartmotorV2 = window.__norgeKartmotorV2;
+    this.sync();
+  },
+  makeSourceId(source) {
+    return [source?.type || 'unknown', source?.layer || 'default']
+      .join(':')
+      .replace(/\s+/g, '_');
+  },
+  getTileKey(source, z, x, y, dpr = window.devicePixelRatio || 1) {
+    const sourceId = typeof source === 'string' ? source : this.makeSourceId(source);
+    const role = typeof source === 'string' ? 'base' : (source?.role || 'base');
+    const anchorMode = typeof source === 'string' ? 'norway' : (cleanSourceAnchorMode(source) || 'norway');
+    const dprKey = Number.isFinite(dpr) ? Math.max(1, Math.round(dpr)) : 1;
+    return `${sourceId}:${this.sourceVersion}:${role}:${anchorMode}:z${z}:x${x}:y${y}:dpr${dprKey}`;
+  },
+  getCoreSnapshot() {
+    const sources = currentNorgeDetailSources().map((source, index) => Object.freeze({
+      id: this.makeSourceId(source),
+      version: this.sourceVersion,
+      type: source.type,
+      layer: source.layer,
+      role: source.role || 'base',
+      anchorMode: cleanSourceAnchorMode(source),
+      priority: source.role === 'overlay' ? 1 : 0,
+      enabled: true,
+      order: index,
+    }));
+    const visibleBounds = norgeLastVisibleSourceBounds
+      ? { ...norgeLastVisibleSourceBounds }
+      : null;
+    const diag = norgeCleanDiagnosticsV1;
+    return Object.freeze({
+      schema: 'kartmotor-v2-core-snapshot-v1',
+      timestamp: Date.now(),
+      frameId: Math.round(performance.now()),
+      geometry: Object.freeze({
+        profileId: 'enok72-norge-clean-locked',
+        transformId: 'cleanNorgeTransform',
+        transformRevision: 'clean-v1',
+        anchorRevision: 'locked-control-points-v1',
+        aeProjectRevision: 'locked-aeProject',
+        geGridRevision: 'locked-ge-grid',
+        truthLocked: true,
+      }),
+      transform: Object.freeze({
+        tileSize: NORGE_SURFACE_DETAIL.tileSize,
+        minZoom: NORGE_SURFACE_DETAIL.minZoom,
+        maxZoom: NORGE_SURFACE_DETAIL.maxZoom,
+        maxTiles: NORGE_SURFACE_DETAIL.maxTiles,
+        bounds: Object.freeze({ ...NORGE_SURFACE_DETAIL.bounds }),
+        axisY: 'tile-y-down',
+      }),
+      camera: Object.freeze({
+        dist: camState.dist,
+        height: camState.height,
+        tilt: camState.tilt,
+        rot: camState.rot,
+        targetX: camState.target.x,
+        targetZ: camState.target.z,
+        viewportWidth: cw,
+        viewportHeight: ch,
+        devicePixelRatio: window.devicePixelRatio || 1,
+      }),
+      view: Object.freeze({
+        boundsSource: diag.boundsSource || '',
+        visibleBounds,
+        visibleRange: diag.visibleRange ? { ...diag.visibleRange } : null,
+        expandedRange: diag.expandedRange ? { ...diag.expandedRange } : null,
+        fittedRange: diag.fittedRange ? { ...diag.fittedRange } : null,
+      }),
+      zoom: Object.freeze({
+        detailZoom: diag.zoom,
+        tileZoom: diag.zoom,
+        screenKey: diag.screenKey || '',
+      }),
+      sources: Object.freeze(sources),
+      status: Object.freeze({
+        coreReady: true,
+        transformReady: true,
+        sourcesReady: sources.length > 0,
+        cameraStable: !norgeDetailTimer,
+        cleanAvailable: true,
+        freezeMode: norgeFreezeMode,
+      }),
+    });
+  },
+  publicState() {
+    return Object.freeze({
+      enabled: this.enabled,
+      state: this.stats.state,
+      keepBuffer: this.keepBuffer,
+      registrySize: this.tileRegistry.size,
+      levelCount: this.levels.size,
+      pendingCount: this.pendingRegistry.size,
+      snapshotReady: !!this.lastSnapshot,
+      snapshot: this.lastSnapshot,
+      stats: { ...this.stats },
+    });
+  },
+  ensureMap() {
+    if (!this.layer) this.layer = document.getElementById('norge-leaflet-style-detail-layer');
+    if (!this.mapEl) this.mapEl = document.getElementById('norge-real-leaflet-map');
+    if (this.map || !this.mapEl || !window.L) return this.map;
+    const L = window.L;
+    const kvBase = 'https://cache.kartverket.no/v1/wmts/1.0.0';
+    const worldBounds = [[-85.05112878, -180], [85.05112878, 180]];
+    const kvLayer = (layerName, opts = {}) => L.tileLayer(
+      `${kvBase}/${layerName}/default/webmercator/{z}/{y}/{x}.png`,
+      Object.assign({
+        attribution: '© Kartverket',
+        maxZoom: 20,
+        maxNativeZoom: 20,
+        noWrap: true,
+        bounds: worldBounds,
+        tileSize: 256,
+        keepBuffer: 4,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
+      }, opts)
+    );
+    this.baseLayers = {
+      topograatone: kvLayer('topograatone'),
+      topo: kvLayer('topo'),
+      toporaster: kvLayer('toporaster'),
+      sjokartraster: kvLayer('sjokartraster'),
+      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+        noWrap: true,
+        bounds: worldBounds,
+        keepBuffer: 4,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
+      }),
+    };
+    this.overlayLayers = {
+      seEiendom: L.tileLayer.wms('https://wms.geonorge.no/skwms1/wms.matrikkel', {
+        layers: 'eiendomsgrense,grensepunkt,adresse,eiendoms_id',
+        format: 'image/png',
+        transparent: true,
+        version: '1.3.0',
+        attribution: '© Kartverket Matrikkel',
+        opacity: 0.92,
+        maxZoom: 20,
+        noWrap: true,
+        bounds: worldBounds,
+        updateWhenIdle: false,
+      }),
+    };
+    this.map = L.map(this.mapEl, {
+      center: [59.9139, 10.7522],
+      zoom: 13,
+      minZoom: 0,
+      maxZoom: 20,
+      zoomControl: true,
+      attributionControl: true,
+      fadeAnimation: true,
+      markerZoomAnimation: false,
+      preferCanvas: false,
+      worldCopyJump: false,
+    });
+    this.map.on('zoomend moveend', () => {
+      this.stats.zoom = this.map.getZoom();
+      this.updateStatus();
+    });
+    window.__norgeRealLeafletMap = this.map;
+    window.__norgeLeafletStyleEngine = this;
+    const tileEvent = (deltaRequested, deltaLoaded, deltaFailed = 0) => {
+      this.stats.wanted = Math.max(0, this.stats.wanted + deltaRequested);
+      this.stats.loaded = Math.max(0, this.stats.loaded + deltaLoaded);
+      this.stats.failed = Math.max(0, this.stats.failed + deltaFailed);
+      this.stats.pending = Math.max(0, this.stats.wanted - this.stats.loaded - this.stats.failed);
+      this.updateStatus();
+    };
+    Object.values(this.baseLayers).forEach(layer => {
+      layer.on('tileloadstart', () => tileEvent(1, 0));
+      layer.on('tileload', () => tileEvent(0, 1));
+      layer.on('tileerror', () => tileEvent(0, 0, 1));
+    });
+    Object.values(this.overlayLayers).forEach(layer => {
+      layer.on('tileloadstart', () => tileEvent(1, 0));
+      layer.on('tileload', () => tileEvent(0, 1));
+      layer.on('tileerror', () => tileEvent(0, 0, 1));
+    });
+    return this.map;
+  },
+  enable() {
+    this.enabled = true;
+    this.sync();
+    this.update();
+  },
+  disable() {
+    this.enabled = false;
+    this.sync();
+  },
+  clear() {
+    if (this.map) {
+      Object.values(this.baseLayers).forEach(layer => this.map.removeLayer(layer));
+      Object.values(this.overlayLayers).forEach(layer => this.map.removeLayer(layer));
+      this.activeBase = null;
+    }
+    this.tileRegistry.clear();
+    this.levels.clear();
+    this.pendingRegistry.clear();
+    this.lastSnapshot = null;
+    this.stats = {
+      ...this.stats,
+      snapshotReady: false,
+      registrySize: 0,
+      levelCount: 0,
+      pendingCount: 0,
+      baseSourceCount: 0,
+      overlaySourceCount: 0,
+      baseWanted: 0,
+      baseLoaded: 0,
+      baseReady: false,
+      overlayWanted: 0,
+      overlayLoaded: 0,
+      overlayReady: false,
+      loadingCount: 0,
+      retiringCount: 0,
+      prunedCount: 0,
+      blackFramePrevented: 0,
+      wanted: 0,
+      loaded: 0,
+      pending: 0,
+      kept: 0,
+      retired: 0,
+      failed: 0,
+    };
+    window.__norgeKartmotorV2 = this.publicState();
+    window.__enok72__ = window.__enok72__ || {};
+    window.__enok72__.kartmotorV2 = window.__norgeKartmotorV2;
+  },
+  sync() {
+    if (!this.layer) this.layer = document.getElementById('norge-leaflet-style-detail-layer');
+    if (!this.layer) return;
+    if (!this.mapEl) this.mapEl = document.getElementById('norge-real-leaflet-map');
+    const visibleToggle = document.getElementById('norge-clean-visible');
+    const visible = visibleToggle?.checked !== false;
+    this.layer.style.display = this.enabled && visible ? 'block' : 'none';
+    this.layer.style.pointerEvents = 'none';
+    this.stats.state = this.enabled ? 'shell' : 'off';
+    this.layer.dataset.engineState = this.stats.state;
+    this.updateStatus();
+  },
+  baseSource() {
+    return currentNorgeDetailSources().find(source => source.role !== 'overlay') || cleanNorgeDetailSources()[0] || null;
+  },
+  selectedBaseKey() {
+    const selected = document.querySelector('input[name="norge-base"]:checked')?.value || 'sjokartraster';
+    if (['topograatone', 'topo', 'toporaster', 'sjokartraster', 'osm', 'iceland-sjokart', 'denmark-havplan', 'sweden-seachart'].includes(selected)) return selected;
+    return selected === 'assembled-nordic' ? 'sjokartraster' : 'topograatone';
+  },
+  updateStatus() {
+    if (!this.layer) return;
+    const status = this.layer.querySelector('.norge-leaflet-style-status');
+    if (!status) return;
+    const sourceText = this.stats.source || 'no source';
+    const zoomText = this.stats.zoom === null ? '-' : `z${this.stats.zoom}`;
+    this.layer.dataset.snapshotReady = this.stats.snapshotReady ? '1' : '0';
+    this.layer.dataset.registrySize = String(this.stats.registrySize);
+    this.layer.dataset.levelCount = String(this.stats.levelCount);
+    this.layer.dataset.pendingCount = String(this.stats.pendingCount);
+    this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
+    this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
+    status.textContent =
+      `Kartmotor V2: ${this.stats.state}\n` +
+      `${sourceText} ${zoomText}, snapshot ${this.stats.snapshotReady ? 'ready' : 'none'}\n` +
+      `registry ${this.stats.registrySize}, levels ${this.stats.levelCount}, pending ${this.stats.pendingCount}\n` +
+      `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
+      `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
+  },
+  update() {
+    if (!this.enabled) return;
+    const snapshot = this.getCoreSnapshot();
+    this.lastSnapshot = snapshot;
+    const baseKey = this.selectedBaseKey();
+    const seEnabled = document.getElementById('norge-layer-se-eiendom')?.checked === true;
+    const baseSourceCount = snapshot.sources.filter(source => source.role !== 'overlay').length;
+    const overlaySourceCount = snapshot.sources.filter(source => source.role === 'overlay').length;
+    this.stats = {
+      ...this.stats,
+      state: 'shell',
+      zoom: snapshot.zoom.detailZoom,
+      tileZoom: snapshot.zoom.tileZoom,
+      source: `${baseKey}${seEnabled ? ' + Se Eiendom' : ''}`,
+      snapshotReady: true,
+      coreReady: snapshot.status.coreReady,
+      transformReady: snapshot.status.transformReady,
+      registrySize: this.tileRegistry.size,
+      levelCount: this.levels.size,
+      pendingCount: this.pendingRegistry.size,
+      keepBuffer: this.keepBuffer,
+      baseSourceCount,
+      overlaySourceCount,
+      baseWanted: 0,
+      baseLoaded: 0,
+      baseReady: false,
+      overlayWanted: 0,
+      overlayLoaded: 0,
+      overlayReady: false,
+      loadingCount: 0,
+      retiringCount: 0,
+      wanted: 0,
+      loaded: 0,
+      pending: 0,
+      failed: 0,
+    };
+    window.__norgeKartmotorV2 = this.publicState();
+    window.__enok72__ = window.__enok72__ || {};
+    window.__enok72__.kartmotorV2 = window.__norgeKartmotorV2;
+    this.updateStatus();
+  },
+};
+const norgeCleanDiagnosticsV1 = {
+  zoom: null,
+  screenKey: '',
+  sourceCount: 0,
+  cleanSourceCount: 0,
+  paneCount: 0,
+  tileJobCount: 0,
+  visibleTileCount: 0,
+  overscanTileCount: 0,
+  requestTileCount: 0,
+  visibleRange: null,
+  expandedRange: null,
+  fittedRange: null,
+  overscan: 0,
+  clipped: false,
+  boundsSource: '',
+  coverageGuard: null,
+  outsideVisibleJobs: 0,
+  overscanJobs: 0,
+};
+let norgeLastVisibleSourceBounds = null;
 let norgeAppliedPan = { x: 0, y: 0 };
 const LOCKED_NORGE_VIEW = {
   center: [65.0, 15.0],
@@ -2960,8 +3345,6 @@ const NORGE_SURFACE_CONTROL_POINTS = [
 const NORGE_SURFACE_DETAIL = {
   maxTiles: 3600,
   minZoom: 7,
-  overviewZoom: 4,
-  overviewMaxTiles: 360,
   maxZoom: 18,
   tileSize: 256,
   bounds: { latMin: -85.0, latMax: 84.0, lonMin: -180.0, lonMax: 180.0 },
@@ -3125,11 +3508,11 @@ function currentNorgeDetailSources() {
   if (document.getElementById('norge-layer-sjokart')?.checked) {
     sources.push({ type: 'kartverket', layer: 'sjokartraster', role: 'overlay' });
   }
-  if (document.getElementById('norge-layer-osm')?.checked && selectedBase !== 'osm' && !sources.some(source => source.type === 'osm')) {
-    sources.unshift({ type: 'osm', layer: 'osm', role: 'base', anchorMode: 'norway' });
-  }
   if (document.getElementById('norge-layer-nib')?.checked) {
     sources.push({ type: 'wms-nib', layer: 'ortofoto', role: 'overlay' });
+  }
+  if (document.getElementById('norge-layer-se-eiendom')?.checked) {
+    sources.push({ type: 'wms-se-eiendom', layer: 'eiendomsgrense,grensepunkt,adresse,eiendoms_id', role: 'overlay' });
   }
   return sources;
 }
@@ -3195,6 +3578,15 @@ function detailTileUrl(source, z, x, y, bounds) {
       `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}` +
       tokenParam;
   }
+  if (source.type === 'wms-se-eiendom') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://wms.geonorge.no/skwms1/wms.matrikkel?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
   return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
 }
 
@@ -3228,6 +3620,15 @@ function cleanDetailTileUrl(source, z, x, y) {
       `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
   }
   if (source.type === 'wms-nib') return '';
+  if (source.type === 'wms-se-eiendom') {
+    const b = webMercatorTileBbox(x, y, z);
+    return 'https://wms.geonorge.no/skwms1/wms.matrikkel?' +
+      'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
+      `&LAYERS=${encodeURIComponent(source.layer)}` +
+      '&STYLES=&FORMAT=image/png&TRANSPARENT=TRUE&CRS=EPSG:3857' +
+      `&BBOX=${b.minX.toFixed(2)},${b.minY.toFixed(2)},${b.maxX.toFixed(2)},${b.maxY.toFixed(2)}` +
+      `&WIDTH=${NORGE_SURFACE_DETAIL.tileSize}&HEIGHT=${NORGE_SURFACE_DETAIL.tileSize}`;
+  }
   return `https://cache.kartverket.no/v1/wmts/1.0.0/${source.layer}/default/webmercator/${z}/${y}/${x}.png`;
 }
 
@@ -3249,24 +3650,6 @@ function resetNorgeCleanTileQueue() {
   norgeCleanTileManager.queueYielded = false;
   norgeCleanTileManager.yieldCount = 0;
   norgeCleanTileManager.lastPumpMs = 0;
-  // Lag 2-tellere (steg 2)
-  norgeCleanTileManager.fromIdb = 0;
-  norgeCleanTileManager.idbWriteFailed = 0;
-  norgeCleanTileManager.idbDecodeFailed = 0;
-  // Lag 2 steg 3: eksplisitt tøm prefetch-kø + abort in-flight
-  try {
-    if (typeof lag2State !== 'undefined' && lag2State) {
-      lag2State.prefetchQueue = [];
-      if (lag2State.prefetchAbortController) {
-        try { lag2State.prefetchAbortController.abort(); } catch (_) { /* noop */ }
-        lag2State.prefetchAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      }
-      lag2State.lastLiveActivityAt = Date.now();
-    }
-  } catch (_) { /* aldri brekk pipelinen */ }
-  norgeCleanTileManager.prefetched = 0;
-  norgeCleanTileManager.prefetchSkipped = 0;
-  norgeCleanTileManager.prefetchAborted = 0;
   refreshNorgeCleanLoadStatus();
 }
 
@@ -3278,6 +3661,141 @@ function rememberNorgeCleanTile(src) {
     const oldest = norgeCleanTileManager.cache.keys().next().value;
     norgeCleanTileManager.cache.delete(oldest);
   }
+}
+
+function countNorgeCleanTilesInRange(range) {
+  if (!range) return 0;
+  return Math.max(0, range.xMax - range.xMin + 1) * Math.max(0, range.yMax - range.yMin + 1);
+}
+
+function cloneNorgeCleanTileRange(range) {
+  if (!range) return null;
+  return {
+    xMin: range.xMin,
+    xMax: range.xMax,
+    yMin: range.yMin,
+    yMax: range.yMax,
+    count: range.count || countNorgeCleanTilesInRange(range),
+    overscan: range.overscan || 0,
+    clipped: !!range.clipped,
+  };
+}
+
+function isNorgeTileInRange(x, y, range) {
+  return !!range && x >= range.xMin && x <= range.xMax && y >= range.yMin && y <= range.yMax;
+}
+
+function norgeCleanPaneScreenRectForRange(range, zoom, anchorMode = primaryCleanAnchorMode()) {
+  if (!range) return null;
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const originX = range.xMin * tileSize;
+  const originY = range.yMin * tileSize;
+  const transform = cleanNorgeTransform(zoom, originX, originY, anchorMode);
+  if (!transform) return null;
+  const width = (range.xMax - range.xMin + 1) * tileSize;
+  const height = (range.yMax - range.yMin + 1) * tileSize;
+  const corners = [
+    applyCleanTransformPoint(transform, { x: 0, y: 0 }),
+    applyCleanTransformPoint(transform, { x: width, y: 0 }),
+    applyCleanTransformPoint(transform, { x: 0, y: height }),
+    applyCleanTransformPoint(transform, { x: width, y: height }),
+  ];
+  return {
+    left: Math.min(...corners.map(p => p.x)),
+    right: Math.max(...corners.map(p => p.x)),
+    top: Math.min(...corners.map(p => p.y)),
+    bottom: Math.max(...corners.map(p => p.y)),
+  };
+}
+
+function norgeCleanViewportCoverage(rect) {
+  if (!rect || !wrap) return null;
+  const viewport = wrap.getBoundingClientRect();
+  const missing = {
+    left: Math.max(0, rect.left - viewport.left),
+    right: Math.max(0, viewport.right - rect.right),
+    top: Math.max(0, rect.top - viewport.top),
+    bottom: Math.max(0, viewport.bottom - rect.bottom),
+  };
+  return {
+    ...missing,
+    total: missing.left + missing.right + missing.top + missing.bottom,
+  };
+}
+
+function norgeTileRangeLimit(zoom) {
+  const worldTiles = 2 ** zoom;
+  const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
+  const seLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMax, NORGE_SURFACE_DETAIL.bounds.latMin, zoom);
+  return {
+    xMin: Math.max(0, Math.floor(Math.min(nwLimit.x, seLimit.x))),
+    xMax: Math.min(worldTiles - 1, Math.floor(Math.max(nwLimit.x, seLimit.x))),
+    yMin: Math.max(0, Math.floor(Math.min(nwLimit.y, seLimit.y))),
+    yMax: Math.min(worldTiles - 1, Math.floor(Math.max(nwLimit.y, seLimit.y))),
+  };
+}
+
+function expandNorgeTileRangeToCoverViewport(range, zoom, sourcesLength) {
+  if (!range) return range;
+  const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.maxTiles / Math.max(1, sourcesLength)));
+  const limit = norgeTileRangeLimit(zoom);
+  let current = { ...range, count: countNorgeCleanTilesInRange(range) };
+  let guard = { expanded: 0, before: null, after: null, limited: false };
+  for (let i = 0; i < 64; i++) {
+    const rect = norgeCleanPaneScreenRectForRange(current, zoom);
+    const coverage = norgeCleanViewportCoverage(rect);
+    if (!coverage) break;
+    if (!guard.before) guard.before = coverage;
+    guard.after = coverage;
+    if (coverage.total <= 2) break;
+    const candidates = [];
+    const pushCandidate = next => {
+      next.count = countNorgeCleanTilesInRange(next);
+      if (next.count <= maxTilesPerSource) {
+        const nextRect = norgeCleanPaneScreenRectForRange(next, zoom);
+        const nextCoverage = norgeCleanViewportCoverage(nextRect);
+        if (nextCoverage) candidates.push({ range: next, coverage: nextCoverage });
+      }
+    };
+    if (current.xMin > limit.xMin) pushCandidate({ ...current, xMin: current.xMin - 1 });
+    if (current.xMax < limit.xMax) pushCandidate({ ...current, xMax: current.xMax + 1 });
+    if (current.yMin > limit.yMin) pushCandidate({ ...current, yMin: current.yMin - 1 });
+    if (current.yMax < limit.yMax) pushCandidate({ ...current, yMax: current.yMax + 1 });
+    if (!candidates.length) {
+      guard.limited = true;
+      break;
+    }
+    candidates.sort((a, b) => a.coverage.total - b.coverage.total);
+    if (candidates[0].coverage.total >= coverage.total - 0.1) break;
+    current = candidates[0].range;
+    guard.expanded += 1;
+  }
+  current.count = countNorgeCleanTilesInRange(current);
+  current.coverageGuard = guard;
+  return current;
+}
+
+function resetNorgeCleanDiagnosticsV1() {
+  Object.assign(norgeCleanDiagnosticsV1, {
+    zoom: null,
+    screenKey: '',
+    sourceCount: 0,
+    cleanSourceCount: 0,
+    paneCount: 0,
+    tileJobCount: 0,
+    visibleTileCount: 0,
+    overscanTileCount: 0,
+    requestTileCount: 0,
+    visibleRange: null,
+    expandedRange: null,
+    fittedRange: null,
+    overscan: 0,
+    clipped: false,
+    boundsSource: '',
+    coverageGuard: null,
+    outsideVisibleJobs: 0,
+    overscanJobs: 0,
+  });
 }
 
 function norgeCleanNow() {
@@ -3381,14 +3899,6 @@ function processNorgeCleanTileQueue() {
       img.dataset.loadedZ = img.dataset.z || '';
       removeNorgeCleanParentFallback(img);
       rememberNorgeCleanTile(job.src);
-      // Lag 2 steg 2: planlegg IDB-skriving via canvas i idle
-      try {
-        if (lag2State.enabled && lag2State.mode === 'on' && job.sourceKey && job.lag2Key) {
-          lag2ScheduleIdle(() => {
-            lag2WriteTileFromImg(img, job).catch(() => { /* sluk — telleren oppdateres internt */ });
-          });
-        }
-      } catch (_) { /* aldri brekk pipelinen */ }
       processNorgeCleanTileQueue();
       syncNorgeCleanControls();
       refreshNorgeCleanLoadStatus();
@@ -3413,7 +3923,7 @@ function processNorgeCleanTileQueue() {
   checkNorgeFreezeWhenLoaded();
 }
 
-function queueNorgeCleanTile(img, src, priority = 0, meta = null) {
+function queueNorgeCleanTile(img, src, priority = 0) {
   if (!src) return;
   img.dataset.src = src;
   if (norgeCleanTileManager.cache.has(src)) {
@@ -3426,1074 +3936,15 @@ function queueNorgeCleanTile(img, src, priority = 0, meta = null) {
     checkNorgeFreezeWhenLoaded();
     return;
   }
-  // Lag 1 (Trinn 2): qualityGap + priorityScore for live-køsortering
   const targetZ = Number(img.dataset.z);
   const availableZ = Number(img.dataset.loadedZ);
   const qualityGap = Number.isFinite(targetZ) && Number.isFinite(availableZ)
     ? Math.max(0, targetZ - availableZ)
     : 0;
-  // Lag 2 (steg 2): meta-felter for IDB-cache og prefetch
-  const job = {
-    img,
-    src,
-    priority,
-    targetZ,
-    availableZ,
-    qualityGap,
-    batch: norgeCleanTileManager.currentBatch,
-    sourceKey: meta ? meta.sourceKey : null,
-    z: meta ? meta.z : null,
-    x: meta ? meta.x : null,
-    y: meta ? meta.y : null,
-    lag2Key: null,
-    lag2Excluded: meta ? !!meta.lag2Excluded : false,
-  };
+  const job = { img, src, priority, targetZ, availableZ, qualityGap, batch: norgeCleanTileManager.currentBatch };
   job.priorityScore = computeNorgeCleanPriorityScore(job);
-  // Lag 2 steg 2: prøv IDB-treff før vi pusher til live-køen
-  if (
-    lag2State.enabled
-    && lag2State.mode === 'on'
-    && !job.lag2Excluded
-    && job.sourceKey
-    && !lag2State.taintedSources.has(job.sourceKey)
-  ) {
-    lag2TryServeFromIdb(job).then((served) => {
-      if (!served) {
-        // Bom — push til live-køen som vanlig
-        if (job.batch === norgeCleanTileManager.currentBatch && img.isConnected && img.dataset.loadedSrc !== src) {
-          norgeCleanTileManager.queue.push(job);
-          processNorgeCleanTileQueue();
-        }
-      }
-    }).catch(() => {
-      if (job.batch === norgeCleanTileManager.currentBatch && img.isConnected && img.dataset.loadedSrc !== src) {
-        norgeCleanTileManager.queue.push(job);
-        processNorgeCleanTileQueue();
-      }
-    });
-    return;
-  }
   norgeCleanTileManager.queue.push(job);
 }
-
-// =================================================================
-// LAG 2: IDB-CACHE + PREFETCH (steg 1 — IDB-skall, shadow-modus)
-// =================================================================
-//
-// Steg 1 leveranse: åpne IndexedDB, opprette stores, kjøre sweep,
-// nullstille tellere. Ingen lese/skrive-kroker i tile-pipelinen.
-// `enok72.lag2.cache` default = 'shadow' i steg 1.
-// `enok72.lag2.prefetch` ignoreres i steg 1.
-//
-// Regler: ikke rør anker, aeProject, transform, skala, rotasjon,
-// tile-posisjon, GE-grid, solsirkler, kartflatens proporsjoner.
-// Måle-modus skal være pikselidentisk.
-//
-// Se handoff/v7-engine-arkitektur/RESPONS-PERPLEXETY-LAG2-CACHE-PREFETCH-V2.md
-// for fullstendig plan.
-// =================================================================
-
-// -----------------------------------------------------------------
-// Steg 2b: koordineringssignal mot Lag 3 (Three.js snapshot-bro, Grok)
-// -----------------------------------------------------------------
-// Initialiseres her slik at Lag 3 alltid kan lese flagget, selv om
-// Lag 2 er i shadow/off-modus. Lag 2 setter true før OffscreenCanvas/
-// convertToBlob-eksport av en img, og false i finally. Lag 3 venter
-// til false før html2canvas-snapshot — da unngår de to lagene å
-// kjøre canvas-operasjoner på samme rAF-frame.
-// Hvis flagget ikke finnes når Lag 3 sjekker det (Lag 2 ikke lastet),
-// fungerer Lag 3 som om Lag 2 aldri kjører canvas — ren no-op for oss.
-if (typeof window !== 'undefined') {
-  window.__enok72__ = window.__enok72__ || {};
-  if (typeof window.__enok72__.lag2Exporting === 'undefined') {
-    window.__enok72__.lag2Exporting = false;
-  }
-}
-
-const LAG2_SCHEMA_VERSION = 1;
-const LAG2_DATA_GENERATION = 1;
-const LAG2_DB_NAME = 'enok72-tiles';
-const LAG2_TILES_STORE = 'tiles';
-const LAG2_META_STORE = 'meta';
-const LAG2_DEFAULT_BUDGET_BYTES = 256 * 1024 * 1024;
-const LAG2_DEFAULT_TTL_DAYS = 30;
-const LAG2_SWEEP_INTERVAL_MS = 60 * 1000;
-
-const lag2State = {
-  enabled: false,
-  mode: 'shadow', // 'off' | 'shadow' | 'on'
-  db: null,
-  openPromise: null,
-  bytesUsed: 0,
-  bytesBudget: LAG2_DEFAULT_BUDGET_BYTES,
-  ttlMs: LAG2_DEFAULT_TTL_DAYS * 24 * 3600 * 1000,
-  lastSweepAt: 0,
-  sweepTimer: null,
-  taintedSources: new Set(),
-  initError: null,
-  // Lag 2 steg 3: prefetch-tilstand
-  prefetchMode: 'on', // 'off' | 'on'
-  prefetchEnabled: false,
-  prefetchQueue: [],
-  prefetchActive: 0,
-  prefetchMaxConcurrent: 4,
-  prefetchQueueMax: 256,
-  prefetchAbortController: null,
-  prefetchPausedUntil: 0,
-  prefetchPumpTimer: null,
-  prefetchFailStreak: 0,
-  prefetchFailDisabledForSession: false,
-  lastLiveActivityAt: 0,
-};
-
-const LAG2_PREFETCH_IDLE_MS = 400;
-const LAG2_PREFETCH_QUEUE_MAX = 256;
-const LAG2_PREFETCH_MAX_CONCURRENT = 4;
-const LAG2_PREFETCH_FAIL_BUDGET = 3;
-
-function lag2ReadKillSwitch() {
-  try {
-    const url = new URL(window.location.href);
-    if (url.searchParams.get('lag2') === 'off') return true;
-  } catch (_) {
-    // location.href ikke tilgjengelig — la den passere
-  }
-  return false;
-}
-
-function lag2ReadCacheFlag() {
-  if (lag2ReadKillSwitch()) return 'off';
-  try {
-    const v = localStorage.getItem('enok72.lag2.cache');
-    if (v === 'off' || v === 'shadow' || v === 'on') return v;
-  } catch (_) { /* localStorage utilgjengelig */ }
-  // Steg 2 default: 'on'
-  return 'on';
-}
-
-function lag2ReadPrefetchFlag() {
-  if (lag2ReadKillSwitch()) return 'off';
-  try {
-    const v = localStorage.getItem('enok72.lag2.prefetch');
-    if (v === 'off' || v === 'on') return v;
-  } catch (_) { /* noop */ }
-  // Steg 3 default: 'on'
-  return 'on';
-}
-
-function lag2ReadBudgetMb() {
-  try {
-    const v = localStorage.getItem('enok72.lag2.cache.budgetMb');
-    if (v) {
-      const n = parseInt(v, 10);
-      if (Number.isFinite(n) && n > 0) return n;
-    }
-  } catch (_) { /* noop */ }
-  return null;
-}
-
-function lag2ReadTtlDays() {
-  try {
-    const v = localStorage.getItem('enok72.lag2.cache.ttlDays');
-    if (v) {
-      const n = parseInt(v, 10);
-      if (Number.isFinite(n) && n > 0) return n;
-    }
-  } catch (_) { /* noop */ }
-  return LAG2_DEFAULT_TTL_DAYS;
-}
-
-function lag2ShouldPurge() {
-  try {
-    return localStorage.getItem('enok72.lag2.cache.purge') === '1';
-  } catch (_) {
-    return false;
-  }
-}
-
-function lag2ClearPurgeFlag() {
-  try {
-    localStorage.removeItem('enok72.lag2.cache.purge');
-  } catch (_) { /* noop */ }
-}
-
-function lag2OpenDb() {
-  if (lag2State.db) return Promise.resolve(lag2State.db);
-  if (lag2State.openPromise) return lag2State.openPromise;
-  if (typeof indexedDB === 'undefined') {
-    lag2State.initError = 'indexedDB unavailable';
-    return Promise.reject(new Error(lag2State.initError));
-  }
-  lag2State.openPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(LAG2_DB_NAME, LAG2_SCHEMA_VERSION);
-    req.onupgradeneeded = (event) => {
-      const db = req.result;
-      const oldVersion = event.oldVersion || 0;
-      if (oldVersion < 1) {
-        const tiles = db.createObjectStore(LAG2_TILES_STORE, { keyPath: 'key' });
-        tiles.createIndex('byLastUsed', 'lastUsed', { unique: false });
-        tiles.createIndex('byFetchedAt', 'fetchedAt', { unique: false });
-        tiles.createIndex('bySource', 'source', { unique: false });
-        tiles.createIndex('byZ', 'z', { unique: false });
-        db.createObjectStore(LAG2_META_STORE, { keyPath: 'id' });
-      }
-      // Fremtidige skjema-bumpene legges til her.
-    };
-    req.onsuccess = () => {
-      const db = req.result;
-      db.onversionchange = () => {
-        try { db.close(); } catch (_) { /* noop */ }
-        lag2State.db = null;
-      };
-      resolve(db);
-    };
-    req.onerror = () => reject(req.error || new Error('IDB open failed'));
-    req.onblocked = () => {
-      // En annen fane holder en eldre versjon — ikke fatal, men noter det
-      console.warn('[v7-lag2] IDB open blocked by another tab');
-    };
-  }).then((db) => {
-    lag2State.db = db;
-    return db;
-  }).catch((err) => {
-    lag2State.initError = err && err.message ? err.message : String(err);
-    lag2State.db = null;
-    throw err;
-  });
-  return lag2State.openPromise;
-}
-
-function lag2Tx(storeNames, mode = 'readonly') {
-  if (!lag2State.db) throw new Error('IDB not open');
-  const tx = lag2State.db.transaction(storeNames, mode);
-  return tx;
-}
-
-function lag2MetaGet(id) {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_META_STORE, 'readonly');
-      const store = tx.objectStore(LAG2_META_STORE);
-      const req = store.get(id);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function lag2MetaPut(record) {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_META_STORE, 'readwrite');
-      const store = tx.objectStore(LAG2_META_STORE);
-      const req = store.put(record);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function lag2DropAllTiles() {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
-      const store = tx.objectStore(LAG2_TILES_STORE);
-      const req = store.clear();
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function lag2RecomputeBytesUsed() {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_TILES_STORE, 'readonly');
-      const store = tx.objectStore(LAG2_TILES_STORE);
-      const req = store.openCursor();
-      let total = 0;
-      req.onsuccess = () => {
-        const cursor = req.result;
-        if (!cursor) {
-          resolve(total);
-          return;
-        }
-        total += cursor.value && cursor.value.bytes ? cursor.value.bytes : 0;
-        cursor.continue();
-      };
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-async function lag2ResolveBudget() {
-  const override = lag2ReadBudgetMb();
-  if (override) return override * 1024 * 1024;
-  try {
-    if (navigator.storage && typeof navigator.storage.estimate === 'function') {
-      const est = await navigator.storage.estimate();
-      if (est && typeof est.quota === 'number' && est.quota > 0) {
-        return Math.min(LAG2_DEFAULT_BUDGET_BYTES, Math.floor(est.quota * 0.4));
-      }
-    }
-  } catch (_) { /* estimate ikke støttet */ }
-  return LAG2_DEFAULT_BUDGET_BYTES;
-}
-
-async function sweepTileCache(reason = 'periodic') {
-  if (!lag2State.db) return { dropped: 0, reason: 'no-db' };
-  const now = Date.now();
-  let dropped = 0;
-  try {
-    // Trinn 1: dropp rader eldre enn TTL
-    await new Promise((resolve, reject) => {
-      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
-      const store = tx.objectStore(LAG2_TILES_STORE);
-      const idx = store.index('byFetchedAt');
-      const cutoff = now - lag2State.ttlMs;
-      const range = IDBKeyRange.upperBound(cutoff);
-      const req = idx.openCursor(range);
-      req.onsuccess = () => {
-        const cursor = req.result;
-        if (!cursor) { resolve(); return; }
-        if (cursor.value && cursor.value.lastUsed && cursor.value.lastUsed > now - 60000) {
-          // Beskytt akkurat-brukte tiles
-          cursor.continue();
-          return;
-        }
-        const bytes = (cursor.value && cursor.value.bytes) || 0;
-        cursor.delete();
-        dropped += 1;
-        lag2State.bytesUsed = Math.max(0, lag2State.bytesUsed - bytes);
-        cursor.continue();
-      };
-      req.onerror = () => reject(req.error);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-
-    // Trinn 2: LRU hvis vi er over 90% budsjett — ned mot 70%
-    if (lag2State.bytesUsed > lag2State.bytesBudget * 0.9) {
-      const target = Math.floor(lag2State.bytesBudget * 0.7);
-      await new Promise((resolve, reject) => {
-        const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
-        const store = tx.objectStore(LAG2_TILES_STORE);
-        const idx = store.index('byLastUsed');
-        const req = idx.openCursor();
-        req.onsuccess = () => {
-          const cursor = req.result;
-          if (!cursor) { resolve(); return; }
-          if (lag2State.bytesUsed <= target) { resolve(); return; }
-          if (cursor.value && cursor.value.lastUsed && cursor.value.lastUsed > now - 60000) {
-            cursor.continue();
-            return;
-          }
-          const bytes = (cursor.value && cursor.value.bytes) || 0;
-          cursor.delete();
-          dropped += 1;
-          lag2State.bytesUsed = Math.max(0, lag2State.bytesUsed - bytes);
-          cursor.continue();
-        };
-        req.onerror = () => reject(req.error);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    // Trinn 3: re-synk bytesUsed mot virkelighet etter sweep
-    try {
-      lag2State.bytesUsed = await lag2RecomputeBytesUsed();
-    } catch (_) { /* noop */ }
-
-    lag2State.lastSweepAt = now;
-    await lag2MetaPut({
-      id: 'quota',
-      bytesUsed: lag2State.bytesUsed,
-      bytesBudget: lag2State.bytesBudget,
-      lastSweepAt: lag2State.lastSweepAt,
-    });
-  } catch (err) {
-    console.warn('[v7-lag2] sweep failed:', err && err.message ? err.message : err);
-  }
-  return { dropped, reason };
-}
-
-function lag2ScheduleIdle(fn) {
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(fn, { timeout: 2000 });
-  } else {
-    setTimeout(fn, 0);
-  }
-}
-
-function lag2StartPeriodicSweep() {
-  if (lag2State.sweepTimer) return;
-  lag2State.sweepTimer = setInterval(() => {
-    if (document.visibilityState !== 'visible') return;
-    lag2ScheduleIdle(() => sweepTileCache('periodic'));
-  }, LAG2_SWEEP_INTERVAL_MS);
-}
-
-async function lag2InitOnce() {
-  if (lag2State.enabled) return;
-  const mode = lag2ReadCacheFlag();
-  lag2State.mode = mode;
-  if (mode === 'off') {
-    return; // IDB åpnes ikke
-  }
-  try {
-    lag2State.ttlMs = lag2ReadTtlDays() * 24 * 3600 * 1000;
-    lag2State.bytesBudget = await lag2ResolveBudget();
-    await lag2OpenDb();
-
-    // Be om persistent lagring (ikke fatal hvis den feiler / nektes)
-    try {
-      if (navigator.storage && typeof navigator.storage.persist === 'function') {
-        await navigator.storage.persist();
-      }
-    } catch (_) { /* noop */ }
-
-    // Versjons- og generasjonssjekk
-    const versionMeta = await lag2MetaGet('version');
-    const needSchemaReset = !versionMeta || versionMeta.schemaVersion !== LAG2_SCHEMA_VERSION;
-    const needGenerationReset = !versionMeta || versionMeta.dataGeneration !== LAG2_DATA_GENERATION;
-    if (needSchemaReset || needGenerationReset || lag2ShouldPurge()) {
-      await lag2DropAllTiles();
-      lag2State.bytesUsed = 0;
-      lag2ClearPurgeFlag();
-    }
-    await lag2MetaPut({
-      id: 'version',
-      schemaVersion: LAG2_SCHEMA_VERSION,
-      dataGeneration: LAG2_DATA_GENERATION,
-      updatedAt: Date.now(),
-    });
-
-    // Initial bytesUsed
-    try {
-      lag2State.bytesUsed = await lag2RecomputeBytesUsed();
-    } catch (_) { /* noop */ }
-
-    await lag2MetaPut({
-      id: 'quota',
-      bytesUsed: lag2State.bytesUsed,
-      bytesBudget: lag2State.bytesBudget,
-      lastSweepAt: 0,
-    });
-
-    // Lag 2 steg 3: prefetch-konfig
-    const prefetchMode = lag2ReadPrefetchFlag();
-    lag2State.prefetchMode = prefetchMode;
-    lag2State.prefetchEnabled = (mode === 'on') && (prefetchMode === 'on');
-    if (typeof AbortController !== 'undefined') {
-      lag2State.prefetchAbortController = new AbortController();
-    }
-
-    await lag2MetaPut({
-      id: 'flags',
-      cacheMode: mode,
-      prefetchOn: lag2State.prefetchEnabled,
-      updatedAt: Date.now(),
-    });
-
-    // Initial sweep + periodisk sweep
-    await sweepTileCache('init');
-    lag2StartPeriodicSweep();
-
-    // Lag 2 steg 3: bind pause-handlers etter at IDB er klar
-    if (lag2State.prefetchEnabled) {
-      lag2BindPrefetchPauseHandlers();
-    }
-
-    lag2State.enabled = true;
-    console.info('[v7-lag2] IDB-skall aktivert', {
-      mode,
-      schemaVersion: LAG2_SCHEMA_VERSION,
-      dataGeneration: LAG2_DATA_GENERATION,
-      bytesUsed: lag2State.bytesUsed,
-      bytesBudget: lag2State.bytesBudget,
-    });
-  } catch (err) {
-    lag2State.enabled = false;
-    lag2State.initError = err && err.message ? err.message : String(err);
-    console.warn('[v7-lag2] IDB unavailable, running RAM-only:', lag2State.initError);
-  }
-}
-
-// Nye tellere på norgeCleanTileManager (null-stilles i resetNorgeCleanTileQueue)
-// — settes som egenskaper her slik at de finnes fra første kall.
-norgeCleanTileManager.fromIdb = 0;
-norgeCleanTileManager.idbWriteFailed = 0;
-norgeCleanTileManager.idbDecodeFailed = 0;
-norgeCleanTileManager.prefetched = 0;
-norgeCleanTileManager.prefetchSkipped = 0;
-norgeCleanTileManager.prefetchAborted = 0;
-
-// Trigger init på første DOM-ready (uten å blokkere noe annet).
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { lag2InitOnce(); }, { once: true });
-  } else {
-    // Allerede klar — kjør på neste tick for å unngå å rasere init-rekkefølgen
-    setTimeout(() => { lag2InitOnce(); }, 0);
-  }
-}
-
-// =================================================================
-// LAG 2 STEG 2: CACHE-INNKOBLING (lese + skrive)
-// =================================================================
-
-function lag2SourceKey(source) {
-  if (!source) return null;
-  return `${source.type || 'unknown'}:${source.layer || ''}`;
-}
-
-function lag2IsSourceExcluded(source) {
-  // NIB ekskludert til CORS er verifisert manuelt (V2 §A.4 + Jone-direktiv)
-  if (!source) return true;
-  if (source.type === 'wms-nib') return true;
-  return false;
-}
-
-function lag2HashStringSync(input) {
-  // Enkel, deterministisk 32-bit FNV-1a + lengde — brukes som rask fallback.
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-  }
-  return ('00000000' + h.toString(16)).slice(-8) + ('00000000' + (input.length >>> 0).toString(16)).slice(-8);
-}
-
-async function lag2HashString(input) {
-  try {
-    if (window.crypto && window.crypto.subtle && typeof window.crypto.subtle.digest === 'function') {
-      const buf = new TextEncoder().encode(input);
-      const digest = await window.crypto.subtle.digest('SHA-256', buf);
-      const bytes = new Uint8Array(digest);
-      // base64url-prefiks (16 tegn ≈ 96 bit)
-      let bin = '';
-      for (let i = 0; i < 12; i++) bin += String.fromCharCode(bytes[i]);
-      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '').slice(0, 16);
-    }
-  } catch (_) { /* faller tilbake */ }
-  return lag2HashStringSync(input);
-}
-
-async function lag2BuildKey(job) {
-  if (job.lag2Key) return job.lag2Key;
-  const hash = await lag2HashString(job.src);
-  job.lag2Key = `${job.z}/${job.x}/${job.y}|${job.sourceKey}|${hash}`;
-  return job.lag2Key;
-}
-
-function lag2GetTileRow(key) {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_TILES_STORE, 'readonly');
-      const store = tx.objectStore(LAG2_TILES_STORE);
-      const req = store.get(key);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function lag2PutTileRow(row) {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
-      const store = tx.objectStore(LAG2_TILES_STORE);
-      const req = store.put(row);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function lag2DeleteTileRow(key) {
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
-      const store = tx.objectStore(LAG2_TILES_STORE);
-      const req = store.delete(key);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function lag2UpdateLastUsed(key) {
-  // Åpne en egen rwtx for å oppdatere lastUsed/hits — fire and forget.
-  try {
-    const tx = lag2Tx(LAG2_TILES_STORE, 'readwrite');
-    const store = tx.objectStore(LAG2_TILES_STORE);
-    const req = store.get(key);
-    req.onsuccess = () => {
-      const row = req.result;
-      if (!row) return;
-      row.lastUsed = Date.now();
-      row.hits = (row.hits || 0) + 1;
-      try { store.put(row); } catch (_) { /* noop */ }
-    };
-  } catch (_) { /* noop */ }
-}
-
-async function lag2TryServeFromIdb(job) {
-  if (!lag2State.enabled || lag2State.mode !== 'on') return false;
-  try {
-    await lag2BuildKey(job);
-    const row = await lag2GetTileRow(job.lag2Key);
-    if (!row || !row.blob) return false;
-    if (job.batch !== norgeCleanTileManager.currentBatch) return true; // batch rullet — ikke skriv DOM
-    if (!job.img.isConnected) return false;
-    if (job.img.dataset.loadedSrc === job.src) return true;
-
-    const blobUrl = URL.createObjectURL(row.blob);
-    const cleanup = () => {
-      try { URL.revokeObjectURL(blobUrl); } catch (_) { /* noop */ }
-    };
-    const onOk = () => {
-      if (job.batch !== norgeCleanTileManager.currentBatch) { cleanup(); return; }
-      job.img.dataset.loadedSrc = job.src;
-      // Paritet 1 mot Lag 1 (Trinn 2): IDB-serverte tiles må også sette loadedZ
-      // slik at qualityGap-beregningen i queueNorgeCleanTile er konsistent.
-      job.img.dataset.loadedZ = job.img.dataset.z || '';
-      removeNorgeCleanParentFallback(job.img);
-      rememberNorgeCleanTile(job.src);
-      norgeCleanTileManager.fromIdb += 1;
-      lag2UpdateLastUsed(job.lag2Key);
-      queueMicrotask(cleanup);
-      syncNorgeCleanControls();
-      refreshNorgeCleanLoadStatus();
-    };
-    const onFail = async () => {
-      norgeCleanTileManager.idbDecodeFailed += 1;
-      cleanup();
-      // Korrupt rad — fjern den slik at vi ikke prøver igjen, og fall tilbake til live-køen
-      try { await lag2DeleteTileRow(job.lag2Key); } catch (_) { /* noop */ }
-      if (job.batch === norgeCleanTileManager.currentBatch && job.img.isConnected && job.img.dataset.loadedSrc !== job.src) {
-        norgeCleanTileManager.queue.push(job);
-        processNorgeCleanTileQueue();
-      }
-    };
-
-    // Foretrekk img.decode() der det finnes (V2 §B)
-    if (typeof job.img.decode === 'function') {
-      job.img.src = blobUrl;
-      job.img.decode().then(onOk, onFail);
-    } else {
-      job.img.onload = onOk;
-      job.img.onerror = onFail;
-      job.img.src = blobUrl;
-    }
-    return true;
-  } catch (err) {
-    norgeCleanTileManager.idbDecodeFailed += 1;
-    return false;
-  }
-}
-
-function lag2GetCanvasCtor() {
-  if (typeof OffscreenCanvas !== 'undefined') return 'offscreen';
-  if (typeof document !== 'undefined' && typeof document.createElement === 'function') return 'html';
-  return null;
-}
-
-async function lag2BlobFromImg(img, mimeHint) {
-  const w = img.naturalWidth || img.width;
-  const h = img.naturalHeight || img.height;
-  if (!w || !h) throw new Error('lag2: img has zero dimensions');
-  const canvasKind = lag2GetCanvasCtor();
-  if (!canvasKind) throw new Error('lag2: no canvas available');
-
-  // V2 §B: vent på decode() der det er tilgjengelig, slik at vi ikke leser et halvferdig bilde
-  if (typeof img.decode === 'function') {
-    try { await img.decode(); } catch (_) { /* mange nettlesere kaster om src ble satt før decode kalles — fortsett */ }
-  }
-
-  // Steg 2b: koordineringssignal mot Lag 3 (Grok snapshot-bro).
-  // Sett true før selve canvas-eksporten, false i finally slik at
-  // flagget alltid ryddes selv ved feil. Vi bruker `return await ...`
-  // istedenfor `return ...` slik at finally venter på at Promise faktisk
-  // har resolvet — ellers ville flagget blitt nullstilt for tidlig.
-  const enok = (typeof window !== 'undefined') ? (window.__enok72__ = window.__enok72__ || {}) : null;
-  if (enok) enok.lag2Exporting = true;
-  try {
-    if (canvasKind === 'offscreen') {
-      const canvas = new OffscreenCanvas(w, h);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('lag2: 2d-context failed');
-      ctx.drawImage(img, 0, 0);
-      if (typeof canvas.convertToBlob === 'function') {
-        return await canvas.convertToBlob({ type: mimeHint, quality: 0.92 });
-      }
-    }
-
-    // HTMLCanvasElement-fallback (Safari < 16.4 m.fl.)
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('lag2: 2d-context failed');
-    ctx.drawImage(img, 0, 0);
-    return await new Promise((resolve, reject) => {
-      if (typeof canvas.toBlob !== 'function') {
-        reject(new Error('lag2: toBlob unavailable'));
-        return;
-      }
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('lag2: toBlob returned null'));
-      }, mimeHint, 0.92);
-    });
-  } finally {
-    if (enok) enok.lag2Exporting = false;
-  }
-}
-
-function lag2GuessMime(src) {
-  if (!src) return 'image/png';
-  const lower = src.toLowerCase();
-  if (lower.includes('format=image%2fjpeg') || lower.includes('format=image/jpeg')) return 'image/jpeg';
-  if (lower.includes('.jpg') || lower.includes('.jpeg')) return 'image/jpeg';
-  if (lower.includes('format=image%2fpng') || lower.includes('format=image/png')) return 'image/png';
-  return 'image/png';
-}
-
-async function lag2WriteTileFromImg(img, job) {
-  if (!lag2State.enabled || lag2State.mode !== 'on') return;
-  if (!job || !job.sourceKey || lag2State.taintedSources.has(job.sourceKey)) return;
-  if (lag2IsSourceExcluded({ type: job.sourceKey.split(':')[0] })) return;
-  try {
-    await lag2BuildKey(job);
-  } catch (_) { return; }
-  const mime = lag2GuessMime(job.src);
-  let blob;
-  try {
-    blob = await lag2BlobFromImg(img, mime);
-  } catch (err) {
-    const msg = err && err.message ? err.message : String(err);
-    if (msg.includes('Tainted') || msg.includes('SecurityError') || (err && err.name === 'SecurityError')) {
-      lag2State.taintedSources.add(job.sourceKey);
-      console.warn('[v7-lag2] canvas tainted — IDB-skriving av for', job.sourceKey);
-    } else {
-      norgeCleanTileManager.idbWriteFailed += 1;
-    }
-    return;
-  }
-  if (!blob || !blob.size) {
-    norgeCleanTileManager.idbWriteFailed += 1;
-    return;
-  }
-  const row = {
-    key: job.lag2Key,
-    src: job.src,
-    source: job.sourceKey,
-    z: job.z,
-    x: job.x,
-    y: job.y,
-    blob,
-    bytes: blob.size,
-    etag: null,
-    fetchedAt: Date.now(),
-    lastUsed: Date.now(),
-    hits: 0,
-  };
-  try {
-    await lag2PutTileRow(row);
-    lag2State.bytesUsed += blob.size;
-    if (lag2State.bytesUsed > lag2State.bytesBudget * 0.9) {
-      lag2ScheduleIdle(() => sweepTileCache('post-put'));
-    }
-  } catch (err) {
-    norgeCleanTileManager.idbWriteFailed += 1;
-    if (err && err.name === 'QuotaExceededError') {
-      // Prøv én sweep + ett ny prøv
-      try {
-        await sweepTileCache('quota');
-        await lag2PutTileRow(row);
-        lag2State.bytesUsed += blob.size;
-      } catch (_) { /* sluk */ }
-    }
-  }
-}
-
-// =================================================================
-// SLUTT LAG 2 — STEG 2 (cache-innkobling)
-// =================================================================
-
-// =================================================================
-// LAG 2 STEG 3: PREFETCH
-// =================================================================
-
-function lag2NetworkAllowsPrefetch() {
-  // Chromium-only: respekter saveData/effectiveType der det finnes.
-  // Firefox/Safari: navigator.connection er undefined — prefetch går på.
-  try {
-    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (!c) return true;
-    if (c.saveData === true) return false;
-    if (c.effectiveType === 'slow-2g' || c.effectiveType === '2g') return false;
-  } catch (_) { /* noop */ }
-  return true;
-}
-
-function lag2CanRunPrefetch() {
-  if (!lag2State.enabled) return false;
-  if (lag2State.mode !== 'on') return false;
-  if (!lag2State.prefetchEnabled) return false;
-  if (lag2State.prefetchFailDisabledForSession) return false;
-  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return false;
-  if (Date.now() < lag2State.prefetchPausedUntil) return false;
-  if (!lag2NetworkAllowsPrefetch()) return false;
-  // Aldri konkurrer med live-køen
-  if (norgeCleanTileManager.queue.length > 0) return false;
-  if (norgeCleanTileManager.active > 0) return false;
-  if (Date.now() - lag2State.lastLiveActivityAt < LAG2_PREFETCH_IDLE_MS) return false;
-  return true;
-}
-
-function lag2BindPrefetchPauseHandlers() {
-  // Visibility — universelt støttet
-  if (typeof document !== 'undefined' && !lag2State._visibilityBound) {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible') {
-        lag2State.prefetchPausedUntil = Number.POSITIVE_INFINITY;
-        try { lag2State.prefetchAbortController && lag2State.prefetchAbortController.abort(); } catch (_) { /* noop */ }
-        lag2State.prefetchAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      } else {
-        lag2State.prefetchPausedUntil = Date.now() + LAG2_PREFETCH_IDLE_MS;
-        lag2SchedulePrefetchPump();
-      }
-    });
-    lag2State._visibilityBound = true;
-  }
-  // Leaflet pan/zoom — sett pause til Infinity ved start, oppløs ved end
-  try {
-    if (typeof norgeLeaflet !== 'undefined' && norgeLeaflet && norgeLeaflet.map && !lag2State._leafletBound) {
-      const map = norgeLeaflet.map;
-      const startHandler = () => {
-        lag2State.prefetchPausedUntil = Number.POSITIVE_INFINITY;
-        try { lag2State.prefetchAbortController && lag2State.prefetchAbortController.abort(); } catch (_) { /* noop */ }
-        lag2State.prefetchAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-        lag2State.lastLiveActivityAt = Date.now();
-      };
-      const endHandler = () => {
-        lag2State.prefetchPausedUntil = Date.now() + LAG2_PREFETCH_IDLE_MS;
-        lag2SchedulePrefetchPump();
-      };
-      map.on('movestart', startHandler);
-      map.on('zoomstart', startHandler);
-      map.on('moveend', endHandler);
-      map.on('zoomend', endHandler);
-      lag2State._leafletBound = true;
-    }
-  } catch (_) { /* aldri brekk pipelinen */ }
-}
-
-function lag2SchedulePrefetchPump() {
-  if (lag2State.prefetchPumpTimer) return;
-  lag2State.prefetchPumpTimer = setTimeout(() => {
-    lag2State.prefetchPumpTimer = null;
-    lag2ProcessPrefetchQueue();
-  }, LAG2_PREFETCH_IDLE_MS);
-}
-
-async function lag2ProcessPrefetchQueue() {
-  if (!lag2CanRunPrefetch()) {
-    // Prøv igjen senere om køen ikke er tom
-    if (lag2State.prefetchQueue.length > 0) lag2SchedulePrefetchPump();
-    return;
-  }
-  while (
-    lag2State.prefetchActive < LAG2_PREFETCH_MAX_CONCURRENT
-    && lag2State.prefetchQueue.length > 0
-    && lag2CanRunPrefetch()
-  ) {
-    const job = lag2State.prefetchQueue.shift();
-    if (!job) break;
-    if (job.batch !== norgeCleanTileManager.currentBatch) continue;
-    lag2State.prefetchActive += 1;
-    lag2RunPrefetchJob(job)
-      .catch(() => { /* sluk — telleren oppdateres i runneren */ })
-      .finally(() => {
-        lag2State.prefetchActive = Math.max(0, lag2State.prefetchActive - 1);
-        if (lag2State.prefetchQueue.length > 0) lag2SchedulePrefetchPump();
-      });
-  }
-}
-
-async function lag2RunPrefetchJob(job) {
-  if (!lag2CanRunPrefetch()) {
-    norgeCleanTileManager.prefetchSkipped += 1;
-    return;
-  }
-  if (job.batch !== norgeCleanTileManager.currentBatch) {
-    norgeCleanTileManager.prefetchAborted += 1;
-    return;
-  }
-  // Sjekk om vi allerede har den i IDB — da er prefetch unødvendig
-  try {
-    await lag2BuildKey(job);
-    const existing = await lag2GetTileRow(job.lag2Key);
-    if (existing && existing.blob) {
-      norgeCleanTileManager.prefetchSkipped += 1;
-      return;
-    }
-  } catch (_) { /* noop — fortsett til fetch */ }
-
-  const signal = lag2State.prefetchAbortController ? lag2State.prefetchAbortController.signal : undefined;
-  let resp;
-  try {
-    resp = await fetch(job.src, { signal, credentials: 'omit', mode: 'cors' });
-  } catch (err) {
-    if (err && err.name === 'AbortError') {
-      norgeCleanTileManager.prefetchAborted += 1;
-      return;
-    }
-    lag2State.prefetchFailStreak += 1;
-    if (lag2State.prefetchFailStreak >= LAG2_PREFETCH_FAIL_BUDGET) {
-      lag2State.prefetchFailDisabledForSession = true;
-      console.warn('[v7-lag2] prefetch slått av for resten av sesjonen — 3 påfølgende feil');
-    }
-    norgeCleanTileManager.prefetchSkipped += 1;
-    return;
-  }
-  if (!resp || !resp.ok) {
-    lag2State.prefetchFailStreak += 1;
-    if (lag2State.prefetchFailStreak >= LAG2_PREFETCH_FAIL_BUDGET) {
-      lag2State.prefetchFailDisabledForSession = true;
-      console.warn('[v7-lag2] prefetch slått av for resten av sesjonen — 3 påfølgende feil');
-    }
-    norgeCleanTileManager.prefetchSkipped += 1;
-    return;
-  }
-  let blob;
-  try {
-    blob = await resp.blob();
-  } catch (_) {
-    norgeCleanTileManager.prefetchSkipped += 1;
-    return;
-  }
-  if (!blob || !blob.size) {
-    norgeCleanTileManager.prefetchSkipped += 1;
-    return;
-  }
-  // Sjekk batch på nytt etter await
-  if (job.batch !== norgeCleanTileManager.currentBatch) {
-    norgeCleanTileManager.prefetchAborted += 1;
-    return;
-  }
-  lag2State.prefetchFailStreak = 0;
-  const row = {
-    key: job.lag2Key,
-    src: job.src,
-    source: job.sourceKey,
-    z: job.z,
-    x: job.x,
-    y: job.y,
-    blob,
-    bytes: blob.size,
-    etag: resp.headers.get && resp.headers.get('etag') ? resp.headers.get('etag') : null,
-    fetchedAt: Date.now(),
-    lastUsed: Date.now(),
-    hits: 0,
-  };
-  try {
-    await lag2PutTileRow(row);
-    lag2State.bytesUsed += blob.size;
-    norgeCleanTileManager.prefetched += 1;
-    if (lag2State.bytesUsed > lag2State.bytesBudget * 0.9) {
-      lag2ScheduleIdle(() => sweepTileCache('post-prefetch'));
-    }
-  } catch (err) {
-    norgeCleanTileManager.idbWriteFailed += 1;
-  }
-}
-
-function lag2ComputePrefetchRing(tileRange, zoom) {
-  // Pad-utvidelse halvparten av Lag 1 sin overscan-pad
-  const pad = zoom >= 14 ? 8 : zoom >= 11 ? 6 : 4;
-  const ring = [];
-  if (!tileRange) return ring;
-  // World-bounds + NORGE_SURFACE_DETAIL.bounds-grenser håndteres allerede av expandNorgeTileRange
-  // som har levert tileRange. Vi pad-utvider rundt den uten å gå utenfor 0..2^z-1.
-  const worldTiles = (1 << zoom) >>> 0;
-  const xMin = Math.max(0, tileRange.xMin - pad);
-  const xMax = Math.min(worldTiles - 1, tileRange.xMax + pad);
-  const yMin = Math.max(0, tileRange.yMin - pad);
-  const yMax = Math.min(worldTiles - 1, tileRange.yMax + pad);
-  const cx = (tileRange.xMin + tileRange.xMax) / 2;
-  const cy = (tileRange.yMin + tileRange.yMax) / 2;
-  for (let x = xMin; x <= xMax; x++) {
-    for (let y = yMin; y <= yMax; y++) {
-      // Bare utenfor live-rangen
-      if (x >= tileRange.xMin && x <= tileRange.xMax && y >= tileRange.yMin && y <= tileRange.yMax) continue;
-      ring.push({ x, y, dist: Math.hypot(x - cx, y - cy) });
-    }
-  }
-  ring.sort((a, b) => a.dist - b.dist);
-  return ring;
-}
-
-function schedulePrefetchAround(tileRange, zoom, sources) {
-  if (!lag2CanRunPrefetch() && !lag2State.prefetchEnabled) return;
-  if (!lag2State.enabled || lag2State.mode !== 'on' || !lag2State.prefetchEnabled) return;
-  if (!tileRange || !sources || !sources.length) return;
-  if (lag2State.prefetchFailDisabledForSession) return;
-
-  const ring = lag2ComputePrefetchRing(tileRange, zoom);
-  if (!ring.length) return;
-
-  const batch = norgeCleanTileManager.currentBatch;
-  // Bygg jobber: bare ikke-overlay, ikke-NIB, ikke-tainted
-  const jobs = [];
-  for (const source of sources) {
-    if (source.role === 'overlay') continue;
-    if (lag2IsSourceExcluded(source)) continue;
-    const sourceKey = lag2SourceKey(source);
-    if (lag2State.taintedSources.has(sourceKey)) continue;
-    for (const tile of ring) {
-      const src = cleanDetailTileUrl(source, zoom, tile.x, tile.y);
-      if (!src) continue;
-      jobs.push({
-        src,
-        sourceKey,
-        z: zoom,
-        x: tile.x,
-        y: tile.y,
-        priority: tile.dist,
-        batch,
-        lag2Key: null,
-      });
-      if (jobs.length >= LAG2_PREFETCH_QUEUE_MAX) break;
-    }
-    if (jobs.length >= LAG2_PREFETCH_QUEUE_MAX) break;
-  }
-  // Erstatt prefetch-køen eksplisitt (V2 §C.3)
-  lag2State.prefetchQueue = jobs;
-  lag2State.lastLiveActivityAt = Date.now();
-  lag2SchedulePrefetchPump();
-}
-
-// =================================================================
-// SLUTT LAG 2 — STEG 3 (prefetch)
-// =================================================================
 
 function cleanNorgeDetailSources() {
   return currentNorgeDetailSources().filter(source => source.type !== 'wms-nib');
@@ -4677,7 +4128,9 @@ function cleanNorgeTransform(zoom, originX, originY, anchorMode = primaryCleanAn
 
 function syncNorgeCleanControls() {
   const layer = document.getElementById('norge-clean-detail-layer');
-  const overviewLayer = document.getElementById('norge-clean-overview-layer');
+  norgeLeafletStyleEngine.enabled = document.getElementById('norge-leaflet-style-engine')?.checked === true;
+  norgeLeafletStyleEngine.sync();
+  if (norgeLeafletStyleEngine.enabled) norgeLeafletStyleEngine.update();
   const baselineLayer = document.getElementById('norge-screen-detail-layer');
   const surfaceOverlay = document.getElementById('norge-surface-overlay');
   const baseRasters = document.querySelectorAll('#norge-surface-map .norge-surface-raster');
@@ -4692,7 +4145,6 @@ function syncNorgeCleanControls() {
   const hideBaseline = hideBaselineToggle?.checked === true;
   const opacity = Math.max(0, Math.min(100, Number(opacityInput?.value || 52))) / 100;
   if (layer) layer.style.display = visible ? '' : 'none';
-  if (overviewLayer) overviewLayer.style.display = visible ? '' : 'none';
   if (baselineLayer) baselineLayer.style.visibility = hideBaseline ? 'hidden' : '';
   if (surfaceOverlay) surfaceOverlay.style.visibility = hideBaseline ? 'hidden' : '';
   if (surfaceDetailLayer) surfaceDetailLayer.style.visibility = hideBaseline ? 'hidden' : '';
@@ -4706,10 +4158,12 @@ function syncNorgeCleanControls() {
     if (pane.style.opacity) pane.style.opacity = '';
   });
   if (opacityVal) opacityVal.textContent = `${Math.round(opacity * 100)}%`;
+  refreshNorgeCleanLoadStatus();
 }
 
 function norgeCleanLoadLine() {
   const manager = norgeCleanTileManager;
+  const diag = norgeCleanDiagnosticsV1;
   window.__norgeCleanTileManager = {
     active: manager.active,
     requested: manager.requested,
@@ -4728,9 +4182,40 @@ function norgeCleanLoadLine() {
     currentBatch: manager.currentBatch,
     freezeMode: norgeFreezeMode,
     frozen: norgeFrozenDetailLayer,
+    diagnosticsV1: {
+      zoom: diag.zoom,
+      screenKey: diag.screenKey,
+      sourceCount: diag.sourceCount,
+      cleanSourceCount: diag.cleanSourceCount,
+      paneCount: diag.paneCount,
+      tileJobCount: diag.tileJobCount,
+      visibleTileCount: diag.visibleTileCount,
+      overscanTileCount: diag.overscanTileCount,
+      requestTileCount: diag.requestTileCount,
+      overscanJobs: diag.overscanJobs,
+      outsideVisibleJobs: diag.outsideVisibleJobs,
+      overscan: diag.overscan,
+      clipped: diag.clipped,
+      boundsSource: diag.boundsSource,
+      coverageGuard: diag.coverageGuard,
+      visibleRange: diag.visibleRange,
+      expandedRange: diag.expandedRange,
+      fittedRange: diag.fittedRange,
+      fallbackIndicatorNote: 'diagnostic only; confirmed fallback is tracked by DOM/data fallbackId and fallback counters',
+    },
   };
   const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
-  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}`;
+  const guardText = diag.coverageGuard
+    ? `, guard +${diag.coverageGuard.expanded}${diag.coverageGuard.after ? ` miss ${diag.coverageGuard.after.total.toFixed(0)}px` : ''}`
+    : '';
+  const diagText = diag.zoom === null
+    ? ''
+    : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}${guardText}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
+  const leafletStats = norgeLeafletStyleEngine.stats;
+  const leafletText = norgeLeafletStyleEngine.enabled
+    ? `\nLeaflet-style engine: ${leafletStats.state}, ${leafletStats.source || 'no source'} z${leafletStats.zoom ?? '-'}, tiles ${leafletStats.loaded}/${leafletStats.wanted}, pending ${leafletStats.pending}, kept ${leafletStats.kept}`
+    : '';
+  return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${leafletText}${diagText}`;
 }
 
 function setNorgeCleanStatus(baseText) {
@@ -5026,7 +4511,7 @@ function refreshNorgeCleanMapOverlay() {
 function syncNorgeDetailPaneToCamera() {
   if (norgeFrozenDetailLayer) return;
   if (!norgeCleanLastContext) return;
-  const panes = [...document.querySelectorAll('#norge-clean-detail-layer .norge-clean-pixelflate')];
+  const panes = [...document.querySelectorAll('.norge-clean-pixelflate')];
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
   if (!panes.length || !cleanLayer) return;
   const { zoom, originX, originY } = norgeCleanLastContext;
@@ -5079,23 +4564,41 @@ function visibleNorgeSourceBounds() {
   if (!mapEl || !wrap) return null;
   const wrapRect = wrap.getBoundingClientRect();
 
-  // Leaflet-lignende utsnitt: beregn synlig kartflate fra kamera/vindu,
-  // ikke fra den store DOM-flaten. Ved ekstrem zoom kan DOM-flaten ligge
-  // langt utenfor skjermen selv om kameraet ser Norge korrekt.
-  const screenPad = 48;
-  const worldPts = [
-    screenToMapWorld(wrapRect.left - screenPad, wrapRect.top - screenPad),
-    screenToMapWorld(wrapRect.right + screenPad, wrapRect.top - screenPad),
-    screenToMapWorld(wrapRect.left - screenPad, wrapRect.bottom + screenPad),
-    screenToMapWorld(wrapRect.right + screenPad, wrapRect.bottom + screenPad),
-    screenToMapWorld(wrapRect.left + wrapRect.width / 2, wrapRect.top + wrapRect.height / 2),
-  ].filter(Boolean).map(p => worldPointToLatLon(p.x, p.z));
+  const samplePoints = [
+    [wrapRect.left, wrapRect.top],
+    [wrapRect.left + wrapRect.width / 2, wrapRect.top],
+    [wrapRect.right, wrapRect.top],
+    [wrapRect.left, wrapRect.top + wrapRect.height / 2],
+    [wrapRect.left + wrapRect.width / 2, wrapRect.top + wrapRect.height / 2],
+    [wrapRect.right, wrapRect.top + wrapRect.height / 2],
+    [wrapRect.left, wrapRect.bottom],
+    [wrapRect.left + wrapRect.width / 2, wrapRect.bottom],
+    [wrapRect.right, wrapRect.bottom],
+  ];
+  const worldPts = samplePoints
+    .map(([x, y]) => screenToMapWorld(x, y))
+    .filter(Boolean)
+    .map(p => worldPointToLatLon(p.x, p.z));
   if (worldPts.length >= 3) {
     const latMin = Math.max(NORGE_SURFACE_DETAIL.bounds.latMin, Math.min(...worldPts.map(p => p.lat)));
     const latMax = Math.min(NORGE_SURFACE_DETAIL.bounds.latMax, Math.max(...worldPts.map(p => p.lat)));
     const lonMin = Math.max(NORGE_SURFACE_DETAIL.bounds.lonMin, Math.min(...worldPts.map(p => p.lon)));
     const lonMax = Math.min(NORGE_SURFACE_DETAIL.bounds.lonMax, Math.max(...worldPts.map(p => p.lon)));
-    if (latMax > latMin && lonMax > lonMin) return { latMin, latMax, lonMin, lonMax };
+    if (latMax > latMin && lonMax > lonMin) {
+      norgeLastVisibleSourceBounds = { latMin, latMax, lonMin, lonMax };
+      norgeCleanDiagnosticsV1.boundsSource = 'camera';
+      return norgeLastVisibleSourceBounds;
+    }
+  }
+
+  const pct = Math.max(100, Math.round(100 / camState.dist * 100));
+  if (norgeLastVisibleSourceBounds) {
+    norgeCleanDiagnosticsV1.boundsSource = 'last-valid';
+    return norgeLastVisibleSourceBounds;
+  }
+  if (pct >= 1000) {
+    norgeCleanDiagnosticsV1.boundsSource = 'camera-miss';
+    return null;
   }
 
   const mapRect = mapEl.getBoundingClientRect();
@@ -5114,7 +4617,6 @@ function visibleNorgeSourceBounds() {
     };
   };
 
-  const pct = Math.max(100, Math.round(100 / camState.dist * 100));
   const pad = pct >= 1000 ? 0 : 120;
   const pts = [
     screenToSource(left - pad, top - pad),
@@ -5122,26 +4624,34 @@ function visibleNorgeSourceBounds() {
     screenToSource(left - pad, bottom + pad),
     screenToSource(right + pad, bottom + pad),
   ].map(p => unprojectNorgeSurfacePoint(p.x, p.y));
-  return {
+  const result = {
     latMin: Math.max(NORGE_SURFACE_DETAIL.bounds.latMin, Math.min(...pts.map(p => p.lat))),
     latMax: Math.min(NORGE_SURFACE_DETAIL.bounds.latMax, Math.max(...pts.map(p => p.lat))),
     lonMin: Math.max(NORGE_SURFACE_DETAIL.bounds.lonMin, Math.min(...pts.map(p => p.lon))),
     lonMax: Math.min(NORGE_SURFACE_DETAIL.bounds.lonMax, Math.max(...pts.map(p => p.lon))),
   };
+  if (result.latMax > result.latMin && result.lonMax > result.lonMin) {
+    norgeCleanDiagnosticsV1.boundsSource = 'dom-fallback';
+    norgeLastVisibleSourceBounds = result;
+    return result;
+  }
+  norgeCleanDiagnosticsV1.boundsSource = 'none';
+  return null;
 }
 
-function fitTileRangeToBudget(tileRange, sourcesLength) {
+function fitTileRangeToBudget(tileRange, sourcesLength, centerRange = null) {
   const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.maxTiles / Math.max(1, sourcesLength)));
   if (tileRange.count <= maxTilesPerSource) return tileRange;
   const width = tileRange.xMax - tileRange.xMin + 1;
   const height = tileRange.yMax - tileRange.yMin + 1;
-  const centerX = Math.round((tileRange.xMin + tileRange.xMax) / 2);
-  const centerY = Math.round((tileRange.yMin + tileRange.yMax) / 2);
+  const centerSource = centerRange || tileRange;
+  const centerX = Math.round((centerSource.xMin + centerSource.xMax) / 2);
+  const centerY = Math.round((centerSource.yMin + centerSource.yMax) / 2);
   const aspect = Math.max(0.25, Math.min(4, width / Math.max(1, height)));
   const fittedWidth = Math.max(1, Math.min(width, Math.floor(Math.sqrt(maxTilesPerSource * aspect))));
   const fittedHeight = Math.max(1, Math.min(height, Math.floor(maxTilesPerSource / fittedWidth)));
-  const xMin = Math.max(tileRange.xMin, centerX - Math.floor(fittedWidth / 2));
-  const yMin = Math.max(tileRange.yMin, centerY - Math.floor(fittedHeight / 2));
+  const xMin = Math.max(tileRange.xMin, Math.min(tileRange.xMax - fittedWidth + 1, centerX - Math.floor(fittedWidth / 2)));
+  const yMin = Math.max(tileRange.yMin, Math.min(tileRange.yMax - fittedHeight + 1, centerY - Math.floor(fittedHeight / 2)));
   return {
     xMin,
     xMax: Math.min(tileRange.xMax, xMin + fittedWidth - 1),
@@ -5153,7 +4663,7 @@ function fitTileRangeToBudget(tileRange, sourcesLength) {
 }
 
 function expandNorgeTileRange(tileRange, zoom) {
-  const pad = zoom >= 14 ? 16 : zoom >= 11 ? 12 : 8;
+  const pad = zoom >= 16 ? 1 : zoom >= 14 ? 2 : zoom >= 11 ? 3 : 8;
   const worldTiles = 2 ** zoom;
   const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
   const seLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMax, NORGE_SURFACE_DETAIL.bounds.latMin, zoom);
@@ -5174,148 +4684,34 @@ function expandNorgeTileRange(tileRange, zoom) {
   return expanded;
 }
 
-function fitOverviewTileRangeToBudget(tileRange, sourcesLength) {
-  const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.overviewMaxTiles / Math.max(1, sourcesLength)));
-  if (!tileRange || tileRange.count <= maxTilesPerSource) return tileRange;
-  const centerX = (tileRange.xMin + tileRange.xMax) / 2;
-  const centerY = (tileRange.yMin + tileRange.yMax) / 2;
-  let halfW = Math.max(1, Math.floor((tileRange.xMax - tileRange.xMin + 1) / 2));
-  let halfH = Math.max(1, Math.floor((tileRange.yMax - tileRange.yMin + 1) / 2));
-  while ((halfW * 2 + 1) * (halfH * 2 + 1) > maxTilesPerSource && (halfW > 1 || halfH > 1)) {
-    if (halfW >= halfH && halfW > 1) halfW -= 1;
-    else if (halfH > 1) halfH -= 1;
-  }
-  const fitted = {
-    xMin: Math.max(tileRange.xMin, Math.floor(centerX - halfW)),
-    xMax: Math.min(tileRange.xMax, Math.floor(centerX + halfW)),
-    yMin: Math.max(tileRange.yMin, Math.floor(centerY - halfH)),
-    yMax: Math.min(tileRange.yMax, Math.floor(centerY + halfH)),
-    clipped: true,
-    overscan: tileRange.overscan || 0,
-  };
-  fitted.count = (fitted.xMax - fitted.xMin + 1) * (fitted.yMax - fitted.yMin + 1);
-  return fitted;
-}
-
-function updateNorgeCleanOverviewLayer(bounds, sources, screenKey) {
-  const overviewLayer = document.getElementById('norge-clean-overview-layer');
-  if (!overviewLayer) return;
-  const overviewSources = (sources || []).filter(source => source.type !== 'wms-nib');
-  if (!bounds || !overviewSources.length) {
-    overviewLayer.replaceChildren();
-    norgeCleanOverviewKey = '';
-    return;
-  }
-  const zoom = Math.max(2, Math.min(NORGE_SURFACE_DETAIL.overviewZoom, NORGE_SURFACE_DETAIL.minZoom));
-  const nw = lonLatToTile(bounds.lonMin, bounds.latMax, zoom);
-  const se = lonLatToTile(bounds.lonMax, bounds.latMin, zoom);
-  const rawRange = {
-    xMin: Math.max(0, Math.floor(Math.min(nw.x, se.x))),
-    xMax: Math.floor(Math.max(nw.x, se.x)),
-    yMin: Math.max(0, Math.floor(Math.min(nw.y, se.y))),
-    yMax: Math.floor(Math.max(nw.y, se.y)),
-  };
-  rawRange.count = (rawRange.xMax - rawRange.xMin + 1) * (rawRange.yMax - rawRange.yMin + 1);
-  let tileRange = expandNorgeTileRange(rawRange, zoom);
-  tileRange = fitOverviewTileRangeToBudget(tileRange, overviewSources.length);
-  if (!tileRange) return;
-
-  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
-  const tileBleed = 1.0;
-  const originX = tileRange.xMin * tileSize;
-  const originY = tileRange.yMin * tileSize;
-  const groupedSources = new Map();
-  overviewSources.forEach(source => {
-    const anchorMode = cleanSourceAnchorMode(source);
-    if (!groupedSources.has(anchorMode)) groupedSources.set(anchorMode, []);
-    groupedSources.get(anchorMode).push(source);
-  });
-  const paneConfigs = [...groupedSources.entries()].map(([anchorMode, groupSources]) => ({
-    anchorMode,
-    sources: groupSources,
-    transform: cleanNorgeTransform(zoom, originX, originY, anchorMode),
-  })).filter(config => config.transform);
-  if (!paneConfigs.length) {
-    overviewLayer.replaceChildren();
-    norgeCleanOverviewKey = '';
-    return;
-  }
-  const sourceKey = overviewSources.map(source => `${source.type}:${source.layer}:${source.role}:${source.anchorMode || ''}`).join('+');
-  const transformKey = paneConfigs.map(config => `${config.anchorMode}:${config.transform.css}`).join('|');
-  const key = `overview:${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}:${transformKey}`;
-  if (key === norgeCleanOverviewKey) return;
-  norgeCleanOverviewKey = key;
-
-  const paneSize = {
-    width: `${(tileRange.xMax - tileRange.xMin + 1) * tileSize}px`,
-    height: `${(tileRange.yMax - tileRange.yMin + 1) * tileSize}px`,
-  };
-  const fragment = document.createDocumentFragment();
-  paneConfigs.forEach(config => {
-    const pane = document.createElement('div');
-    pane.className = 'norge-clean-pixelflate norge-clean-overview-pixelflate';
-    pane.style.width = paneSize.width;
-    pane.style.height = paneSize.height;
-    pane.style.transform = config.transform.css;
-    pane.dataset.zoom = String(zoom);
-    pane.dataset.anchorMode = config.anchorMode;
-    pane.dataset.overview = '1';
-    pane.dataset.sourceLayers = config.sources.map(source => source.layer).join('+');
-    config.sources.forEach((source, sourceIndex) => {
-      for (let x = tileRange.xMin; x <= tileRange.xMax; x++) {
-        for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
-          const src = cleanDetailTileUrl(source, zoom, x, y);
-          if (!src) continue;
-          const img = document.createElement('img');
-          img.className = `norge-detail-tile norge-overview-tile${source.role === 'overlay' ? ' overlay' : ''}`;
-          img.loading = 'eager';
-          img.decoding = 'async';
-          img.style.left = `${(x - tileRange.xMin) * tileSize}px`;
-          img.style.top = `${(y - tileRange.yMin) * tileSize}px`;
-          img.style.width = `${tileSize + tileBleed}px`;
-          img.style.height = `${tileSize + tileBleed}px`;
-          img.style.zIndex = String(sourceIndex + 1);
-          img.dataset.z = String(zoom);
-          img.dataset.layer = source.layer;
-          img.dataset.role = source.role;
-          img.dataset.overview = '1';
-          img.src = src;
-          pane.appendChild(img);
-        }
-      }
-    });
-    fragment.appendChild(pane);
-  });
-  overviewLayer.replaceChildren(fragment);
-}
-
 function updateNorgeDetailTiles() {
   if (norgeFrozenDetailLayer) return;
   const detailLayer = document.getElementById('norge-screen-detail-layer');
   const cleanLayer = document.getElementById('norge-clean-detail-layer');
-  const overviewLayer = document.getElementById('norge-clean-overview-layer');
   const legacyDetailLayer = document.getElementById('norge-surface-detail-layer');
   if (legacyDetailLayer) legacyDetailLayer.replaceChildren();
   if (!cleanLayer || !norgeSurface) return;
   const bounds = visibleNorgeSourceBounds();
   if (!bounds || bounds.latMax <= bounds.latMin || bounds.lonMax <= bounds.lonMin) {
-    if (detailLayer) detailLayer.replaceChildren();
-    if (overviewLayer) overviewLayer.replaceChildren();
-    if (cleanLayer) cleanLayer.replaceChildren();
-    norgeDetailKey = '';
-    norgeCleanDetailKey = '';
-    norgeCleanOverviewKey = '';
+    Object.assign(norgeCleanDiagnosticsV1, {
+      visibleTileCount: 0,
+      requestTileCount: 0,
+      visibleRange: null,
+      expandedRange: null,
+      fittedRange: null,
+      clipped: false,
+    });
+    refreshNorgeCleanLoadStatus();
     return;
   }
 
   const sources = currentNorgeDetailSources();
   if (!sources.length) {
     if (detailLayer) detailLayer.replaceChildren();
-    if (overviewLayer) overviewLayer.replaceChildren();
     if (cleanLayer) cleanLayer.replaceChildren();
     norgeDetailKey = '';
     norgeCleanDetailKey = '';
-    norgeCleanOverviewKey = '';
+    resetNorgeCleanDiagnosticsV1();
     return;
   }
   let zoom = currentNorgeDetailZoom(bounds);
@@ -5327,16 +4723,32 @@ function updateNorgeDetailTiles() {
   const yMin = Math.max(0, Math.floor(Math.min(nw.y, se.y)));
   const yMax = Math.floor(Math.max(nw.y, se.y));
   const count = (xMax - xMin + 1) * (yMax - yMin + 1);
-  tileRange = expandNorgeTileRange({ xMin, xMax, yMin, yMax, count }, zoom);
-  tileRange = fitTileRangeToBudget(tileRange, sources.length);
+  const visibleRange = { xMin, xMax, yMin, yMax, count };
+  const expandedRange = expandNorgeTileRange(visibleRange, zoom);
+  const baseSourceCount = sources.filter(source => source.role !== 'overlay').length || sources.length;
+  tileRange = fitTileRangeToBudget(expandedRange, baseSourceCount, visibleRange);
+  tileRange = expandNorgeTileRangeToCoverViewport(tileRange, zoom, baseSourceCount);
   if (!tileRange) return;
 
   const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
   const screenKey = `${camState.dist.toExponential(3)}:${camState.target.x.toFixed(3)}:${camState.target.z.toFixed(3)}:${Math.round(cw)}x${Math.round(ch)}`;
+  Object.assign(norgeCleanDiagnosticsV1, {
+    zoom,
+    screenKey,
+    sourceCount: sources.length,
+    visibleTileCount: countNorgeCleanTilesInRange(visibleRange),
+    overscanTileCount: Math.max(0, countNorgeCleanTilesInRange(expandedRange) - countNorgeCleanTilesInRange(visibleRange)),
+    requestTileCount: countNorgeCleanTilesInRange(tileRange),
+    visibleRange: cloneNorgeCleanTileRange(visibleRange),
+    expandedRange: cloneNorgeCleanTileRange(expandedRange),
+    fittedRange: cloneNorgeCleanTileRange(tileRange),
+    overscan: expandedRange.overscan || 0,
+    clipped: !!tileRange.clipped,
+    coverageGuard: tileRange.coverageGuard || null,
+  });
   const key = `${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}`;
   if (key === norgeDetailKey) return;
   norgeDetailKey = key;
-  updateNorgeCleanOverviewLayer(bounds, sources, screenKey);
 
   if (detailLayer) {
     detailLayer.replaceChildren();
@@ -5354,6 +4766,13 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   if (!sources.length) {
     cleanLayer.replaceChildren();
     norgeCleanDetailKey = '';
+    Object.assign(norgeCleanDiagnosticsV1, {
+      cleanSourceCount: 0,
+      paneCount: 0,
+      tileJobCount: 0,
+      outsideVisibleJobs: 0,
+      overscanJobs: 0,
+    });
     updateNorgeCleanStatus(null, 0, sources, zoom);
     return;
   }
@@ -5375,15 +4794,25 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   if (!paneConfigs.length) {
     cleanLayer.replaceChildren();
     norgeCleanDetailKey = '';
+    Object.assign(norgeCleanDiagnosticsV1, {
+      cleanSourceCount: sources.length,
+      paneCount: 0,
+      tileJobCount: 0,
+      outsideVisibleJobs: 0,
+      overscanJobs: 0,
+    });
     updateNorgeCleanStatus(null, 0, sources, zoom);
     return;
   }
   const sourceKey = sources.map(source => `${source.type}:${source.layer}:${source.role}`).join('+');
   const transformKey = paneConfigs.map(config => `${config.anchorMode}:${config.transform.css}`).join('|');
   const key = `clean:${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}:${transformKey}`;
-  if (key === norgeCleanDetailKey) return;
+  if (key === norgeCleanDetailKey) {
+    return;
+  }
   norgeCleanDetailKey = key;
 
+  cleanLayer.querySelectorAll('.norge-clean-diagnostics, .norge-clean-map-overlay').forEach(element => element.remove());
   resetNorgeCleanTileQueue();
   const centerX = (tileRange.xMin + tileRange.xMax) / 2;
   const centerY = (tileRange.yMin + tileRange.yMax) / 2;
@@ -5394,6 +4823,9 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     height: `${(tileRange.yMax - tileRange.yMin + 1) * tileSize}px`,
   };
   const tileJobs = [];
+  let outsideVisibleJobs = 0;
+  let overscanJobs = 0;
+  const visibleRange = norgeCleanDiagnosticsV1.visibleRange;
   paneConfigs.forEach((config, index) => {
     const pane = document.createElement('div');
     pane.className = 'norge-clean-pixelflate';
@@ -5409,18 +4841,29 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
     pane.dataset.overscan = String(tileRange.overscan || 0);
     panes.push({ pane, ...config });
 
-    config.sources.forEach((source, sourceIndex) => {
+    for (const source of config.sources) {
       for (let x = tileRange.xMin; x <= tileRange.xMax; x++) {
         for (let y = tileRange.yMin; y <= tileRange.yMax; y++) {
           const src = cleanDetailTileUrl(source, zoom, x, y);
           if (!src) continue;
-          const layerPriority = source.role === 'overlay' ? 0.2 : 0;
+          const layerPriority = source.role === 'overlay' ? 1000 : 0;
           const anchorPriority = config.anchorMode === primaryMode ? 0 : 0.05;
           const priority = Math.hypot(x - centerX, y - centerY) + layerPriority + anchorPriority;
-          tileJobs.push({ source, sourceIndex, x, y, src, priority, pane });
+          tileJobs.push({ source, x, y, src, priority, pane });
+          if (!isNorgeTileInRange(x, y, visibleRange)) {
+            outsideVisibleJobs += 1;
+            overscanJobs += 1;
+          }
         }
       }
-    });
+    }
+  });
+  Object.assign(norgeCleanDiagnosticsV1, {
+    cleanSourceCount: sources.length,
+    paneCount: panes.length,
+    tileJobCount: tileJobs.length,
+    outsideVisibleJobs,
+    overscanJobs,
   });
 
   tileJobs.sort((a, b) => a.priority - b.priority);
@@ -5433,35 +4876,16 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
         img.style.top = `${(job.y - tileRange.yMin) * tileSize}px`;
         img.style.width = `${tileSize + tileBleed}px`;
         img.style.height = `${tileSize + tileBleed}px`;
-        img.style.zIndex = String(job.sourceIndex + 2);
         img.dataset.z = String(zoom);
         img.dataset.layer = job.source.layer;
         img.dataset.role = job.source.role;
         img.dataset.clean = '1';
         img.dataset.anchorMode = job.pane.dataset.anchorMode;
-        // Lag 2 steg 2: CORS før src settes (kreves for canvas-eksport).
-        // Kun når Lag 2 er aktivt på; ?lag2=off og shadow-modus bevarer V0-atferd.
-        // NIB ekskludert; for andre kilder ber vi om anonym CORS.
-        if (
-          lag2State.enabled
-          && lag2State.mode === 'on'
-          && !lag2IsSourceExcluded(job.source)
-          && !lag2State.taintedSources.has(lag2SourceKey(job.source))
-        ) {
-          img.crossOrigin = 'anonymous';
-        }
-        // Lag 1 (Trinn 3): parent-tile fallback hvis live-tile ikke er i RAM-cache
         if (!norgeCleanTileManager.cache.has(job.src)) {
           const fallback = addNorgeCleanParentFallback(img, job.source, zoom, job.x, job.y);
           if (fallback) job.pane.appendChild(fallback);
         }
-        queueNorgeCleanTile(img, job.src, job.priority, {
-          sourceKey: lag2SourceKey(job.source),
-          z: zoom,
-          x: job.x,
-          y: job.y,
-          lag2Excluded: lag2IsSourceExcluded(job.source),
-        });
+        queueNorgeCleanTile(img, job.src, job.priority);
         job.pane.appendChild(img);
   }
   norgeCleanTileManager.queue.sort(compareNorgeCleanTileJobs);
@@ -5470,15 +4894,9 @@ function updateNorgeCleanDetailTiles({ zoom, tileRange, screenKey }) {
   cleanLayer.replaceChildren(fragment);
   if (detailLayer) detailLayer.replaceChildren();
   processNorgeCleanTileQueue();
-  // Lag 2 steg 3: planlegg prefetch-ring rundt synlig tile-range
-  try {
-    if (typeof schedulePrefetchAround === 'function') {
-      schedulePrefetchAround(tileRange, zoom, sources);
-    }
-  } catch (_) { /* aldri brekk pipelinen */ }
   const primaryPane = panes.find(config => config.pane.dataset.primary === '1') || panes[0];
   const primaryTransform = primaryPane.transform;
-  const tileCount = tileJobs.length;
+  const tileCount = panes.reduce((sum, config) => sum + config.pane.querySelectorAll('img').length, 0);
   norgeCleanLastContext = { transform: primaryTransform, zoom, originX, originY };
   addNorgeCleanDiagnostics(cleanLayer, primaryTransform, zoom, originX, originY);
   addNorgeCleanMapOverlay(cleanLayer, primaryTransform, zoom, originX, originY);
@@ -5665,7 +5083,6 @@ function updateNorgeSurfaceRasters() {
     img.classList.toggle('active', isBase || isSjokart || isNib);
   });
   norgeDetailKey = '';
-  norgeCleanOverviewKey = '';
   scheduleNorgeDetailTiles();
 }
 
@@ -5767,7 +5184,7 @@ function bindNorgeSurfaceEngine() {
   if (!mapEl || mapEl.dataset.bound === '1') return;
   mapEl.dataset.bound = '1';
 
-  ['norge-layer-geo-grid', 'norge-layer-square-grid', 'norge-layer-cities', 'norge-layer-both-seacharts', 'norge-layer-osm'].forEach(id => {
+  ['norge-layer-geo-grid', 'norge-layer-square-grid', 'norge-layer-cities', 'norge-layer-both-seacharts'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', () => {
       renderNorgeSurfaceLayers();
       scheduleNorgeDetailTiles();
@@ -5775,7 +5192,19 @@ function bindNorgeSurfaceEngine() {
   });
   document.getElementById('norge-clean-visible')?.addEventListener('change', syncNorgeCleanControls);
   document.getElementById('norge-clean-hide-baseline')?.addEventListener('change', syncNorgeCleanControls);
+  document.getElementById('norge-leaflet-style-engine')?.addEventListener('change', syncNorgeCleanControls);
+  document.querySelectorAll('input[name="norge-base"]').forEach(input => {
+    input.addEventListener('change', () => {
+      syncNorgeCleanControls();
+      if (norgeLeafletStyleEngine.enabled) norgeLeafletStyleEngine.update();
+    });
+  });
+  document.getElementById('norge-layer-se-eiendom')?.addEventListener('change', () => {
+    syncNorgeCleanControls();
+    if (norgeLeafletStyleEngine.enabled) norgeLeafletStyleEngine.update();
+  });
   document.getElementById('norge-clean-opacity')?.addEventListener('input', syncNorgeCleanControls);
+  norgeLeafletStyleEngine.init();
 
   const ICELAND_TONE_DEFAULTS = { brightness: 1.05, contrast: 1.03, saturate: 1.05 };
   const ICELAND_TONE_STORAGE_KEY = 'enok72.icelandTone.v1';
@@ -6031,7 +5460,7 @@ function initNorgeSurfaceMap() {
     mouseGridToggle.disabled = true;
     mouseGridToggle.title = 'Ny motor: venstre-drag panorerer alltid som Google Earth';
   }
-  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-both-seacharts, #norge-layer-osm')
+  document.querySelectorAll('input[name="norge-base"], #norge-layer-sjokart, #norge-layer-nib, #norge-layer-se-eiendom, #norge-layer-both-seacharts')
     .forEach(el => {
       el.disabled = false;
       el.title = '';
@@ -6070,7 +5499,6 @@ function initNorgeSurfaceMap() {
       updateNorgeSurfaceCityList();
       renderNorgeSurfaceLayers();
       norgeCleanDetailKey = '';
-      norgeCleanOverviewKey = '';
       scheduleNorgeDetailTiles();
     })
     .catch(err => {
