@@ -2845,9 +2845,14 @@ const norgeLeafletStyleEngine = {
   threeDMaxTotalTiles: 24,
   threeDMaxConcurrent: 1,
   threeDExplicitlyOpened: false,
+  threeEMaxVisibleTiles: 16,
+  threeEMaxKeepTiles: 8,
+  threeEMaxTotalTiles: 24,
+  threeEMaxConcurrent: 2,
+  threeEExplicitlyOpened: false,
   lastSnapshot: null,
   stats: {
-    phase: '3D-base-keep-buffer',
+    phase: '3E-concurrent-base-loading-max2',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2994,6 +2999,25 @@ const norgeLeafletStyleEngine = {
     threeDLoadedZXY: '',
     threeDLoadedBands: '',
     threeDLastError: '',
+    threeEVisibleRequested: 0,
+    threeEKeepRequested: 0,
+    threeETotalRequested: 0,
+    threeEPending: 0,
+    threeEInflight: 0,
+    threeEMaxInflightObserved: 0,
+    threeEVisibleLoaded: 0,
+    threeEKeepLoaded: 0,
+    threeELoaded: 0,
+    threeEFailed: 0,
+    threeEAppended: 0,
+    threeERejectedByGate: 0,
+    threeERejectedOverlay: 0,
+    threeERejectedNonVisible: 0,
+    threeERejectedInvalid: 0,
+    threeEFirstSourceId: '',
+    threeELoadedZXY: '',
+    threeELoadedBands: '',
+    threeELastError: '',
   },
   init() {
     this.layer = document.getElementById('norge-leaflet-style-detail-layer');
@@ -3005,6 +3029,8 @@ const norgeLeafletStyleEngine = {
     globalThis.__closeKartmotorV2ThreeCTestGate = () => this.closeThreeCTestGate();
     globalThis.__openKartmotorV2ThreeDTestGate = () => this.openThreeDTestGate();
     globalThis.__closeKartmotorV2ThreeDTestGate = () => this.closeThreeDTestGate();
+    globalThis.__openKartmotorV2ThreeETestGate = () => this.openThreeETestGate();
+    globalThis.__closeKartmotorV2ThreeETestGate = () => this.closeThreeETestGate();
     this.publishState();
     this.sync();
   },
@@ -3676,6 +3702,38 @@ const norgeLeafletStyleEngine = {
     if (this.enabled) this.update();
     return this.publicState();
   },
+  isThreeETestGateOpen() {
+    return this.threeEExplicitlyOpened === true
+      || globalThis.__enableKartmotorV2ThreeETest === true
+      || globalThis.__enok72__?.enableKartmotorV2ThreeETest === true
+      || new URLSearchParams(window.location.search).get('kartmotorV2ThreeETest') === '1';
+  },
+  openThreeETestGate() {
+    this.threeEExplicitlyOpened = true;
+    if (this.enabled) this.update();
+    return this.publicState();
+  },
+  closeThreeETestGate() {
+    this.threeEExplicitlyOpened = false;
+    this.clearRuntimeState();
+    this.stats.threeEVisibleRequested = 0;
+    this.stats.threeEKeepRequested = 0;
+    this.stats.threeETotalRequested = 0;
+    this.stats.threeEPending = 0;
+    this.stats.threeEInflight = 0;
+    this.stats.threeEMaxInflightObserved = 0;
+    this.stats.threeEVisibleLoaded = 0;
+    this.stats.threeEKeepLoaded = 0;
+    this.stats.threeELoaded = 0;
+    this.stats.threeEFailed = 0;
+    this.stats.threeEAppended = 0;
+    this.stats.threeEFirstSourceId = '';
+    this.stats.threeELoadedZXY = '';
+    this.stats.threeELoadedBands = '';
+    this.stats.threeELastError = '';
+    if (this.enabled) this.update();
+    return this.publicState();
+  },
   selectThreeABaseCandidate(snapshot, diff) {
     const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
     const candidates = Array.isArray(diff.urlCandidates) ? diff.urlCandidates : [];
@@ -3742,6 +3800,32 @@ const norgeLeafletStyleEngine = {
     const keep = baseCandidates
       .filter(candidate => candidate.band === 'keep')
       .slice(0, this.threeDMaxKeepTiles);
+    return {
+      visible,
+      keep,
+      all: [...visible, ...keep],
+    };
+  },
+  selectThreeEBaseCandidates(snapshot, diff) {
+    const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
+    const candidates = Array.isArray(diff.urlCandidates) ? diff.urlCandidates : [];
+    const baseCandidates = this.sortUrlCandidatesForLoading(candidates)
+      .filter(candidate => {
+        const source = sourceMap.get(candidate.sourceId || '') || null;
+        return candidate.role === 'base'
+          && (candidate.band === 'visible' || candidate.band === 'keep')
+          && candidate.validTile === true
+          && candidate.validUrl === true
+          && candidate.futureLoaderEligible === true
+          && candidate.sourceKind !== 'se-eiendom'
+          && !this.isEiendomCandidate(candidate, source);
+      });
+    const visible = baseCandidates
+      .filter(candidate => candidate.band === 'visible')
+      .slice(0, this.threeEMaxVisibleTiles);
+    const keep = baseCandidates
+      .filter(candidate => candidate.band === 'keep')
+      .slice(0, this.threeEMaxKeepTiles);
     return {
       visible,
       keep,
@@ -3851,6 +3935,52 @@ const norgeLeafletStyleEngine = {
     if ((this.stats.threeDLoaded || 0) > this.threeDMaxTotalTiles) reasons.push(`threeDLoaded=${this.stats.threeDLoaded}`);
     if ((this.stats.threeDAppended || 0) > this.threeDMaxTotalTiles) reasons.push(`threeDAppended=${this.stats.threeDAppended}`);
     if (this.pendingRegistry.size > this.threeDMaxTotalTiles) reasons.push(`pendingRegistry.size=${this.pendingRegistry.size}`);
+    visible.forEach(candidate => {
+      if (candidate.band !== 'visible') reasons.push(`visible candidate band=${candidate.band}`);
+    });
+    keep.forEach(candidate => {
+      if (candidate.band !== 'keep') reasons.push(`keep candidate band=${candidate.band}`);
+    });
+    all.forEach(candidate => {
+      if (candidate.role !== 'base') reasons.push(`candidate role=${candidate.role}`);
+      if (candidate.band !== 'visible' && candidate.band !== 'keep') reasons.push(`candidate band=${candidate.band}`);
+      if (candidate.validTile !== true) reasons.push('validTile is not true');
+      if (candidate.validUrl !== true) reasons.push('validUrl is not true');
+      if (candidate.sourceKind === 'se-eiendom') reasons.push('sourceKind is Se Eiendom');
+      if (/se[-_ ]?eiendom|matrikkel|eiendom/i.test(candidate.sourceId || '')) reasons.push('sourceId is Se Eiendom/Matrikkel');
+    });
+    return [...new Set(reasons)];
+  },
+  threeEStopReasons(selection) {
+    const reasons = [];
+    const visible = Array.isArray(selection?.visible) ? selection.visible : [];
+    const keep = Array.isArray(selection?.keep) ? selection.keep : [];
+    const all = Array.isArray(selection?.all) ? selection.all : [];
+    const cleanLayer = document.getElementById('norge-clean-detail-layer');
+    const cleanDisplay = cleanLayer ? getComputedStyle(cleanLayer).display : '';
+    const pointerEvents = this.layer ? getComputedStyle(this.layer).pointerEvents : '';
+    if (cleanDisplay !== 'block') reasons.push(`cleanDisplay=${cleanDisplay || 'missing'}`);
+    if (pointerEvents !== 'none') reasons.push(`v2 pointer-events=${pointerEvents || 'missing'}`);
+    if (!this.isThreeETestGateOpen()) reasons.push('3E loader gate not explicitly opened');
+    if (this.isThreeATestGateOpen()) reasons.push('3A loader gate is also open');
+    if (this.isThreeBTestGateOpen()) reasons.push('3B loader gate is also open');
+    if (this.isThreeCTestGateOpen()) reasons.push('3C loader gate is also open');
+    if (this.isThreeDTestGateOpen()) reasons.push('3D loader gate is also open');
+    if (visible.length === 0) reasons.push('missing base:visible candidates');
+    if (visible.length > this.threeEMaxVisibleTiles) reasons.push(`visible candidate count=${visible.length}`);
+    if (keep.length > this.threeEMaxKeepTiles) reasons.push(`keep candidate count=${keep.length}`);
+    if (all.length > this.threeEMaxTotalTiles) reasons.push(`total candidate count=${all.length}`);
+    if (this.threeEMaxConcurrent > 2) reasons.push(`maxConcurrent=${this.threeEMaxConcurrent}`);
+    if (this.pendingRegistry.size > this.threeEMaxTotalTiles) reasons.push(`pendingRegistry.size=${this.pendingRegistry.size}`);
+    if (this.tileRegistry.size > this.threeEMaxTotalTiles) reasons.push(`actualLoaded=${this.tileRegistry.size}`);
+    if ((this.stats.actualLoaded || 0) > this.threeEMaxTotalTiles) reasons.push(`actualLoaded=${this.stats.actualLoaded}`);
+    if ((this.stats.actualAppended || 0) > this.threeEMaxTotalTiles) reasons.push(`actualAppended=${this.stats.actualAppended}`);
+    if ((this.stats.threeEInflight || 0) > this.threeEMaxConcurrent) reasons.push(`threeEInflight=${this.stats.threeEInflight}`);
+    if ((this.stats.threeEMaxInflightObserved || 0) > this.threeEMaxConcurrent) reasons.push(`threeEMaxInflightObserved=${this.stats.threeEMaxInflightObserved}`);
+    if ((this.stats.threeEVisibleLoaded || 0) > this.threeEMaxVisibleTiles) reasons.push(`threeEVisibleLoaded=${this.stats.threeEVisibleLoaded}`);
+    if ((this.stats.threeEKeepLoaded || 0) > this.threeEMaxKeepTiles) reasons.push(`threeEKeepLoaded=${this.stats.threeEKeepLoaded}`);
+    if ((this.stats.threeELoaded || 0) > this.threeEMaxTotalTiles) reasons.push(`threeELoaded=${this.stats.threeELoaded}`);
+    if ((this.stats.threeEAppended || 0) > this.threeEMaxTotalTiles) reasons.push(`threeEAppended=${this.stats.threeEAppended}`);
     visible.forEach(candidate => {
       if (candidate.band !== 'visible') reasons.push(`visible candidate band=${candidate.band}`);
     });
@@ -4667,6 +4797,251 @@ const norgeLeafletStyleEngine = {
     startTile(0);
     return { started: true, selection };
   },
+  runThreeEConcurrentBaseTiles(snapshot, diff) {
+    if (!this.enabled || !this.layer) return { started: false, reasons: ['engine disabled'] };
+    if (this.tileRegistry.size > 0 || this.pendingRegistry.size > 0) {
+      return { started: false, reasons: ['3E tiles already loaded or pending'] };
+    }
+    const selection = this.selectThreeEBaseCandidates(snapshot, diff);
+    const candidates = selection.all;
+    const stopReasons = this.threeEStopReasons(selection);
+    if (stopReasons.length) {
+      return { started: false, rejected: true, reasons: stopReasons };
+    }
+
+    const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+    const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
+    let nextIndex = 0;
+    this.stats.state = '3e-loading';
+    this.stats.loaderMode = '3e-concurrent-base-loading-max2';
+    this.stats.loaderAllowed = true;
+    this.stats.loadingEnabled = true;
+    this.stats.loaderGateEnabled = true;
+    this.stats.loaderGateState = 'open-3e-concurrent-base-max2';
+    this.stats.maxConcurrentPlan = this.threeEMaxConcurrent;
+    this.stats.threeEVisibleRequested = selection.visible.length;
+    this.stats.threeEKeepRequested = selection.keep.length;
+    this.stats.threeETotalRequested = candidates.length;
+    this.stats.threeEPending = 0;
+    this.stats.threeEInflight = 0;
+    this.stats.threeEMaxInflightObserved = 0;
+    this.stats.threeEVisibleLoaded = 0;
+    this.stats.threeEKeepLoaded = 0;
+    this.stats.threeELoaded = 0;
+    this.stats.threeEFailed = 0;
+    this.stats.threeEAppended = 0;
+    this.stats.threeELoadedZXY = '';
+    this.stats.threeELoadedBands = '';
+    this.stats.threeELastError = '';
+    this.updateStatus();
+    this.publishState();
+
+    const updateInflightStats = () => {
+      this.stats.threeEPending = this.pendingRegistry.size;
+      this.stats.threeEInflight = this.pendingRegistry.size;
+      this.stats.threeEMaxInflightObserved = Math.max(this.stats.threeEMaxInflightObserved || 0, this.pendingRegistry.size);
+      this.stats.pendingCount = this.pendingRegistry.size;
+      this.stats.actualPending = this.pendingRegistry.size;
+      this.stats.loadingCount = this.pendingRegistry.size;
+      this.stats.pending = this.pendingRegistry.size;
+    };
+
+    const maybeFinish = () => {
+      if (nextIndex >= candidates.length && this.pendingRegistry.size === 0) {
+        this.stats.state = this.stats.threeEFailed > 0 ? '3e-partial' : '3e-loaded';
+        this.stats.baseReady = this.stats.threeEVisibleLoaded === selection.visible.length;
+        updateInflightStats();
+        this.updateStatus();
+        this.publishState();
+        return true;
+      }
+      return false;
+    };
+
+    const pump = () => {
+      if (maybeFinish()) return;
+      while (this.pendingRegistry.size < this.threeEMaxConcurrent && nextIndex < candidates.length) {
+        if (this.tileRegistry.size >= this.threeEMaxTotalTiles) {
+          this.stats.threeELastError = '3E hard cap reached';
+          this.updateStatus();
+          this.publishState();
+          return;
+        }
+
+        const candidate = candidates[nextIndex];
+        if (candidate.band === 'keep' && this.stats.threeEVisibleLoaded < selection.visible.length) {
+          updateInflightStats();
+          this.updateStatus();
+          this.publishState();
+          return;
+        }
+        nextIndex += 1;
+        startTile(candidate, nextIndex);
+      }
+      updateInflightStats();
+      this.updateStatus();
+      this.publishState();
+    };
+
+    const startTile = (candidate, loadOrder) => {
+      const originX = candidate.x * tileSize;
+      const originY = candidate.y * tileSize;
+      const source = sourceMap.get(candidate.sourceId) || null;
+      const anchorMode = source?.anchorMode || 'norway';
+      const transform = cleanNorgeTransform(candidate.z, originX, originY, anchorMode);
+      if (!transform) {
+        this.stats.threeERejectedInvalid += 1;
+        this.stats.threeELastError = `missing cleanNorgeTransform for ${candidate.sourceId} ${candidate.z}/${candidate.x}/${candidate.y}`;
+        pump();
+        return;
+      }
+
+      const pane = document.createElement('div');
+      pane.className = 'norge-leaflet-style-pixelflate v2-pixelflate-3e';
+      pane.style.width = `${tileSize}px`;
+      pane.style.height = `${tileSize}px`;
+      pane.style.transform = transform.css;
+      pane.dataset.v2Pane = '1';
+      pane.dataset.phase = '3E';
+      pane.dataset.zoom = String(candidate.z);
+      pane.dataset.anchorMode = anchorMode;
+      pane.dataset.sourceId = candidate.sourceId;
+      pane.dataset.band = candidate.band;
+
+      const img = document.createElement('img');
+      img.className = `norge-leaflet-style-tile v2-tile v2-tile-base v2-tile-${candidate.band} v2-tile-3e`;
+      img.loading = 'eager';
+      img.decoding = 'async';
+      img.style.left = '0px';
+      img.style.top = '0px';
+      img.style.width = `${tileSize}px`;
+      img.style.height = `${tileSize}px`;
+      img.dataset.phase = '3E';
+      img.dataset.sourceId = candidate.sourceId;
+      img.dataset.role = 'base';
+      img.dataset.band = candidate.band;
+      img.dataset.z = String(candidate.z);
+      img.dataset.nativeZ = String(candidate.nativeZ);
+      img.dataset.x = String(candidate.x);
+      img.dataset.y = String(candidate.y);
+      img.dataset.loadOrder = String(loadOrder);
+      img.dataset.distanceToCenter = String(Number((candidate.distanceToCenter ?? 0).toFixed(3)));
+
+      const key = candidate.sourceId + ':3E:' + candidate.band + ':z' + candidate.z + ':x' + candidate.x + ':y' + candidate.y;
+      this.pendingRegistry.set(key, {
+        key,
+        candidate,
+        startedAt: Date.now(),
+        maxConcurrent: this.threeEMaxConcurrent,
+        status: 'loading',
+      });
+      updateInflightStats();
+      this.updateStatus();
+      this.publishState();
+
+      img.onload = () => {
+        if (!this.isThreeETestGateOpen() || !this.pendingRegistry.has(key)) {
+          this.pendingRegistry.delete(key);
+          updateInflightStats();
+          this.updateStatus();
+          this.publishState();
+          pump();
+          return;
+        }
+        if (pane.dataset.v2Pane !== '1' || !pane.classList.contains('norge-leaflet-style-pixelflate')) {
+          this.pendingRegistry.delete(key);
+          updateInflightStats();
+          this.stats.actualFailed += 1;
+          this.stats.threeEFailed += 1;
+          this.stats.threeELastError = '3E append target is not V2-pane';
+          this.updateStatus();
+          this.publishState();
+          pump();
+          return;
+        }
+        if (this.tileRegistry.size >= this.threeEMaxTotalTiles) {
+          this.pendingRegistry.delete(key);
+          updateInflightStats();
+          this.stats.threeERejectedInvalid += 1;
+          this.stats.threeELastError = '3E append blocked by hard cap';
+          this.updateStatus();
+          this.publishState();
+          pump();
+          return;
+        }
+        if (candidate.band === 'keep' && this.stats.threeEVisibleLoaded < selection.visible.length) {
+          this.pendingRegistry.delete(key);
+          updateInflightStats();
+          this.stats.threeERejectedInvalid += 1;
+          this.stats.threeELastError = '3E keep append blocked until visible complete';
+          this.updateStatus();
+          this.publishState();
+          pump();
+          return;
+        }
+        pane.appendChild(img);
+        this.layer.appendChild(pane);
+        this.pendingRegistry.delete(key);
+        this.tileRegistry.set(key, {
+          key,
+          candidate,
+          el: img,
+          pane,
+          loadedAt: Date.now(),
+          status: 'loaded',
+        });
+        this.levels.set(`z${candidate.z}:x${candidate.x}:y${candidate.y}:${candidate.band}`, pane);
+        const loadedZxy = `${candidate.z}/${candidate.x}/${candidate.y}`;
+        this.stats.registrySize = this.tileRegistry.size;
+        this.stats.levelCount = this.levels.size;
+        this.stats.actualLoaded = this.tileRegistry.size;
+        this.stats.actualAppended = this.tileRegistry.size;
+        this.stats.threeELoaded = this.tileRegistry.size;
+        this.stats.threeEAppended = this.tileRegistry.size;
+        if (candidate.band === 'visible') this.stats.threeEVisibleLoaded += 1;
+        if (candidate.band === 'keep') this.stats.threeEKeepLoaded += 1;
+        this.stats.baseLoaded = this.tileRegistry.size;
+        this.stats.loaded = this.tileRegistry.size;
+        if (!this.stats.threeEFirstSourceId) this.stats.threeEFirstSourceId = candidate.sourceId;
+        this.stats.threeELoadedZXY = this.stats.threeELoadedZXY ? `${this.stats.threeELoadedZXY},${loadedZxy}` : loadedZxy;
+        this.stats.threeELoadedBands = this.stats.threeELoadedBands ? `${this.stats.threeELoadedBands},${candidate.band}` : candidate.band;
+        if (!this.stats.firstLoadedSourceId) this.stats.firstLoadedSourceId = candidate.sourceId;
+        this.stats.firstLoadedZXY = this.stats.threeELoadedZXY;
+        this.stats.threeELastError = '';
+        this.stats.lastLoadError = '';
+        updateInflightStats();
+        this.updateStatus();
+        this.publishState();
+        pump();
+      };
+      img.onerror = () => {
+        if (!this.isThreeETestGateOpen() || !this.pendingRegistry.has(key)) {
+          this.pendingRegistry.delete(key);
+          updateInflightStats();
+          this.updateStatus();
+          this.publishState();
+          pump();
+          return;
+        }
+        this.pendingRegistry.delete(key);
+        this.stats.registrySize = this.tileRegistry.size;
+        this.stats.levelCount = this.levels.size;
+        this.stats.actualFailed += 1;
+        this.stats.threeEFailed += 1;
+        this.stats.failed += 1;
+        this.stats.threeELastError = `${candidate.sourceId} ${candidate.z}/${candidate.x}/${candidate.y}`;
+        this.stats.lastLoadError = this.stats.threeELastError;
+        updateInflightStats();
+        this.updateStatus();
+        this.publishState();
+        pump();
+      };
+      img.src = candidate.urlText;
+    };
+
+    pump();
+    return { started: true, selection };
+  },
   computeTileDiff(snapshot) {
     const warnings = [];
     const zoom = snapshot.zoom.tileZoom;
@@ -5005,6 +5380,29 @@ const norgeLeafletStyleEngine = {
         loadedBands: this.stats.threeDLoadedBands,
         lastError: this.stats.threeDLastError,
       },
+      runtime3E: {
+        testGateOpen: this.isThreeETestGateOpen(),
+        loaderMode: this.stats.loaderMode,
+        visibleRequested: this.stats.threeEVisibleRequested,
+        keepRequested: this.stats.threeEKeepRequested,
+        totalRequested: this.stats.threeETotalRequested,
+        pending: this.stats.threeEPending,
+        inflight: this.stats.threeEInflight,
+        maxInflightObserved: this.stats.threeEMaxInflightObserved,
+        visibleLoaded: this.stats.threeEVisibleLoaded,
+        keepLoaded: this.stats.threeEKeepLoaded,
+        loaded: this.stats.threeELoaded,
+        failed: this.stats.threeEFailed,
+        appended: this.stats.threeEAppended,
+        rejectedByGate: this.stats.threeERejectedByGate,
+        rejectedOverlay: this.stats.threeERejectedOverlay,
+        rejectedNonVisible: this.stats.threeERejectedNonVisible,
+        rejectedInvalid: this.stats.threeERejectedInvalid,
+        firstSourceId: this.stats.threeEFirstSourceId,
+        loadedZXY: this.stats.threeELoadedZXY,
+        loadedBands: this.stats.threeELoadedBands,
+        lastError: this.stats.threeELastError,
+      },
     });
   },
   publishState() {
@@ -5215,6 +5613,25 @@ const norgeLeafletStyleEngine = {
       threeDLoadedZXY: '',
       threeDLoadedBands: '',
       threeDLastError: '',
+      threeEVisibleRequested: 0,
+      threeEKeepRequested: 0,
+      threeETotalRequested: 0,
+      threeEPending: 0,
+      threeEInflight: 0,
+      threeEMaxInflightObserved: 0,
+      threeEVisibleLoaded: 0,
+      threeEKeepLoaded: 0,
+      threeELoaded: 0,
+      threeEFailed: 0,
+      threeEAppended: 0,
+      threeERejectedByGate: 0,
+      threeERejectedOverlay: 0,
+      threeERejectedNonVisible: 0,
+      threeERejectedInvalid: 0,
+      threeEFirstSourceId: '',
+      threeELoadedZXY: '',
+      threeELoadedBands: '',
+      threeELastError: '',
     };
     this.publishState();
   },
@@ -5361,6 +5778,26 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.threeDLoadedZXY = this.stats.threeDLoadedZXY || '';
     this.layer.dataset.threeDLoadedBands = this.stats.threeDLoadedBands || '';
     this.layer.dataset.threeDLastError = this.stats.threeDLastError || '';
+    this.layer.dataset.threeETestGateOpen = this.isThreeETestGateOpen() ? '1' : '0';
+    this.layer.dataset.threeEVisibleRequested = String(this.stats.threeEVisibleRequested || 0);
+    this.layer.dataset.threeEKeepRequested = String(this.stats.threeEKeepRequested || 0);
+    this.layer.dataset.threeETotalRequested = String(this.stats.threeETotalRequested || 0);
+    this.layer.dataset.threeEPending = String(this.stats.threeEPending || 0);
+    this.layer.dataset.threeEInflight = String(this.stats.threeEInflight || 0);
+    this.layer.dataset.threeEMaxInflightObserved = String(this.stats.threeEMaxInflightObserved || 0);
+    this.layer.dataset.threeEVisibleLoaded = String(this.stats.threeEVisibleLoaded || 0);
+    this.layer.dataset.threeEKeepLoaded = String(this.stats.threeEKeepLoaded || 0);
+    this.layer.dataset.threeELoaded = String(this.stats.threeELoaded || 0);
+    this.layer.dataset.threeEFailed = String(this.stats.threeEFailed || 0);
+    this.layer.dataset.threeEAppended = String(this.stats.threeEAppended || 0);
+    this.layer.dataset.threeERejectedByGate = String(this.stats.threeERejectedByGate || 0);
+    this.layer.dataset.threeERejectedOverlay = String(this.stats.threeERejectedOverlay || 0);
+    this.layer.dataset.threeERejectedNonVisible = String(this.stats.threeERejectedNonVisible || 0);
+    this.layer.dataset.threeERejectedInvalid = String(this.stats.threeERejectedInvalid || 0);
+    this.layer.dataset.threeEFirstSourceId = this.stats.threeEFirstSourceId || '';
+    this.layer.dataset.threeELoadedZXY = this.stats.threeELoadedZXY || '';
+    this.layer.dataset.threeELoadedBands = this.stats.threeELoadedBands || '';
+    this.layer.dataset.threeELastError = this.stats.threeELastError || '';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
     status.textContent =
@@ -5377,6 +5814,7 @@ const norgeLeafletStyleEngine = {
       `3B test gate ${this.isThreeBTestGateOpen() ? 'open' : 'closed'}; requested ${this.stats.threeBRequested || 0}, pending ${this.stats.threeBPending || 0}, loaded ${this.stats.threeBLoaded || 0}, failed ${this.stats.threeBFailed || 0}, appended ${this.stats.threeBAppended || 0}\n` +
       `3C test gate ${this.isThreeCTestGateOpen() ? 'open' : 'closed'}; requested ${this.stats.threeCRequested || 0}, pending ${this.stats.threeCPending || 0}, loaded ${this.stats.threeCLoaded || 0}, failed ${this.stats.threeCFailed || 0}, appended ${this.stats.threeCAppended || 0}\n` +
       `3D test gate ${this.isThreeDTestGateOpen() ? 'open' : 'closed'}; visible ${this.stats.threeDVisibleLoaded || 0}/${this.stats.threeDVisibleRequested || 0}, keep ${this.stats.threeDKeepLoaded || 0}/${this.stats.threeDKeepRequested || 0}, pending ${this.stats.threeDPending || 0}, loaded ${this.stats.threeDLoaded || 0}, failed ${this.stats.threeDFailed || 0}, appended ${this.stats.threeDAppended || 0}\n` +
+      `3E test gate ${this.isThreeETestGateOpen() ? 'open' : 'closed'}; visible ${this.stats.threeEVisibleLoaded || 0}/${this.stats.threeEVisibleRequested || 0}, keep ${this.stats.threeEKeepLoaded || 0}/${this.stats.threeEKeepRequested || 0}, inflight ${this.stats.threeEInflight || 0}/${this.stats.threeEMaxInflightObserved || 0}, pending ${this.stats.threeEPending || 0}, loaded ${this.stats.threeELoaded || 0}, failed ${this.stats.threeEFailed || 0}, appended ${this.stats.threeEAppended || 0}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
   },
@@ -5524,27 +5962,33 @@ const norgeLeafletStyleEngine = {
       pending: this.pendingRegistry.size,
       failed: this.stats.failed || 0,
     };
+    const threeEGateOpen = this.isThreeETestGateOpen();
     const threeDGateOpen = this.isThreeDTestGateOpen();
     const threeCGateOpen = this.isThreeCTestGateOpen();
     const threeBGateOpen = this.isThreeBTestGateOpen();
-    const loaderAttempt = threeDGateOpen
-      ? this.runThreeDBaseKeepTiles(snapshot, diff)
-      : threeCGateOpen
-        ? this.runThreeCBaseVisibleTiles(snapshot, diff)
-        : threeBGateOpen
-          ? this.runThreeBBaseVisibleTiles(snapshot, diff)
-          : this.runThreeASingleBaseTile(snapshot, diff);
+    const loaderAttempt = threeEGateOpen
+      ? this.runThreeEConcurrentBaseTiles(snapshot, diff)
+      : threeDGateOpen
+        ? this.runThreeDBaseKeepTiles(snapshot, diff)
+        : threeCGateOpen
+          ? this.runThreeCBaseVisibleTiles(snapshot, diff)
+          : threeBGateOpen
+            ? this.runThreeBBaseVisibleTiles(snapshot, diff)
+            : this.runThreeASingleBaseTile(snapshot, diff);
     if (loaderAttempt.rejected) {
-      if (threeDGateOpen) this.stats.threeDRejectedByGate += 1;
+      if (threeEGateOpen) this.stats.threeERejectedByGate += 1;
+      else if (threeDGateOpen) this.stats.threeDRejectedByGate += 1;
       else if (threeCGateOpen) this.stats.threeCRejectedByGate += 1;
       else if (threeBGateOpen) this.stats.threeBRejectedByGate += 1;
       else this.stats.actualRejectedInvalid += 1;
       this.stats.lastLoadError = loaderAttempt.reasons.join(' | ');
-      if (threeDGateOpen) this.stats.threeDLastError = this.stats.lastLoadError;
+      if (threeEGateOpen) this.stats.threeELastError = this.stats.lastLoadError;
+      else if (threeDGateOpen) this.stats.threeDLastError = this.stats.lastLoadError;
       else if (threeCGateOpen) this.stats.threeCLastError = this.stats.lastLoadError;
       else if (threeBGateOpen) this.stats.threeBLastError = this.stats.lastLoadError;
     } else if (!loaderAttempt.started) {
-      if (threeDGateOpen) this.stats.threeDRejectedByGate += 1;
+      if (threeEGateOpen) this.stats.threeERejectedByGate += 1;
+      else if (threeDGateOpen) this.stats.threeDRejectedByGate += 1;
       else if (threeCGateOpen) this.stats.threeCRejectedByGate += 1;
       else if (threeBGateOpen) this.stats.threeBRejectedByGate += 1;
       else this.stats.actualSkippedByGate += 1;
