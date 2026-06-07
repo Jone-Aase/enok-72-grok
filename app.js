@@ -2812,6 +2812,7 @@ const norgeLeafletStyleEngine = {
     rejectedUrlCandidates: 0,
     countsByUrlKind: {},
     urlValidationSummary: { valid: 0, invalid: 0, errors: [] },
+    urlWarningSummary: { warnings: 0, items: [] },
     loaderGate: {
       enabled: false,
       loaderAllowed: false,
@@ -2833,7 +2834,7 @@ const norgeLeafletStyleEngine = {
   sourceVersion: 'v1',
   lastSnapshot: null,
   stats: {
-    phase: '2G-url-builder-dryrun',
+    phase: '2H-url-validation-hardening',
     state: 'off',
     loadingEnabled: false,
     leafletRuntimeEnabled: false,
@@ -2913,6 +2914,10 @@ const norgeLeafletStyleEngine = {
     kept: 0,
     retired: 0,
     failed: 0,
+    validUrl: 0,
+    invalidUrl: 0,
+    urlWarningCount: 0,
+    firstUrlWarnings: [],
   },
   init() {
     this.layer = document.getElementById('norge-leaflet-style-detail-layer');
@@ -3128,23 +3133,27 @@ const norgeLeafletStyleEngine = {
         : diff.queueRejectedReason,
     };
   },
-  buildNoopLoaderGate(descriptorDiff) {
+  buildNoopLoaderGate(descriptorDiff, urlDiff = null) {
     const previewLimit = 12;
     const descriptors = Array.isArray(descriptorDiff.tileDescriptors) ? descriptorDiff.tileDescriptors : [];
+    const urlCandidates = urlDiff && Array.isArray(urlDiff.urlCandidates) ? urlDiff.urlCandidates : [];
+    const candidates = urlCandidates.length ? urlCandidates : descriptors;
     const loadingEnabled = false;
     const loaderAllowed = false;
     const maxConcurrentPlan = 0;
-    const warnings = ['loader gate closed: 2F is no-op only'];
+    const warnings = ['loader gate closed: 2H is validation dry-run only'];
     let wouldEnqueue = 0;
     let wouldSkip = 0;
     let wouldReject = 0;
 
-    const preview = descriptors.slice(0, previewLimit).map(descriptor => {
+    const preview = candidates.slice(0, previewLimit).map(descriptor => {
       const reasons = [];
       if (!descriptor.validTile) reasons.push(...descriptor.validationErrors);
+      if ('validUrl' in descriptor && !descriptor.validUrl) reasons.push(...descriptor.validationErrors);
       if (!loaderAllowed) reasons.push('loaderAllowed=false');
       if (!loadingEnabled) reasons.push('loadingEnabled=false');
-      const decision = descriptor.validTile && loaderAllowed && loadingEnabled ? 'enqueue' : descriptor.validTile ? 'skip' : 'reject';
+      const validForFutureLoader = descriptor.validTile && (descriptor.validUrl === undefined || descriptor.validUrl);
+      const decision = validForFutureLoader && loaderAllowed && loadingEnabled ? 'enqueue' : validForFutureLoader ? 'skip' : 'reject';
       if (decision === 'enqueue') wouldEnqueue += 1;
       if (decision === 'skip') wouldSkip += 1;
       if (decision === 'reject') wouldReject += 1;
@@ -3159,6 +3168,7 @@ const norgeLeafletStyleEngine = {
         requestType: descriptor.requestType,
         sourceKind: descriptor.sourceKind,
         validTile: descriptor.validTile,
+        validUrl: descriptor.validUrl === undefined ? false : descriptor.validUrl,
         decision,
         reasons,
         loaderAllowed,
@@ -3166,10 +3176,11 @@ const norgeLeafletStyleEngine = {
       };
     });
 
-    if (descriptors.length > previewLimit) {
-      const rest = descriptors.slice(previewLimit);
+    if (candidates.length > previewLimit) {
+      const rest = candidates.slice(previewLimit);
       rest.forEach(descriptor => {
-        if (!descriptor.validTile) {
+        const validForFutureLoader = descriptor.validTile && (descriptor.validUrl === undefined || descriptor.validUrl);
+        if (!validForFutureLoader) {
           wouldReject += 1;
         } else {
           wouldSkip += 1;
@@ -3184,12 +3195,110 @@ const norgeLeafletStyleEngine = {
       wouldEnqueue,
       wouldSkip,
       wouldReject,
-      futureLoadCandidates: descriptorDiff.loadCandidates,
+      futureLoadCandidates: urlDiff ? urlDiff.validUrlCandidates : descriptorDiff.loadCandidates,
       maxConcurrentPlan,
       preview,
       previewLimit,
-      previewTruncated: descriptors.length > previewLimit,
+      previewTruncated: candidates.length > previewLimit,
       warnings,
+    };
+  },
+  redactUrlText(urlText) {
+    if (!urlText) return '';
+    const sensitiveKeys = new Set(['token', 'key', 'api_key', 'apikey', 'access_token', 'auth', 'password', 'secret']);
+    try {
+      const parsed = new URL(urlText);
+      [...parsed.searchParams.keys()].forEach(key => {
+        if (sensitiveKeys.has(key.toLowerCase())) parsed.searchParams.set(key, '[REDACTED]');
+      });
+      const safe = parsed.toString();
+      return safe.length > 180 ? `${safe.slice(0, 180)}...` : safe;
+    } catch {
+      return urlText.length > 180 ? `${urlText.slice(0, 180)}...` : urlText;
+    }
+  },
+  urlParams(urlText) {
+    if (!urlText) return new Map();
+    try {
+      const parsed = new URL(urlText);
+      const params = new Map();
+      parsed.searchParams.forEach((value, key) => params.set(key.toUpperCase(), value));
+      return params;
+    } catch {
+      return new Map();
+    }
+  },
+  validateHardenedUrlCandidate(candidate, source) {
+    const errors = [...(candidate.validationErrors || [])];
+    const warnings = [];
+    const sourceType = source?.type || '';
+    const isWms = candidate.urlKind === 'wms' || candidate.requestType === 'wms' || sourceType.startsWith('wms-');
+    const isWmts = candidate.sourceKind === 'wmts' || sourceType === 'kartverket';
+    const isOverlay = candidate.role === 'overlay';
+    const params = this.urlParams(candidate.urlText);
+    const requireParam = (name, message = `missing ${name}`) => {
+      if (!params.get(name)) errors.push(message);
+    };
+
+    if (!candidate.urlText && candidate.urlKind !== 'none') errors.push('empty urlText');
+    if (candidate.urlText && !/^https?:\/\//i.test(candidate.urlText)) errors.push('url must start with http or https');
+    if (candidate.urlText && candidate.urlText.length > 2048) warnings.push('urlText exceeds preview length policy');
+    if ((isWms || isWmts) && !source?.layer) errors.push('missing source.layer');
+    if ((isWms || isWmts || candidate.urlKind === 'xyz') && !candidate.urlText) errors.push('missing source url/base url output');
+
+    if (isWms) {
+      requireParam('SERVICE');
+      requireParam('REQUEST');
+      requireParam('LAYERS', 'missing LAYERS/source.layer');
+      requireParam('BBOX');
+      requireParam('WIDTH');
+      requireParam('HEIGHT');
+      requireParam('FORMAT');
+      const service = (params.get('SERVICE') || '').toUpperCase();
+      const request = (params.get('REQUEST') || '').toUpperCase();
+      if (service && service !== 'WMS') errors.push(`invalid SERVICE ${service}`);
+      if (request && request !== 'GETMAP') errors.push(`invalid REQUEST ${request}`);
+      const version = params.get('VERSION') || '';
+      const crs = params.get('CRS') || '';
+      const srs = params.get('SRS') || '';
+      if (version === '1.3.0') {
+        if (!crs) errors.push('WMS 1.3.0 requires CRS');
+        if (srs) warnings.push('WMS 1.3.0 uses CRS; SRS is legacy');
+        if (crs === 'EPSG:4326') warnings.push('WMS 1.3.0 EPSG:4326 may require lat/lon BBOX order');
+      } else if (version === '1.1.1') {
+        if (!srs) errors.push('WMS 1.1.1 requires SRS');
+        if (crs) warnings.push('WMS 1.1.1 uses SRS; CRS is WMS 1.3.0 style');
+      } else if (!version) {
+        warnings.push('missing WMS VERSION');
+      } else {
+        warnings.push(`unreviewed WMS VERSION ${version}`);
+      }
+      if (!crs && !srs) errors.push('missing CRS/SRS');
+      const transparent = (params.get('TRANSPARENT') || '').toLowerCase();
+      if (isOverlay && transparent !== 'true') errors.push('overlay WMS requires TRANSPARENT=TRUE');
+      if (candidate.sourceKind === 'se-eiendom') {
+        if (candidate.role !== 'overlay') errors.push('Se Eiendom/Matrikkel must be overlay');
+        if (transparent !== 'true') errors.push('Se Eiendom/Matrikkel requires TRANSPARENT=TRUE');
+        warnings.push('Se Eiendom/Matrikkel terms/auth must remain verified before live loading');
+      }
+    }
+
+    if (isWmts) {
+      if (!source?.layer) errors.push('missing WMTS layer');
+      if (!candidate.urlText.includes('/wmts/')) warnings.push('WMTS url does not include /wmts/ path marker');
+      if (!Number.isInteger(candidate.nativeZ)) errors.push('missing WMTS nativeZ/tilematrix');
+      if (!Number.isInteger(candidate.x)) errors.push('missing WMTS tilecol/x');
+      if (!Number.isInteger(candidate.y)) errors.push('missing WMTS tilerow/y');
+      if (!/\.png(?:$|\?)/i.test(candidate.urlText) && !params.get('FORMAT')) warnings.push('WMTS format not explicit');
+    }
+
+    const validUrl = candidate.validTile && errors.length === 0;
+    return {
+      validUrl,
+      urlValidationErrors: errors,
+      urlValidationWarnings: warnings,
+      safeUrlPreview: this.redactUrlText(candidate.urlText),
+      futureLoaderEligible: validUrl && candidate.loaderAllowed === false && candidate.loadingEnabled === false,
     };
   },
   buildDryRunUrlCandidates(snapshot, descriptorDiff) {
@@ -3198,6 +3307,7 @@ const norgeLeafletStyleEngine = {
     const sourceMap = new Map((snapshot.sources || []).map(source => [source.id, source]));
     const countsByUrlKind = { xyz: 0, wms: 0, local: 0, none: 0, unknown: 0 };
     const urlValidationSummary = { valid: 0, invalid: 0, errors: [] };
+    const urlWarningSummary = { warnings: 0, items: [] };
     const makeError = (descriptor, error) =>
       `${descriptor.sourceId || 'unknown'} ${descriptor.z}/${descriptor.x}/${descriptor.y}: ${error}`;
     const pushError = (descriptor, error) => {
@@ -3282,9 +3392,6 @@ const norgeLeafletStyleEngine = {
       const built = descriptor.validTile
         ? buildUrlText(source, descriptor)
         : { urlKind: descriptor.requestType || 'unknown', urlText: '', errors: [...descriptor.validationErrors] };
-      const validationErrors = [...built.errors];
-      if (!built.urlText && built.urlKind !== 'none') validationErrors.push('empty urlText');
-      const validUrl = descriptor.validTile && validationErrors.length === 0;
       const candidate = {
         sourceId: descriptor.sourceId,
         role: descriptor.role,
@@ -3297,17 +3404,33 @@ const norgeLeafletStyleEngine = {
         sourceKind: descriptor.sourceKind,
         urlKind: built.urlKind,
         urlText: built.urlText,
-        validUrl,
-        validationErrors,
+        validTile: descriptor.validTile,
+        validUrl: false,
+        validationErrors: [...built.errors],
+        validationWarnings: [],
+        safeUrlPreview: '',
+        futureLoaderEligible: false,
         loaderAllowed: false,
         loadingEnabled: false,
       };
+      const hardened = this.validateHardenedUrlCandidate(candidate, source);
+      candidate.validUrl = hardened.validUrl;
+      candidate.validationErrors = hardened.urlValidationErrors;
+      candidate.validationWarnings = hardened.urlValidationWarnings;
+      candidate.safeUrlPreview = hardened.safeUrlPreview;
+      candidate.futureLoaderEligible = hardened.futureLoaderEligible;
       countsByUrlKind[candidate.urlKind] = (countsByUrlKind[candidate.urlKind] || 0) + 1;
-      if (validUrl) {
+      if (candidate.validUrl) {
         urlValidationSummary.valid += 1;
       } else {
         urlValidationSummary.invalid += 1;
-        validationErrors.forEach(error => pushError(candidate, error));
+        candidate.validationErrors.forEach(error => pushError(candidate, error));
+      }
+      if (candidate.validationWarnings.length) {
+        urlWarningSummary.warnings += candidate.validationWarnings.length;
+        candidate.validationWarnings.forEach(warning => {
+          if (urlWarningSummary.items.length < 12) urlWarningSummary.items.push(makeError(candidate, warning));
+        });
       }
       return candidate;
     });
@@ -3321,6 +3444,7 @@ const norgeLeafletStyleEngine = {
       rejectedUrlCandidates: urlValidationSummary.invalid,
       countsByUrlKind,
       urlValidationSummary,
+      urlWarningSummary,
     };
   },
   computeTileDiff(snapshot) {
@@ -3556,7 +3680,12 @@ const norgeLeafletStyleEngine = {
         loadCandidates: this.dryRun.loadCandidates,
         rejectedCandidates: this.dryRun.rejectedCandidates,
         urlBuilder: {
-          urlPreview: this.dryRun.urlPreview.map(item => ({ ...item, validationErrors: [...item.validationErrors] })),
+          urlPreview: this.dryRun.urlPreview.map(item => ({
+            ...item,
+            urlText: item.safeUrlPreview || '',
+            validationErrors: [...item.validationErrors],
+            validationWarnings: [...(item.validationWarnings || [])],
+          })),
           urlPreviewLimit: this.dryRun.urlPreviewLimit,
           urlPreviewTruncated: this.dryRun.urlPreviewTruncated,
           validUrlCandidates: this.dryRun.validUrlCandidates,
@@ -3566,6 +3695,10 @@ const norgeLeafletStyleEngine = {
             valid: this.dryRun.urlValidationSummary.valid,
             invalid: this.dryRun.urlValidationSummary.invalid,
             errors: [...this.dryRun.urlValidationSummary.errors],
+          },
+          warningSummary: {
+            warnings: this.dryRun.urlWarningSummary.warnings,
+            items: [...this.dryRun.urlWarningSummary.items],
           },
         },
         loaderGate: {
@@ -3637,6 +3770,7 @@ const norgeLeafletStyleEngine = {
       rejectedUrlCandidates: 0,
       countsByUrlKind: {},
       urlValidationSummary: { valid: 0, invalid: 0, errors: [] },
+      urlWarningSummary: { warnings: 0, items: [] },
       loaderGate: {
         enabled: false,
         loaderAllowed: false,
@@ -3716,6 +3850,8 @@ const norgeLeafletStyleEngine = {
       countsByRequestType: {},
       validationInvalid: 0,
       validationErrors: [],
+      urlWarningCount: 0,
+      urlWarnings: [],
       firstDescriptorRequestType: '',
       firstDescriptorSourceKind: '',
       firstDescriptorValid: false,
@@ -3804,9 +3940,12 @@ const norgeLeafletStyleEngine = {
       .map(([key, value]) => `${key}:${value}`).join(',');
     this.layer.dataset.urlValidationInvalid = String(this.stats.urlValidationInvalid);
     this.layer.dataset.urlValidationErrors = (this.stats.urlValidationErrors || []).join(' | ');
+    this.layer.dataset.urlWarningCount = String(this.stats.urlWarningCount || 0);
+    this.layer.dataset.urlWarnings = (this.stats.urlWarnings || []).join(' | ');
     this.layer.dataset.firstUrlKind = this.stats.firstUrlKind;
     this.layer.dataset.firstUrlValid = this.stats.firstUrlValid ? '1' : '0';
     this.layer.dataset.firstUrlLoaderAllowed = this.stats.firstUrlLoaderAllowed ? '1' : '0';
+    this.layer.dataset.firstUrlWarnings = (this.stats.firstUrlWarnings || []).join(' | ');
     this.layer.dataset.validationInvalid = String(this.stats.validationInvalid);
     this.layer.dataset.validationErrors = (this.stats.validationErrors || []).join(' | ');
     this.layer.dataset.firstDescriptorRequestType = this.stats.firstDescriptorRequestType;
@@ -3837,7 +3976,7 @@ const norgeLeafletStyleEngine = {
       `queue total ${this.stats.queueTotal}: base vis ${this.stats.queueVisibleBase}, overlay vis ${this.stats.queueVisibleOverlay}, base keep ${this.stats.queueKeepBase}, overlay keep ${this.stats.queueKeepOverlay}\n` +
       `queue center ${this.stats.queueCenterX === null ? '-' : this.stats.queueCenterX},${this.stats.queueCenterY === null ? '-' : this.stats.queueCenterY}; first ${this.stats.queueFirstRole || '-'} d ${this.stats.queueFirstDistance === null ? '-' : this.stats.queueFirstDistance}\n` +
       `descriptors preview ${this.stats.descriptorPreviewCount}/${this.stats.descriptorPreviewLimit}${this.stats.previewTruncated ? ' truncated' : ''}; requests ${this.layer.dataset.countsByRequestType || '-'}; invalid ${this.stats.validationInvalid}\n` +
-      `url dry-run ${this.stats.validUrlCandidates}/${this.stats.validUrlCandidates + this.stats.rejectedUrlCandidates} valid; kinds ${this.layer.dataset.countsByUrlKind || '-'}; invalid ${this.stats.urlValidationInvalid}\n` +
+      `url hardening ${this.stats.validUrlCandidates}/${this.stats.validUrlCandidates + this.stats.rejectedUrlCandidates} valid; kinds ${this.layer.dataset.countsByUrlKind || '-'}; invalid ${this.stats.urlValidationInvalid}; warnings ${this.stats.urlWarningCount || 0}\n` +
       `loader gate ${this.stats.loaderGateState}; would enqueue ${this.stats.wouldEnqueue}, skip ${this.stats.wouldSkip}, reject ${this.stats.wouldReject}; pending ${this.stats.pendingCount}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
@@ -3849,7 +3988,7 @@ const norgeLeafletStyleEngine = {
     const rawDiff = this.computeTileDiff(snapshot);
     const descriptorDiff = this.buildPassiveTileDescriptors(snapshot, rawDiff);
     const urlDiff = this.buildDryRunUrlCandidates(snapshot, descriptorDiff);
-    const loaderGate = this.buildNoopLoaderGate(descriptorDiff);
+    const loaderGate = this.buildNoopLoaderGate(descriptorDiff, urlDiff);
     const diff = {
       ...rawDiff,
       tileDescriptors: descriptorDiff.tileDescriptors,
@@ -3868,6 +4007,7 @@ const norgeLeafletStyleEngine = {
       rejectedUrlCandidates: urlDiff.rejectedUrlCandidates,
       countsByUrlKind: urlDiff.countsByUrlKind,
       urlValidationSummary: urlDiff.urlValidationSummary,
+      urlWarningSummary: urlDiff.urlWarningSummary,
       loaderGate,
       rejected: rawDiff.rejected || descriptorDiff.rejected,
       queueRejectedReason: descriptorDiff.queueRejectedReason || rawDiff.queueRejectedReason,
@@ -3950,9 +4090,12 @@ const norgeLeafletStyleEngine = {
       countsByUrlKind: diff.countsByUrlKind,
       urlValidationInvalid: diff.urlValidationSummary.invalid,
       urlValidationErrors: diff.urlValidationSummary.errors,
+      urlWarningCount: diff.urlWarningSummary.warnings,
+      urlWarnings: diff.urlWarningSummary.items,
       firstUrlKind: firstUrl ? firstUrl.urlKind : '',
       firstUrlValid: firstUrl ? firstUrl.validUrl : false,
       firstUrlLoaderAllowed: false,
+      firstUrlWarnings: firstUrl ? firstUrl.validationWarnings : [],
       loaderAllowed: loaderGate.loaderAllowed,
       loaderGateEnabled: loaderGate.enabled,
       loaderGateState: loaderGate.enabled ? 'open' : 'closed',
