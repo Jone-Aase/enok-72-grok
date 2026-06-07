@@ -3138,6 +3138,7 @@ const norgeLeafletStyleEngine = {
     const descriptors = Array.isArray(descriptorDiff.tileDescriptors) ? descriptorDiff.tileDescriptors : [];
     const urlCandidates = urlDiff && Array.isArray(urlDiff.urlCandidates) ? urlDiff.urlCandidates : [];
     const candidates = urlCandidates.length ? urlCandidates : descriptors;
+    const requireValidUrl = urlCandidates.length > 0;
     const loadingEnabled = false;
     const loaderAllowed = false;
     const maxConcurrentPlan = 0;
@@ -3152,7 +3153,7 @@ const norgeLeafletStyleEngine = {
       if ('validUrl' in descriptor && !descriptor.validUrl) reasons.push(...descriptor.validationErrors);
       if (!loaderAllowed) reasons.push('loaderAllowed=false');
       if (!loadingEnabled) reasons.push('loadingEnabled=false');
-      const validForFutureLoader = descriptor.validTile && (descriptor.validUrl === undefined || descriptor.validUrl);
+      const validForFutureLoader = descriptor.validTile === true && (!requireValidUrl || descriptor.validUrl === true);
       const decision = validForFutureLoader && loaderAllowed && loadingEnabled ? 'enqueue' : validForFutureLoader ? 'skip' : 'reject';
       if (decision === 'enqueue') wouldEnqueue += 1;
       if (decision === 'skip') wouldSkip += 1;
@@ -3179,7 +3180,7 @@ const norgeLeafletStyleEngine = {
     if (candidates.length > previewLimit) {
       const rest = candidates.slice(previewLimit);
       rest.forEach(descriptor => {
-        const validForFutureLoader = descriptor.validTile && (descriptor.validUrl === undefined || descriptor.validUrl);
+        const validForFutureLoader = descriptor.validTile === true && (!requireValidUrl || descriptor.validUrl === true);
         if (!validForFutureLoader) {
           wouldReject += 1;
         } else {
@@ -3205,7 +3206,13 @@ const norgeLeafletStyleEngine = {
   },
   redactUrlText(urlText) {
     if (!urlText) return '';
-    const sensitiveKeys = new Set(['token', 'key', 'api_key', 'apikey', 'access_token', 'auth', 'password', 'secret']);
+    const sensitiveKeys = new Set([
+      'token', 'key', 'api_key', 'apikey', 'access_token', 'auth', 'authorization',
+      'password', 'passwd', 'secret', 'client_secret', 'session', 'jwt', 'bearer',
+    ]);
+    const redactLoose = text => text
+      .replace(/([?&])([^=&]*(?:token|key|auth|authorization|password|passwd|secret|session|jwt|bearer)[^=&]*)=[^&]*/gi, '$1$2=[REDACTED]')
+      .replace(/([?&])(client[_-]?secret|access[_-]?token|api[_-]?key)=[^&]*/gi, '$1$2=[REDACTED]');
     try {
       const parsed = new URL(urlText);
       [...parsed.searchParams.keys()].forEach(key => {
@@ -3214,7 +3221,8 @@ const norgeLeafletStyleEngine = {
       const safe = parsed.toString();
       return safe.length > 180 ? `${safe.slice(0, 180)}...` : safe;
     } catch {
-      return urlText.length > 180 ? `${urlText.slice(0, 180)}...` : urlText;
+      const safe = redactLoose(urlText);
+      return safe.length > 180 ? `${safe.slice(0, 180)}...` : safe;
     }
   },
   urlParams(urlText) {
@@ -3269,9 +3277,9 @@ const norgeLeafletStyleEngine = {
         if (!srs) errors.push('WMS 1.1.1 requires SRS');
         if (crs) warnings.push('WMS 1.1.1 uses SRS; CRS is WMS 1.3.0 style');
       } else if (!version) {
-        warnings.push('missing WMS VERSION');
+        warnings.push('missing WMS VERSION; future live loading must reject until version is explicit');
       } else {
-        warnings.push(`unreviewed WMS VERSION ${version}`);
+        warnings.push(`unreviewed WMS VERSION ${version}; future live loading must reject until version is reviewed`);
       }
       if (!crs && !srs) errors.push('missing CRS/SRS');
       const transparent = (params.get('TRANSPARENT') || '').toLowerCase();
@@ -3298,7 +3306,8 @@ const norgeLeafletStyleEngine = {
       urlValidationErrors: errors,
       urlValidationWarnings: warnings,
       safeUrlPreview: this.redactUrlText(candidate.urlText),
-      futureLoaderEligible: validUrl && candidate.loaderAllowed === false && candidate.loadingEnabled === false,
+      futureLoaderEligible: candidate.validTile === true && validUrl === true,
+      futureLoaderBlockedByGate: true,
     };
   },
   buildDryRunUrlCandidates(snapshot, descriptorDiff) {
@@ -3410,6 +3419,7 @@ const norgeLeafletStyleEngine = {
         validationWarnings: [],
         safeUrlPreview: '',
         futureLoaderEligible: false,
+        futureLoaderBlockedByGate: true,
         loaderAllowed: false,
         loadingEnabled: false,
       };
@@ -3419,6 +3429,7 @@ const norgeLeafletStyleEngine = {
       candidate.validationWarnings = hardened.urlValidationWarnings;
       candidate.safeUrlPreview = hardened.safeUrlPreview;
       candidate.futureLoaderEligible = hardened.futureLoaderEligible;
+      candidate.futureLoaderBlockedByGate = hardened.futureLoaderBlockedByGate;
       countsByUrlKind[candidate.urlKind] = (countsByUrlKind[candidate.urlKind] || 0) + 1;
       if (candidate.validUrl) {
         urlValidationSummary.valid += 1;
