@@ -87,6 +87,22 @@ Når base-loading er stabil, legges Se Eiendom inn som overlay i egen fase. Se E
 - `firstLoadedZXY`.
 - `lastLoadError`.
 
+## Harde stoppkriterier før 3A-kode
+
+3A-kode skal ikke startes hvis noen av disse kriteriene ikke kan håndheves som hard gate:
+
+- Stopp hvis `cleanDisplay` ikke er `block`.
+- Stopp hvis V2 `pointer-events` ikke er `none`.
+- Stopp hvis valgt descriptor ikke er `base:visible`.
+- Stopp hvis `descriptor.validTile !== true`.
+- Stopp hvis `descriptor.validUrl !== true`.
+- Stopp hvis loader-gate ikke eksplisitt er åpnet for 3A-test.
+- Stopp hvis `maxConcurrent > 1` i første test.
+- Stopp hvis `sourceKind` er overlay.
+- Stopp hvis `sourceId` er Se Eiendom/Matrikkel.
+- Stopp hvis V2 prøver å append før `img.onload`.
+- Stopp hvis append-target ikke er V2-pane.
+
 ## Rollback
 
 - V2 toggle av stopper videre V2-loading.
