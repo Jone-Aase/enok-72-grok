@@ -129,6 +129,9 @@ Stop hvis:
 
 3E bør vise:
 
+Feltnavnene under er kontraktfelt. De skal kopieres eksakt i kode, `dataset`
+og `publicState`, slik at automatiske smoke-sjekker ikke leser feil felt.
+
 ```javascript
 threeEVisibleRequested
 threeEKeepRequested
@@ -179,6 +182,8 @@ Lukket gate:
 - Se Eiendom/Matrikkel loaded = 0
 - clean-motor `display=block`
 - V2 `pointer-events=none`
+- `pendingRegistry` og `tileRegistry` endres bare av aktiv 3E-testløype.
+- 3A/3B/3C/3D skal ikke mutere `pendingRegistry` eller `tileRegistry` mens 3E-gate er åpen.
 
 ## Browser smoke
 
@@ -203,6 +208,14 @@ loaded 24
 failed 0
 pending 0
 maxInflightObserved <= 2
+```
+
+Ekstra isolasjonssjekk:
+
+```text
+3A/3B/3C/3D gates closed
+registry mutations from 3E only
+pending mutations from 3E only
 ```
 
 ## Neste steg etter 3E
