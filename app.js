@@ -7174,13 +7174,15 @@ function norgeCleanCoverageGateDiagnostics(range, zoom, anchorMode = primaryClea
   const aabbReady = aabbMissing.total <= 2;
   const zoomPercent = Math.max(100, Math.round(100 / camState.dist * 100));
   return {
-    phase: '3H-viewport-coverage-diagnostics',
+    phase: '3I-polygon-coverage-guard',
     method: 'point-sampling',
     zoom,
     zoomPercent,
     anchorMode,
     range: cloneNorgeCleanTileRange(range),
+    coverageGateReady: aabbReady && polygonSample.ready,
     coverageGateAabbReady: aabbReady,
+    coverageGatePolygonReady: polygonSample.ready,
     coverageGatePolygonSampleReady: polygonSample.ready,
     coverageGateAabbPercent: aabbSample.percent,
     coverageGatePolygonSamplePercent: polygonSample.percent,
@@ -7204,6 +7206,76 @@ function norgeCleanCoverageGateDiagnostics(range, zoom, anchorMode = primaryClea
   };
 }
 
+function norgeCoverageGateReady(gate) {
+  return !!gate?.coverageGateAabbReady && !!gate?.coverageGatePolygonSampleReady;
+}
+
+function norgeCoverageGateScore(gate, aabbCoverage) {
+  if (!gate) return Number.POSITIVE_INFINITY;
+  const polygonMissCount = Number.isFinite(gate.coverageGatePolygonSampleMissCount)
+    ? gate.coverageGatePolygonSampleMissCount
+    : gate.coverageGatePolygonSampleTotal || 9;
+  const polygonPercent = Number.isFinite(gate.coverageGatePolygonSamplePercent)
+    ? gate.coverageGatePolygonSamplePercent
+    : 0;
+  const aabbMiss = aabbCoverage && Number.isFinite(aabbCoverage.total) ? aabbCoverage.total : 999999;
+  return polygonMissCount * 100000 + (100 - polygonPercent) * 1000 + aabbMiss;
+}
+
+function norgeCoverageExpansionSide(current, next) {
+  if (next.xMin < current.xMin) return 'left';
+  if (next.xMax > current.xMax) return 'right';
+  if (next.yMin < current.yMin) return 'top';
+  if (next.yMax > current.yMax) return 'bottom';
+  return 'none';
+}
+
+function norgeCoverageExpansionMatchesMiss(side, gate) {
+  if (!gate) return false;
+  if (side?.includes('+')) {
+    return side.split('+').some(part => norgeCoverageExpansionMatchesMiss(part, gate));
+  }
+  if (side === 'left') return gate.coverageGatePolygonSampleMissingLeft > 0;
+  if (side === 'right') return gate.coverageGatePolygonSampleMissingRight > 0;
+  if (side === 'top') return gate.coverageGatePolygonSampleMissingTop > 0;
+  if (side === 'bottom') return gate.coverageGatePolygonSampleMissingBottom > 0;
+  return false;
+}
+
+function norgeCoverageExpansionPriority(side, gate) {
+  if (!gate) return 99;
+  if (side?.includes('+')) return -1;
+  if (side === 'left' && gate.coverageGatePolygonSampleMissingLeft > 0) return 0;
+  if (side === 'right' && gate.coverageGatePolygonSampleMissingRight > 0) return 1;
+  if (side === 'top' && gate.coverageGatePolygonSampleMissingTop > 0) return 2;
+  if (side === 'bottom' && gate.coverageGatePolygonSampleMissingBottom > 0) return 3;
+  return 9;
+}
+
+function norgeCoverageMissingSidesExpansion(current, gate, limit) {
+  if (!gate) return null;
+  const next = { ...current };
+  const sides = [];
+  if (gate.coverageGatePolygonSampleMissingLeft > 0 && next.xMin > limit.xMin) {
+    next.xMin -= 1;
+    sides.push('left');
+  }
+  if (gate.coverageGatePolygonSampleMissingRight > 0 && next.xMax < limit.xMax) {
+    next.xMax += 1;
+    sides.push('right');
+  }
+  if (gate.coverageGatePolygonSampleMissingTop > 0 && next.yMin > limit.yMin) {
+    next.yMin -= 1;
+    sides.push('top');
+  }
+  if (gate.coverageGatePolygonSampleMissingBottom > 0 && next.yMax < limit.yMax) {
+    next.yMax += 1;
+    sides.push('bottom');
+  }
+  if (!sides.length) return null;
+  return { range: next, side: sides.join('+') };
+}
+
 function norgeTileRangeLimit(zoom) {
   const worldTiles = 2 ** zoom;
   const nwLimit = lonLatToTile(NORGE_SURFACE_DETAIL.bounds.lonMin, NORGE_SURFACE_DETAIL.bounds.latMax, zoom);
@@ -7221,34 +7293,99 @@ function expandNorgeTileRangeToCoverViewport(range, zoom, sourcesLength) {
   const maxTilesPerSource = Math.max(16, Math.floor(NORGE_SURFACE_DETAIL.maxTiles / Math.max(1, sourcesLength)));
   const limit = norgeTileRangeLimit(zoom);
   let current = { ...range, count: countNorgeCleanTilesInRange(range) };
-  let guard = { expanded: 0, before: null, after: null, limited: false };
+  let guard = {
+    expanded: 0,
+    before: null,
+    after: null,
+    limited: false,
+    polygonBefore: null,
+    polygonAfter: null,
+    polygonExpanded: 0,
+    polygonExpansionSide: '',
+    polygonBlocked: false,
+    polygonBlockedReason: '',
+  };
   for (let i = 0; i < 64; i++) {
     const rect = norgeCleanPaneScreenRectForRange(current, zoom);
     const coverage = norgeCleanViewportCoverage(rect);
     if (!coverage) break;
     if (!guard.before) guard.before = coverage;
     guard.after = coverage;
-    if (coverage.total <= 2) break;
+    const gate = norgeCleanCoverageGateDiagnostics(current, zoom);
+    if (!guard.polygonBefore) guard.polygonBefore = gate;
+    guard.polygonAfter = gate;
+    if (norgeCoverageGateReady(gate)) break;
+    const aabbReady = coverage.total <= 2;
+    const currentScore = norgeCoverageGateScore(gate, coverage);
     const candidates = [];
-    const pushCandidate = next => {
+    const pushCandidate = (next, sideOverride = null) => {
       next.count = countNorgeCleanTilesInRange(next);
       if (next.count <= maxTilesPerSource) {
         const nextRect = norgeCleanPaneScreenRectForRange(next, zoom);
         const nextCoverage = norgeCleanViewportCoverage(nextRect);
-        if (nextCoverage) candidates.push({ range: next, coverage: nextCoverage });
+        const nextGate = norgeCleanCoverageGateDiagnostics(next, zoom);
+        if (nextCoverage && nextGate) {
+          const side = sideOverride || norgeCoverageExpansionSide(current, next);
+          candidates.push({
+            range: next,
+            coverage: nextCoverage,
+            gate: nextGate,
+            side,
+            matchesMiss: norgeCoverageExpansionMatchesMiss(side, gate),
+            sidePriority: norgeCoverageExpansionPriority(side, gate),
+            score: norgeCoverageGateScore(nextGate, nextCoverage),
+          });
+        }
       }
     };
+    if (aabbReady && !gate?.coverageGatePolygonSampleReady) {
+      const missingSidesExpansion = norgeCoverageMissingSidesExpansion(current, gate, limit);
+      if (missingSidesExpansion) pushCandidate(missingSidesExpansion.range, missingSidesExpansion.side);
+    }
     if (current.xMin > limit.xMin) pushCandidate({ ...current, xMin: current.xMin - 1 });
     if (current.xMax < limit.xMax) pushCandidate({ ...current, xMax: current.xMax + 1 });
     if (current.yMin > limit.yMin) pushCandidate({ ...current, yMin: current.yMin - 1 });
     if (current.yMax < limit.yMax) pushCandidate({ ...current, yMax: current.yMax + 1 });
     if (!candidates.length) {
       guard.limited = true;
+      guard.polygonBlocked = !norgeCoverageGateReady(gate);
+      guard.polygonBlockedReason = guard.polygonBlocked ? 'no-candidates' : '';
       break;
     }
-    candidates.sort((a, b) => a.coverage.total - b.coverage.total);
-    if (candidates[0].coverage.total >= coverage.total - 0.1) break;
+    if (!aabbReady) {
+      candidates.sort((a, b) => a.coverage.total - b.coverage.total);
+      if (candidates[0].coverage.total >= coverage.total - 0.1) {
+        guard.polygonBlocked = !norgeCoverageGateReady(gate);
+        guard.polygonBlockedReason = guard.polygonBlocked ? 'no-improving-aabb-candidate' : '';
+        break;
+      }
+    } else {
+      candidates.sort((a, b) =>
+        a.sidePriority - b.sidePriority ||
+        a.score - b.score ||
+        a.coverage.total - b.coverage.total
+      );
+      const polygonProbeAllowed = gate?.coverageGateAabbReady && !gate?.coverageGatePolygonSampleReady && candidates[0].matchesMiss;
+      if (candidates[0].score >= currentScore - 0.1 && !polygonProbeAllowed) {
+        guard.polygonBlocked = !norgeCoverageGateReady(gate);
+        guard.polygonBlockedReason = guard.polygonBlocked ? 'no-improving-polygon-candidate' : '';
+        break;
+      }
+    }
     current = candidates[0].range;
+    guard.after = candidates[0].coverage;
+    guard.polygonAfter = candidates[0].gate;
+    if (!candidates[0].gate.coverageGatePolygonSampleReady) {
+      guard.polygonBlocked = true;
+      guard.polygonBlockedReason = 'still-missing-after-expansion';
+    } else {
+      guard.polygonBlocked = false;
+      guard.polygonBlockedReason = '';
+    }
+    if (candidates[0].score < currentScore && candidates[0].coverage.total <= 2) {
+      guard.polygonExpanded += 1;
+      guard.polygonExpansionSide = candidates[0].side;
+    }
     guard.expanded += 1;
   }
   current.count = countNorgeCleanTilesInRange(current);
@@ -7690,11 +7827,13 @@ function norgeCleanLoadLine() {
   };
   const yieldText = manager.queueYielded ? `, yielded ${manager.yieldCount}` : '';
   const guardText = diag.coverageGuard
-    ? `, guard +${diag.coverageGuard.expanded}${diag.coverageGuard.after ? ` miss ${diag.coverageGuard.after.total.toFixed(0)}px` : ''}`
+    ? `, guard +${diag.coverageGuard.expanded}${diag.coverageGuard.after ? ` miss ${diag.coverageGuard.after.total.toFixed(0)}px` : ''}` +
+      `${diag.coverageGuard.polygonExpanded ? `, poly+${diag.coverageGuard.polygonExpanded} ${diag.coverageGuard.polygonExpansionSide || ''}` : ''}` +
+      `${diag.coverageGuard.polygonBlocked ? `, poly-block ${diag.coverageGuard.polygonBlockedReason || 'unknown'}` : ''}`
     : '';
   const gate = diag.coverageGate;
   const coverageGateText = gate
-    ? `, 3H AABB ${gate.coverageGateAabbReady ? 'ok' : 'miss'} ${gate.coverageGateAabbPercent}%` +
+    ? `, 3I AABB ${gate.coverageGateAabbReady ? 'ok' : 'miss'} ${gate.coverageGateAabbPercent}%` +
       `, poly ${gate.coverageGatePolygonSampleReady ? 'ok' : 'miss'} ${gate.coverageGatePolygonSamplePercent}%` +
       `, miss L${gate.coverageGatePolygonSampleMissingLeft}/R${gate.coverageGatePolygonSampleMissingRight}/T${gate.coverageGatePolygonSampleMissingTop}/B${gate.coverageGatePolygonSampleMissingBottom}` +
       `${gate.expectedDarkWedgeSignal ? ' dark-left?' : ''}`
@@ -7730,6 +7869,13 @@ function applyNorgeCoverageGateDataset(status) {
     'coverageGatePolygonSampleMissCount',
     'coverageGatePolygonSampleTotal',
     'coverageGateExpectedDarkWedgeSignal',
+    'coverageGateReady',
+    'coverageGatePolygonReady',
+    'coverageGatePolygonExpansionActive',
+    'coverageGatePolygonExpanded',
+    'coverageGatePolygonExpansionSide',
+    'coverageGatePolygonBlocked',
+    'coverageGatePolygonBlockedReason',
   ];
   if (!gate) {
     keys.forEach(key => delete status.dataset[key]);
@@ -7738,6 +7884,8 @@ function applyNorgeCoverageGateDataset(status) {
   status.dataset.coverageGatePhase = gate.phase;
   status.dataset.coverageGateMethod = gate.method;
   status.dataset.coverageGateAabbReady = String(gate.coverageGateAabbReady);
+  status.dataset.coverageGateReady = String(gate.coverageGateReady);
+  status.dataset.coverageGatePolygonReady = String(gate.coverageGatePolygonReady);
   status.dataset.coverageGatePolygonSampleReady = String(gate.coverageGatePolygonSampleReady);
   status.dataset.coverageGateAabbPercent = String(gate.coverageGateAabbPercent);
   status.dataset.coverageGatePolygonSamplePercent = String(gate.coverageGatePolygonSamplePercent);
@@ -7752,6 +7900,12 @@ function applyNorgeCoverageGateDataset(status) {
   status.dataset.coverageGatePolygonSampleMissCount = String(gate.coverageGatePolygonSampleMissCount);
   status.dataset.coverageGatePolygonSampleTotal = String(gate.coverageGatePolygonSampleTotal);
   status.dataset.coverageGateExpectedDarkWedgeSignal = String(gate.expectedDarkWedgeSignal);
+  const guard = norgeCleanDiagnosticsV1.coverageGuard;
+  status.dataset.coverageGatePolygonExpansionActive = String(!!guard?.polygonExpanded);
+  status.dataset.coverageGatePolygonExpanded = String(guard?.polygonExpanded || 0);
+  status.dataset.coverageGatePolygonExpansionSide = guard?.polygonExpansionSide || '';
+  status.dataset.coverageGatePolygonBlocked = String(!!guard?.polygonBlocked);
+  status.dataset.coverageGatePolygonBlockedReason = guard?.polygonBlockedReason || '';
 }
 
 function setNorgeCleanStatus(baseText) {
