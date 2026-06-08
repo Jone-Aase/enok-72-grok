@@ -6276,7 +6276,7 @@ const norgeLeafletStyleEngine = {
     this.layer.dataset.threeFLastError = this.stats.threeFLastError || '';
     this.layer.dataset.baseSourceCount = String(this.stats.baseSourceCount);
     this.layer.dataset.overlaySourceCount = String(this.stats.overlaySourceCount);
-    status.textContent =
+    const verboseStatus =
       `Kartmotor V2: ${this.stats.state}\n` +
       `${sourceText} ${zoomText}, snapshot ${this.stats.snapshotReady ? 'ready' : 'none'}\n` +
       `registry ${this.stats.registrySize}, levels ${this.stats.levelCount}, pending ${this.stats.pendingCount}\n` +
@@ -6294,6 +6294,11 @@ const norgeLeafletStyleEngine = {
       `3F test gate ${this.isThreeFTestGateOpen() ? 'open' : 'closed'}; visible ${this.stats.threeFVisibleLoaded || 0}/${this.stats.threeFVisibleRequested || 0}, keep ${this.stats.threeFKeepLoaded || 0}/${this.stats.threeFKeepRequested || 0}, inflight ${this.stats.threeFInflight || 0}/${this.stats.threeFMaxInflightObserved || 0}, pending ${this.stats.threeFPending || 0}, loaded ${this.stats.threeFLoaded || 0}, failed ${this.stats.threeFFailed || 0}, appended ${this.stats.threeFAppended || 0}\n` +
       `sources base ${this.stats.baseSourceCount}, overlay ${this.stats.overlaySourceCount}\n` +
       `base ${this.stats.baseLoaded}/${this.stats.baseWanted}, overlay ${this.stats.overlayLoaded}/${this.stats.overlayWanted}`;
+    const compactStatus = this.isThreeFTestGateOpen()
+      ? `Kartmotor V2 3F: visible ${this.stats.threeFVisibleLoaded || 0}/${this.stats.threeFVisibleRequested || 0}, keep ${this.stats.threeFKeepLoaded || 0}/${this.stats.threeFKeepRequested || 0}, inflight ${this.stats.threeFInflight || 0}/${this.stats.threeFMaxInflightObserved || 0}, pending ${this.stats.threeFPending || 0}, loaded ${this.stats.threeFLoaded || 0}, failed ${this.stats.threeFFailed || 0}, appended ${this.stats.threeFAppended || 0}`
+      : `Kartmotor V2: ${this.stats.state}, ${sourceText} ${zoomText}, tiles ${this.stats.registrySize}/${this.stats.pendingCount}, pending ${this.stats.pendingCount}`;
+    status.textContent = compactStatus;
+    status.title = verboseStatus;
   },
   update() {
     if (!this.enabled) return;

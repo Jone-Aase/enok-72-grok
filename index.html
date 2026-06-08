@@ -319,14 +319,18 @@
   .norge-leaflet-style-status {
     position: absolute;
     left: 8px;
-    top: 8px;
-    padding: 4px 6px;
+    bottom: 8px;
+    max-width: min(760px, calc(100% - 16px));
+    padding: 3px 6px;
     border: 1px solid rgba(255, 214, 107, 0.35);
-    background: rgba(0, 0, 0, 0.62);
+    background: rgba(0, 0, 0, 0.72);
     color: #ffd66b;
     font-size: 10px;
-    line-height: 1.35;
+    line-height: 1.2;
     letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     pointer-events: none;
     z-index: 1;
   }
@@ -1993,7 +1997,7 @@
   </div>
 </div>
 
-  <script type="module" src="app.js?v=kartmotor-v2-3f-max4-fix-1"></script>
+  <script type="module" src="app.js?v=kartmotor-v2-3f-status-chip-1"></script>
 </body>
 </html>
 
