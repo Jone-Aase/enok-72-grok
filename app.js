@@ -3902,7 +3902,7 @@ const norgeLeafletStyleEngine = {
           && candidate.validUrl === true
           && candidate.futureLoaderEligible === true
           && candidate.sourceKind !== 'se-eiendom'
-          && !this.isEiendomSource(source);
+          && !this.isEiendomCandidate(candidate, source);
       });
     const visible = baseCandidates
       .filter(candidate => candidate.band === 'visible')
