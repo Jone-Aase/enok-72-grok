@@ -19,6 +19,31 @@ Visual symptom: darkness starts creeping in from the left side of the viewport
 
 3H must make this measurable and reproducible.
 
+## Observed LOD / zoom threshold ladder
+
+Manual observation from Instrument testing:
+
+```text
+> 5135%   A map layer is visible inside the Instrument with the largest map pieces / tile squares.
+~ 5562%   A new map layer appears over the same map surface/area, with similar visible richness but smaller map pieces.
+~ 10546%  A new layer appears with more detail and smaller map pieces.
+~ 20000%  A new layer appears with higher detail and smaller map pieces.
+~ 41066%  A new layer appears with still smaller map pieces and higher detail.
+> 41066%  Darkness begins creeping in from the left side of the viewport.
+~ 160000% A final finer layer appears, with still higher detail and finer tile/grid pieces.
+          This is the last observed step before 1:5000 / Se Eiendom.
+```
+
+Important interpretation:
+
+- The dark wedge does not appear at the first detail-layer transition.
+- The dark wedge appears after the engine has already moved through several LOD/tile-size levels.
+- The first critical failure band appears after approximately `41066%`.
+- The earlier `71876%` observation remains useful as a reproducible smoke point inside the failing band.
+- The `160000%` level is an important later threshold because it is the last observed level before the 1:5000 / Se Eiendom target.
+
+3H should preserve these thresholds as diagnostic markers. They are not yet hard LOD rules, but they are the practical ladder the later height/LOD gate must learn from.
+
 ## Core rule
 
 The motor must not treat a map level as safe just because its axis-aligned bounding box covers the viewport.
