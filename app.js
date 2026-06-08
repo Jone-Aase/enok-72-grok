@@ -6502,6 +6502,7 @@ const norgeCleanDiagnosticsV1 = {
   clipped: false,
   boundsSource: '',
   coverageGuard: null,
+  coverageGate: null,
   outsideVisibleJobs: 0,
   overscanJobs: 0,
 };
@@ -7056,6 +7057,28 @@ function norgeCleanPaneScreenRectForRange(range, zoom, anchorMode = primaryClean
   };
 }
 
+function norgeCleanPaneScreenPolygonForRange(range, zoom, anchorMode = primaryCleanAnchorMode()) {
+  if (!range) return null;
+  const tileSize = NORGE_SURFACE_DETAIL.tileSize;
+  const originX = range.xMin * tileSize;
+  const originY = range.yMin * tileSize;
+  const transform = cleanNorgeTransform(zoom, originX, originY, anchorMode);
+  if (!transform) return null;
+  const width = (range.xMax - range.xMin + 1) * tileSize;
+  const height = (range.yMax - range.yMin + 1) * tileSize;
+  return {
+    points: [
+      applyCleanTransformPoint(transform, { x: 0, y: 0 }),
+      applyCleanTransformPoint(transform, { x: width, y: 0 }),
+      applyCleanTransformPoint(transform, { x: width, y: height }),
+      applyCleanTransformPoint(transform, { x: 0, y: height }),
+    ],
+    width,
+    height,
+    anchorMode,
+  };
+}
+
 function norgeCleanViewportCoverage(rect) {
   if (!rect || !wrap) return null;
   const viewport = wrap.getBoundingClientRect();
@@ -7068,6 +7091,116 @@ function norgeCleanViewportCoverage(rect) {
   return {
     ...missing,
     total: missing.left + missing.right + missing.top + missing.bottom,
+  };
+}
+
+function norgeViewportSamplePoints() {
+  if (!wrap) return null;
+  const viewport = wrap.getBoundingClientRect();
+  const centerX = (viewport.left + viewport.right) / 2;
+  const centerY = (viewport.top + viewport.bottom) / 2;
+  return {
+    viewport,
+    samples: [
+      { id: 'topLeft', x: viewport.left, y: viewport.top },
+      { id: 'topCenter', x: centerX, y: viewport.top },
+      { id: 'topRight', x: viewport.right, y: viewport.top },
+      { id: 'centerLeft', x: viewport.left, y: centerY },
+      { id: 'center', x: centerX, y: centerY },
+      { id: 'centerRight', x: viewport.right, y: centerY },
+      { id: 'bottomLeft', x: viewport.left, y: viewport.bottom },
+      { id: 'bottomCenter', x: centerX, y: viewport.bottom },
+      { id: 'bottomRight', x: viewport.right, y: viewport.bottom },
+    ],
+  };
+}
+
+function pointInRect(point, rect) {
+  return !!rect && point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+}
+
+function pointInConvexPolygon(point, polygon, epsilon = 0.5) {
+  if (!point || !Array.isArray(polygon) || polygon.length < 3) return false;
+  let sign = 0;
+  for (let i = 0; i < polygon.length; i += 1) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    const cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x);
+    if (Math.abs(cross) <= epsilon) continue;
+    const currentSign = Math.sign(cross);
+    if (!sign) {
+      sign = currentSign;
+    } else if (currentSign !== sign) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function sampleCoverageAgainstShape(testPoint) {
+  const sampleSet = norgeViewportSamplePoints();
+  if (!sampleSet) return null;
+  const outside = sampleSet.samples.filter(sample => !testPoint(sample));
+  const missing = outside.reduce((acc, sample) => {
+    if (sample.id.includes('Left')) acc.left += 1;
+    if (sample.id.includes('Right')) acc.right += 1;
+    if (sample.id.includes('Top') || sample.id.startsWith('top')) acc.top += 1;
+    if (sample.id.includes('Bottom') || sample.id.startsWith('bottom')) acc.bottom += 1;
+    return acc;
+  }, { left: 0, right: 0, top: 0, bottom: 0 });
+  return {
+    ready: outside.length === 0,
+    percent: Number((((sampleSet.samples.length - outside.length) / sampleSet.samples.length) * 100).toFixed(1)),
+    missing,
+    missCount: outside.length,
+    total: sampleSet.samples.length,
+    outsideSamples: outside.map(sample => sample.id),
+  };
+}
+
+function roundCoverageValue(value) {
+  return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+}
+
+function norgeCleanCoverageGateDiagnostics(range, zoom, anchorMode = primaryCleanAnchorMode()) {
+  if (!range) return null;
+  const rect = norgeCleanPaneScreenRectForRange(range, zoom, anchorMode);
+  const aabbMissing = norgeCleanViewportCoverage(rect);
+  const polygon = norgeCleanPaneScreenPolygonForRange(range, zoom, anchorMode);
+  if (!rect || !aabbMissing || !polygon?.points?.length) return null;
+  const aabbSample = sampleCoverageAgainstShape(point => pointInRect(point, rect));
+  const polygonSample = sampleCoverageAgainstShape(point => pointInConvexPolygon(point, polygon.points));
+  if (!aabbSample || !polygonSample) return null;
+  const aabbReady = aabbMissing.total <= 2;
+  const zoomPercent = Math.max(100, Math.round(100 / camState.dist * 100));
+  return {
+    phase: '3H-viewport-coverage-diagnostics',
+    method: 'point-sampling',
+    zoom,
+    zoomPercent,
+    anchorMode,
+    range: cloneNorgeCleanTileRange(range),
+    coverageGateAabbReady: aabbReady,
+    coverageGatePolygonSampleReady: polygonSample.ready,
+    coverageGateAabbPercent: aabbSample.percent,
+    coverageGatePolygonSamplePercent: polygonSample.percent,
+    coverageGateAabbMissingLeft: roundCoverageValue(aabbMissing.left),
+    coverageGateAabbMissingRight: roundCoverageValue(aabbMissing.right),
+    coverageGateAabbMissingTop: roundCoverageValue(aabbMissing.top),
+    coverageGateAabbMissingBottom: roundCoverageValue(aabbMissing.bottom),
+    coverageGateAabbMissingTotal: roundCoverageValue(aabbMissing.total),
+    coverageGatePolygonSampleMissingLeft: polygonSample.missing.left,
+    coverageGatePolygonSampleMissingRight: polygonSample.missing.right,
+    coverageGatePolygonSampleMissingTop: polygonSample.missing.top,
+    coverageGatePolygonSampleMissingBottom: polygonSample.missing.bottom,
+    coverageGatePolygonMissingLeft: polygonSample.missing.left,
+    coverageGatePolygonMissingRight: polygonSample.missing.right,
+    coverageGatePolygonMissingTop: polygonSample.missing.top,
+    coverageGatePolygonMissingBottom: polygonSample.missing.bottom,
+    coverageGatePolygonSampleMissCount: polygonSample.missCount,
+    coverageGatePolygonSampleTotal: polygonSample.total,
+    coverageGatePolygonSampleOutside: polygonSample.outsideSamples,
+    expectedDarkWedgeSignal: aabbReady && !polygonSample.ready && polygonSample.missing.left > 0,
   };
 }
 
@@ -7141,6 +7274,7 @@ function resetNorgeCleanDiagnosticsV1() {
     clipped: false,
     boundsSource: '',
     coverageGuard: null,
+    coverageGate: null,
     outsideVisibleJobs: 0,
     overscanJobs: 0,
   });
@@ -7530,6 +7664,7 @@ function norgeCleanLoadLine() {
     currentBatch: manager.currentBatch,
     freezeMode: norgeFreezeMode,
     frozen: norgeFrozenDetailLayer,
+    coverageGate3H: diag.coverageGate,
     diagnosticsV1: {
       zoom: diag.zoom,
       screenKey: diag.screenKey,
@@ -7546,6 +7681,7 @@ function norgeCleanLoadLine() {
       clipped: diag.clipped,
       boundsSource: diag.boundsSource,
       coverageGuard: diag.coverageGuard,
+      coverageGate: diag.coverageGate,
       visibleRange: diag.visibleRange,
       expandedRange: diag.expandedRange,
       fittedRange: diag.fittedRange,
@@ -7556,9 +7692,16 @@ function norgeCleanLoadLine() {
   const guardText = diag.coverageGuard
     ? `, guard +${diag.coverageGuard.expanded}${diag.coverageGuard.after ? ` miss ${diag.coverageGuard.after.total.toFixed(0)}px` : ''}`
     : '';
+  const gate = diag.coverageGate;
+  const coverageGateText = gate
+    ? `, 3H AABB ${gate.coverageGateAabbReady ? 'ok' : 'miss'} ${gate.coverageGateAabbPercent}%` +
+      `, poly ${gate.coverageGatePolygonSampleReady ? 'ok' : 'miss'} ${gate.coverageGatePolygonSamplePercent}%` +
+      `, miss L${gate.coverageGatePolygonSampleMissingLeft}/R${gate.coverageGatePolygonSampleMissingRight}/T${gate.coverageGatePolygonSampleMissingTop}/B${gate.coverageGatePolygonSampleMissingBottom}` +
+      `${gate.expectedDarkWedgeSignal ? ' dark-left?' : ''}`
+    : '';
   const diagText = diag.zoom === null
     ? ''
-    : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}${guardText}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
+    : `\nDiag V1: z${diag.zoom}, bounds ${diag.boundsSource || 'n/a'}${guardText}${coverageGateText}, panes ${diag.paneCount}, jobs ${diag.tileJobCount}, visible ${diag.visibleTileCount}, request ${diag.requestTileCount}, overscan ${diag.overscanTileCount}, outside-visible jobs ${diag.outsideVisibleJobs}`;
   const leafletStats = norgeLeafletStyleEngine.stats;
   const leafletText = norgeLeafletStyleEngine.enabled
     ? `\nLeaflet-style engine: ${leafletStats.state}, ${leafletStats.source || 'no source'} z${leafletStats.zoom ?? '-'}, tiles ${leafletStats.loaded}/${leafletStats.wanted}, pending ${leafletStats.pending}, kept ${leafletStats.kept}`
@@ -7566,10 +7709,56 @@ function norgeCleanLoadLine() {
   return `Load: ${manager.loaded}/${manager.requested} fetched, ${manager.cached} cache, ${manager.active} active, ${manager.queue.length} queued, ${manager.failed} failed, fallback ${manager.fallbackHits}/${manager.fallbackMisses}, budget ${manager.frameBudgetMs}ms${yieldText}, pump ${manager.lastPumpMs.toFixed(1)}ms, freeze ${norgeFreezeMode}${leafletText}${diagText}`;
 }
 
+function applyNorgeCoverageGateDataset(status) {
+  if (!status) return;
+  const gate = norgeCleanDiagnosticsV1.coverageGate;
+  const keys = [
+    'coverageGatePhase',
+    'coverageGateMethod',
+    'coverageGateAabbReady',
+    'coverageGatePolygonSampleReady',
+    'coverageGateAabbPercent',
+    'coverageGatePolygonSamplePercent',
+    'coverageGateAabbMissingLeft',
+    'coverageGateAabbMissingRight',
+    'coverageGateAabbMissingTop',
+    'coverageGateAabbMissingBottom',
+    'coverageGatePolygonSampleMissingLeft',
+    'coverageGatePolygonSampleMissingRight',
+    'coverageGatePolygonSampleMissingTop',
+    'coverageGatePolygonSampleMissingBottom',
+    'coverageGatePolygonSampleMissCount',
+    'coverageGatePolygonSampleTotal',
+    'coverageGateExpectedDarkWedgeSignal',
+  ];
+  if (!gate) {
+    keys.forEach(key => delete status.dataset[key]);
+    return;
+  }
+  status.dataset.coverageGatePhase = gate.phase;
+  status.dataset.coverageGateMethod = gate.method;
+  status.dataset.coverageGateAabbReady = String(gate.coverageGateAabbReady);
+  status.dataset.coverageGatePolygonSampleReady = String(gate.coverageGatePolygonSampleReady);
+  status.dataset.coverageGateAabbPercent = String(gate.coverageGateAabbPercent);
+  status.dataset.coverageGatePolygonSamplePercent = String(gate.coverageGatePolygonSamplePercent);
+  status.dataset.coverageGateAabbMissingLeft = String(gate.coverageGateAabbMissingLeft);
+  status.dataset.coverageGateAabbMissingRight = String(gate.coverageGateAabbMissingRight);
+  status.dataset.coverageGateAabbMissingTop = String(gate.coverageGateAabbMissingTop);
+  status.dataset.coverageGateAabbMissingBottom = String(gate.coverageGateAabbMissingBottom);
+  status.dataset.coverageGatePolygonSampleMissingLeft = String(gate.coverageGatePolygonSampleMissingLeft);
+  status.dataset.coverageGatePolygonSampleMissingRight = String(gate.coverageGatePolygonSampleMissingRight);
+  status.dataset.coverageGatePolygonSampleMissingTop = String(gate.coverageGatePolygonSampleMissingTop);
+  status.dataset.coverageGatePolygonSampleMissingBottom = String(gate.coverageGatePolygonSampleMissingBottom);
+  status.dataset.coverageGatePolygonSampleMissCount = String(gate.coverageGatePolygonSampleMissCount);
+  status.dataset.coverageGatePolygonSampleTotal = String(gate.coverageGatePolygonSampleTotal);
+  status.dataset.coverageGateExpectedDarkWedgeSignal = String(gate.expectedDarkWedgeSignal);
+}
+
 function setNorgeCleanStatus(baseText) {
   const status = document.getElementById('norge-clean-status');
   if (!status) return;
   status.dataset.baseText = baseText;
+  applyNorgeCoverageGateDataset(status);
   status.textContent = `${baseText}\n${norgeCleanLoadLine()}`;
 }
 
@@ -7579,6 +7768,7 @@ function refreshNorgeCleanLoadStatus() {
     norgeCleanLoadLine();
     return;
   }
+  applyNorgeCoverageGateDataset(status);
   status.textContent = `${status.dataset.baseText}\n${norgeCleanLoadLine()}`;
 }
 
@@ -8047,6 +8237,7 @@ function updateNorgeDetailTiles() {
       visibleRange: null,
       expandedRange: null,
       fittedRange: null,
+      coverageGate: null,
       clipped: false,
     });
     refreshNorgeCleanLoadStatus();
@@ -8093,6 +8284,7 @@ function updateNorgeDetailTiles() {
     overscan: expandedRange.overscan || 0,
     clipped: !!tileRange.clipped,
     coverageGuard: tileRange.coverageGuard || null,
+    coverageGate: norgeCleanCoverageGateDiagnostics(tileRange, zoom, primaryCleanAnchorMode()),
   });
   const key = `${sourceKey}:z${zoom}:${tileRange.xMin}-${tileRange.xMax}:${tileRange.yMin}-${tileRange.yMax}:${screenKey}`;
   if (key === norgeDetailKey) return;
