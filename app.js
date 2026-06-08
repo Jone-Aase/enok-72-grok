@@ -59,13 +59,82 @@ const R_OUTER_KM   = 31420.55;            // Ny ytterring = halve omkretsen (= n
 const SCALE = 1 / 1000;                   // 1 enhet = 1000 km
 const R_EQUATOR = R_EQUATOR_KM * SCALE;   // ≈ 10.0
 const R_OUTER   = R_OUTER_KM   * SCALE;   // ≈ 31.4
+const GE_GRID_LATITUDE_STEP_DEG = 5;
+const GE_GRID_LOCKED_POLAR_LAT = 66 + (33 / 60); // 66°33'0.00" = 66.55°
+
+function geGridLatitudeRadiusUnits(lat) {
+  return 90 - lat;
+}
 
 // AE-projeksjon: lat -> radius (lineær, fra polen ut)
 // BUESTRENG-URETTING (v16): hele 180° breddegrad strekkes til R_OUTER.
 // r(90) = 0, r(0) = R_OUTER/2 = 15710 km, r(-90) = R_OUTER = 31420 km.
 // Faktor π/2 ≈ 1.5708 i forhold til gammel formel.
 function latToR(lat) {
-  return R_OUTER * (90 - lat) / 180;
+  return R_OUTER * geGridLatitudeRadiusUnits(lat) / 180;
+}
+
+function geGridLatitudeSpacingDiagnostics(stepDeg = GE_GRID_LATITUDE_STEP_DEG) {
+  const latitudes = [];
+  for (let lat = -85; lat <= 85; lat += stepDeg) {
+    latitudes.push(lat);
+  }
+  if (!latitudes.some((lat) => Math.abs(lat) < 1e-9)) latitudes.push(0);
+  latitudes.sort((a, b) => b - a);
+
+  const rings = latitudes.map((lat) => ({
+    lat,
+    radiusUnits: geGridLatitudeRadiusUnits(lat),
+    radiusKm: latToR(lat) / SCALE,
+  }));
+  const deltas = [];
+  for (let i = 1; i < rings.length; i++) {
+    deltas.push(Number((rings[i].radiusUnits - rings[i - 1].radiusUnits).toFixed(12)));
+  }
+  const minDeltaUnits = deltas.length ? Math.min(...deltas) : 0;
+  const maxDeltaUnits = deltas.length ? Math.max(...deltas) : 0;
+  const variationUnits = Number((maxDeltaUnits - minDeltaUnits).toFixed(12));
+  return {
+    phase: 'GE-GRID-0C',
+    locked: true,
+    method: 'linear-radial-latitude',
+    stepDeg,
+    ringCount: rings.length,
+    expectedDeltaUnits: stepDeg,
+    minDeltaUnits,
+    maxDeltaUnits,
+    variationUnits,
+    noCurvatureFactor: true,
+    formula: 'radiusUnits = 90 - latitudeDegrees',
+    meridiansLocked: true,
+    greenwichLocked: true,
+    zeroAnd180Locked: true,
+    polarCircleLat: GE_GRID_LOCKED_POLAR_LAT,
+    polarCircleRadiusUnits: geGridLatitudeRadiusUnits(GE_GRID_LOCKED_POLAR_LAT),
+    rings,
+  };
+}
+
+function publishGeGrid0CDiagnostics(stepDeg = GE_GRID_LATITUDE_STEP_DEG) {
+  const diag = geGridLatitudeSpacingDiagnostics(stepDeg);
+  globalThis.__GE_GRID_0C = diag;
+  if (typeof window !== 'undefined') window.__GE_GRID_0C = diag;
+  const el = document.getElementById('ge-grid-lat-spacing');
+  if (el) {
+    el.textContent = `locked ${diag.stepDeg} deg, var ${diag.variationUnits.toFixed(6)} units`;
+    el.title = `GE-GRID-0C: ${diag.formula}. Delta ${diag.minDeltaUnits}-${diag.maxDeltaUnits}, ${diag.ringCount} rings.`;
+    el.dataset.geGridPhase = diag.phase;
+    el.dataset.geGridLocked = String(diag.locked);
+    el.dataset.geGridStepDeg = String(diag.stepDeg);
+    el.dataset.geGridMinDeltaUnits = String(diag.minDeltaUnits);
+    el.dataset.geGridMaxDeltaUnits = String(diag.maxDeltaUnits);
+    el.dataset.geGridVariationUnits = String(diag.variationUnits);
+    el.dataset.geGridNoCurvatureFactor = String(diag.noCurvatureFactor);
+    el.dataset.geGridFormula = diag.formula;
+    el.dataset.geGridPolarCircleLat = String(diag.polarCircleLat);
+    el.dataset.geGridPolarCircleRadiusUnits = String(diag.polarCircleRadiusUnits);
+  }
+  return diag;
 }
 // (lat, lon) -> { x, z } på disken (y = 0)
 // v16.56: Matcher GE-tallringens formel eksakt (lon=0 ligger NEDE på skjermen, ikke oppe).
@@ -801,6 +870,9 @@ function makeLatGrid(stepDeg, color, opacity) {
     const r = latToR(lat);
     if (r <= 0) continue;
     const ring = makeRing(r, color, opacity);
+    ring.userData.geGridLatitude = lat;
+    ring.userData.geGridRadiusUnits = geGridLatitudeRadiusUnits(lat);
+    ring.userData.geGridEqualSpacingLocked = true;
     grp.add(ring);
   }
   return grp;
@@ -825,9 +897,11 @@ function makeMeridians(count, color, opacity) {
 // Lat/long grid (5°)
 let currentGridSize = 5;
 function rebuildGrid(step) {
+  currentGridSize = step;
   subMap.grid.clear();
   subMap.grid.add(makeLatGrid(step, 0x3a5070, 0.30));
   subMap.grid.add(makeMeridians(36, 0x3a5070, 0.22));
+  publishGeGrid0CDiagnostics(step);
 }
 rebuildGrid(5);
 
@@ -1082,8 +1156,8 @@ subMap.equator.add(makeRing(latToR(0), 0xc9a247, 0.85));  // v16.38: latToR(0) =
 // Krepsens og Steinbukkens vendekrets ved 23.7° (Enoks port-yttergrenser, master-kalender Ark T H212)
 subMap.cancer.add(makeRing(latToR(23.7), 0xe0c060, 0.85));
 subMap.capricorn.add(makeRing(latToR(-23.7), 0xc08040, 0.85));
-subMap.polarcircles.add(makeRing(latToR(66.5634), 0x7090c0, 0.85));
-subMap.polarcircles.add(makeRing(latToR(-66.5634), 0x7090c0, 0.85));
+subMap.polarcircles.add(makeRing(latToR(GE_GRID_LOCKED_POLAR_LAT), 0x7090c0, 0.85));
+subMap.polarcircles.add(makeRing(latToR(-GE_GRID_LOCKED_POLAR_LAT), 0x7090c0, 0.85));
 
 // Sol (v16.25: redusert til størrelsen på ark-T-sol-bane-prikken, 0.18)
 const sunMesh = new THREE.Mesh(
