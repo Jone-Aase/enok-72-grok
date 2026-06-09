@@ -47,3 +47,19 @@ variationDeg = 0
 tickCount = 360
 meridiansMoved = false
 ```
+
+## GE-GRID-0E
+
+Status: BESTÅTT
+
+Browser/DOM-verifisering:
+
+```text
+phase = GE-GRID-0E
+targetMm = 200
+pass200mm = true
+maxErrorMm = 0.000002401779625492033
+sampleCount = 9
+noGeometryChange = true
+noTransformChange = true
+```

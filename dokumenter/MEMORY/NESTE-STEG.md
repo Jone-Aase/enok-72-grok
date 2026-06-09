@@ -8,9 +8,15 @@ GE-GRID-0D:
 
 Finere 1-graders lengdegrad-inndeling er implementert uten å flytte eksisterende meridianer.
 
-## Anbefalt neste steg
+## Sist utført
 
 GE-GRID-0E:
+
+Matematisk posisjonskonvertering for 200 mm intern presisjon er implementert.
+
+## Anbefalt neste steg
+
+GE-GRID-0F:
 
 Planlegg GE-nett for navigasjon og plotting av posisjon basert på solen.
 

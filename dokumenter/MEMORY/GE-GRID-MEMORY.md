@@ -88,3 +88,21 @@ meridiansMoved = false
 ```
 
 Eksisterende Greenwich, 0 grader, 180 grader, 90E, 90W og GE-tallring er ikke flyttet.
+
+## GE-GRID-0E
+
+Implementert 2026-06-09.
+
+Formål:
+
+```text
+lat/lon -> Instrument x/z -> lat/lon
+```
+
+Mål:
+
+```text
+maxErrorMm <= 200
+```
+
+0E er kun matematisk posisjonskonvertering og diagnostikk. Det tegner ikke flere linjer og endrer ikke geometri, anker, transform, clean-motor eller kartmotor.

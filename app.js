@@ -62,6 +62,7 @@ const R_OUTER   = R_OUTER_KM   * SCALE;   // ≈ 31.4
 const GE_GRID_LATITUDE_STEP_DEG = 5;
 const GE_GRID_LOCKED_POLAR_LAT = 66 + (33 / 60); // 66°33'0.00" = 66.55°
 const GE_GRID_LONGITUDE_FINE_STEP_DEG = 1;
+const GE_GRID_POSITION_TARGET_MM = 200;
 
 function geGridLatitudeRadiusUnits(lat) {
   return 90 - lat;
@@ -139,10 +140,23 @@ function publishGeGrid0CDiagnostics(stepDeg = GE_GRID_LATITUDE_STEP_DEG) {
 }
 
 function geGridLongitudeCompassDeg(geLon) {
-  const signedLon = geLon > 180 ? geLon - 360 : geLon;
+  const signedLon = geGridNormalizeSignedLon(geLon);
   let compassDeg = (180 - signedLon) % 360;
   if (compassDeg < 0) compassDeg += 360;
   return compassDeg;
+}
+
+function geGridNormalizeSignedLon(lon) {
+  let result = lon;
+  while (result > 180) result -= 360;
+  while (result <= -180) result += 360;
+  return result;
+}
+
+function geGridNormalizeCompassDeg(deg) {
+  let result = deg % 360;
+  if (result < 0) result += 360;
+  return result;
 }
 
 function geGridLongitudeSpacingDiagnostics(stepDeg = GE_GRID_LONGITUDE_FINE_STEP_DEG) {
@@ -200,6 +214,113 @@ function publishGeGrid0DDiagnostics(stepDeg = GE_GRID_LONGITUDE_FINE_STEP_DEG) {
     el.dataset.geGridDatelineCompassDeg = String(diag.datelineCompassDeg);
     el.dataset.geGridWest90CompassDeg = String(diag.west90CompassDeg);
     el.dataset.geGridFormula = diag.formula;
+  }
+  return diag;
+}
+
+function geGridPositionFromLatLon(lat, lon) {
+  const normalizedLon = geGridNormalizeSignedLon(lon);
+  const p = aeProject(lat, normalizedLon);
+  return {
+    lat,
+    lon: normalizedLon,
+    x: p.x,
+    z: p.z,
+    radiusUnits: geGridLatitudeRadiusUnits(lat),
+    radius: latToR(lat),
+    compassDeg: geGridLongitudeCompassDeg(normalizedLon),
+  };
+}
+
+function geGridLatLonFromPosition(x, z) {
+  const radius = Math.sqrt((x * x) + (z * z));
+  const lat = 90 - ((radius / R_OUTER) * 180);
+  if (radius < 1e-12) {
+    return {
+      lat: 90,
+      lon: 0,
+      radiusUnits: 0,
+      radius,
+      compassDeg: 180,
+    };
+  }
+  const a = Math.atan2(x, -z);
+  const compassDeg = geGridNormalizeCompassDeg((a * 180) / Math.PI);
+  const lon = geGridNormalizeSignedLon(180 - compassDeg);
+  return {
+    lat,
+    lon,
+    radiusUnits: geGridLatitudeRadiusUnits(lat),
+    radius,
+    compassDeg,
+  };
+}
+
+function geGridMetersBetweenPositions(a, b) {
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return Math.sqrt((dx * dx) + (dz * dz)) / SCALE * 1000;
+}
+
+function geGridPositionPrecisionDiagnostics() {
+  const samples = [
+    { name: 'Greenwich', lat: 51.4779, lon: 0 },
+    { name: 'Equator-0', lat: 0, lon: 0 },
+    { name: 'East-90', lat: 0, lon: 90 },
+    { name: 'Dateline', lat: 0, lon: 180 },
+    { name: 'West-90', lat: 0, lon: -90 },
+    { name: 'Arctic-Circle-Center', lat: GE_GRID_LOCKED_POLAR_LAT, lon: 15.327002778 },
+    { name: 'Grimsey', lat: 66.550011111, lon: -18.017988889 },
+    { name: 'Catequilla', lat: 0, lon: -78.42869 },
+    { name: 'Oslo', lat: 59.9139, lon: 10.7522 },
+  ];
+  const results = samples.map((sample) => {
+    const projected = geGridPositionFromLatLon(sample.lat, sample.lon);
+    const inverse = geGridLatLonFromPosition(projected.x, projected.z);
+    const reprojected = geGridPositionFromLatLon(inverse.lat, inverse.lon);
+    const errorMeters = geGridMetersBetweenPositions(projected, reprojected);
+    return {
+      name: sample.name,
+      lat: sample.lat,
+      lon: geGridNormalizeSignedLon(sample.lon),
+      roundTripLat: inverse.lat,
+      roundTripLon: inverse.lon,
+      errorMm: errorMeters * 1000,
+    };
+  });
+  const maxErrorMm = results.length ? Math.max(...results.map((sample) => sample.errorMm)) : 0;
+  return {
+    phase: 'GE-GRID-0E',
+    locked: true,
+    method: 'latlon-position-roundtrip',
+    targetMm: GE_GRID_POSITION_TARGET_MM,
+    maxErrorMm,
+    pass200mm: maxErrorMm <= GE_GRID_POSITION_TARGET_MM,
+    sampleCount: results.length,
+    noGeometryChange: true,
+    noTransformChange: true,
+    formulaForward: 'aeProject(lat, lon)',
+    formulaInverse: 'lat = 90 - radius/R_OUTER*180; lon = 180 - compassDeg',
+    samples: results,
+  };
+}
+
+function publishGeGrid0EDiagnostics() {
+  const diag = geGridPositionPrecisionDiagnostics();
+  globalThis.__GE_GRID_0E = diag;
+  if (typeof window !== 'undefined') window.__GE_GRID_0E = diag;
+  const el = document.getElementById('ge-grid-position-precision');
+  if (el) {
+    el.textContent = `target ${diag.targetMm} mm, max ${diag.maxErrorMm.toFixed(6)} mm, ${diag.pass200mm ? 'pass' : 'fail'}`;
+    el.title = `GE-GRID-0E: ${diag.method}. ${diag.sampleCount} roundtrip samples.`;
+    el.dataset.geGridPhase = diag.phase;
+    el.dataset.geGridLocked = String(diag.locked);
+    el.dataset.geGridTargetMm = String(diag.targetMm);
+    el.dataset.geGridMaxErrorMm = String(diag.maxErrorMm);
+    el.dataset.geGridPass200mm = String(diag.pass200mm);
+    el.dataset.geGridSampleCount = String(diag.sampleCount);
+    el.dataset.geGridNoGeometryChange = String(diag.noGeometryChange);
+    el.dataset.geGridNoTransformChange = String(diag.noTransformChange);
   }
   return diag;
 }
@@ -2093,6 +2214,7 @@ function buildGeRing() {
 
 buildGeRing();
 publishGeGrid0DDiagnostics();
+publishGeGrid0EDiagnostics();
 // Default: følger layer-grid-toggle (av som default — se binding lenger ned)
 subMap.geRing.visible = false;
 

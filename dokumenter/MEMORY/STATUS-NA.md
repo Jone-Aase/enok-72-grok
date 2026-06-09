@@ -55,6 +55,13 @@ variationDeg = 0
 meridiansMoved = false
 ```
 
+GE-GRID-0E er implementert som matematisk posisjonsdiagnostikk:
+
+```text
+lat/lon -> Instrument x/z -> lat/lon
+targetMm = 200
+```
+
 ## Viktig advarsel
 
 Ikke gjeninnfør staged pane / retain-last-good / zoom-fikser uten ny eksplisitt plan. En tidligere slik endring flyttet ankerpunkter og gjorde zoom ustabil.
