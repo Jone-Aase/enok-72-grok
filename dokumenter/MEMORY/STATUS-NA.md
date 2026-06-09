@@ -62,6 +62,12 @@ lat/lon -> Instrument x/z -> lat/lon
 targetMm = 200
 ```
 
+Solsirklene er nå besluttet låst mot GE-nettet.
+
+Punktene/objektene ligger låst til solsirklene.
+
+Norgeskartet er festet til dette låste systemet.
+
 ## Viktig advarsel
 
 Ikke gjeninnfør staged pane / retain-last-good / zoom-fikser uten ny eksplisitt plan. En tidligere slik endring flyttet ankerpunkter og gjorde zoom ustabil.

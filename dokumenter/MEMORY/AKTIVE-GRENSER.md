@@ -30,6 +30,14 @@ radiusUnits = 90 - latitudeDegrees
 - Ingen `cos(lat)`.
 - Ingen krumningsfaktor.
 
+## Solsirkel-lås
+
+- Solsirklene er nå låst mot GE-nettet.
+- Punktene/objektene på solsirklene er låst til solsirklene.
+- Norgeskartet er festet til dette låste systemet.
+- Ikke løsne punkter fra solsirklene uten eksplisitt GO.
+- Ikke løsne Norgeskartet fra solsirkel/GE-systemet uten eksplisitt GO.
+
 ## Kartmotor-lås
 
 Kartmotor V2 skal være parallell motor. Clean-motor forblir backup.

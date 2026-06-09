@@ -77,7 +77,7 @@ def update_draft():
 {read_memory_file("NESTE-STEG.md")}
 """
     out_path = os.path.join(MEMORY_DIR, "MEMORY-KEEPER-DRAFT.md")
-    with open(out_path, "w", encoding="utf-8") as handle:
+    with open(out_path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(content)
     print("MEMORY-KEEPER-DRAFT.md oppdatert")
 

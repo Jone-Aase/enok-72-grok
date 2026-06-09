@@ -16,13 +16,16 @@ Matematisk posisjonskonvertering for 200 mm intern presisjon er implementert.
 
 ## Anbefalt neste steg
 
-GE-GRID-0F:
+SOL-SIRKLER-1A:
 
-Planlegg GE-nett for navigasjon og plotting av posisjon basert på solen.
+Lag inventar og verifikasjon for solsirkel-punkter/objekter.
 
 Scope:
 
 - Bruk 0A-0D som låst fundament.
+- Vis hvilke punkter er låst til hver solsirkel.
+- Vis at solsirklene er låst mot GE-nettet.
+- Vis at Norgeskartet fortsatt er festet til systemet.
 - Ikke endre kartmotor.
 - Ikke endre clean-motor.
 - Ikke endre anker/geometri/transform.

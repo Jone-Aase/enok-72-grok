@@ -106,3 +106,27 @@ maxErrorMm <= 200
 ```
 
 0E er kun matematisk posisjonskonvertering og diagnostikk. Det tegner ikke flere linjer og endrer ikke geometri, anker, transform, clean-motor eller kartmotor.
+
+## Solsirkler låst mot GE-nettet
+
+Beslutning 2026-06-09:
+
+GE-nettet er låst først og er koordinatfundamentet.
+
+Solsirklene skal nå regnes som låst mot GE-nettet:
+
+- nordlig polarsirkel
+- Krepsens vendekrets
+- ekvator
+- Steinbukkens vendekrets
+- sørlig polarsirkel
+
+Punktene/objektene ligger låst til solsirklene.
+
+Norgeskartet er festet til dette låste systemet.
+
+Hierarki:
+
+```text
+GE-nett -> solsirklene -> solsirkel-punkter/objekter -> kartlag
+```
