@@ -46,6 +46,15 @@ polarCircleLat = 66.55
 polarCircleRadiusUnits = 23.45
 ```
 
+GE-GRID-0D er implementert:
+
+```text
+1 lengdegrad = 1 grad vinkelsteg
+tickCount = 360
+variationDeg = 0
+meridiansMoved = false
+```
+
 ## Viktig advarsel
 
 Ikke gjeninnfør staged pane / retain-last-good / zoom-fikser uten ny eksplisitt plan. En tidligere slik endring flyttet ankerpunkter og gjorde zoom ustabil.

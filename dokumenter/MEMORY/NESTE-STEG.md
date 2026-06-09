@@ -2,23 +2,27 @@
 
 Sist oppdatert: 2026-06-09
 
-## Anbefalt neste steg
+## Sist utført
 
 GE-GRID-0D:
 
-Finere lengdegrad-inndeling uten å flytte eksisterende meridianer.
+Finere 1-graders lengdegrad-inndeling er implementert uten å flytte eksisterende meridianer.
+
+## Anbefalt neste steg
+
+GE-GRID-0E:
+
+Planlegg GE-nett for navigasjon og plotting av posisjon basert på solen.
 
 Scope:
 
-- Behold Greenwich, 0 grader og 180 grader.
-- Behold eksisterende meridianer.
-- Legg bare til/verifiser finere inndeling.
+- Bruk 0A-0D som låst fundament.
 - Ikke endre kartmotor.
 - Ikke endre clean-motor.
 - Ikke endre anker/geometri/transform.
+- Lag plan før kode.
 
 ## Senere
 
-- GE-nett for navigasjon og plotting av posisjon basert på solen.
 - Kartlag legges oppå GE-nettet.
 - Kartmotor V2 kan gjenopptas etter GE-grid fundamentet er låst.

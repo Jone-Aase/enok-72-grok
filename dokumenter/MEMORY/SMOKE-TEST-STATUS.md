@@ -31,3 +31,19 @@ Siste godkjente før GE-grid-pause:
 Merk:
 
 Bruker observerte at mørket fortsatt kom inn etter 3I. Derfor ble fokus flyttet til GE-grid fundamentet.
+
+## GE-GRID-0D
+
+Status: BESTÅTT
+
+Browser/DOM-verifisering:
+
+```text
+phase = GE-GRID-0D
+text = locked 1 deg, ticks 360, var 0.000000 deg
+minDeltaDeg = 1
+maxDeltaDeg = 1
+variationDeg = 0
+tickCount = 360
+meridiansMoved = false
+```

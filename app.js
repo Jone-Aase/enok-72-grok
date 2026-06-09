@@ -61,6 +61,7 @@ const R_EQUATOR = R_EQUATOR_KM * SCALE;   // ≈ 10.0
 const R_OUTER   = R_OUTER_KM   * SCALE;   // ≈ 31.4
 const GE_GRID_LATITUDE_STEP_DEG = 5;
 const GE_GRID_LOCKED_POLAR_LAT = 66 + (33 / 60); // 66°33'0.00" = 66.55°
+const GE_GRID_LONGITUDE_FINE_STEP_DEG = 1;
 
 function geGridLatitudeRadiusUnits(lat) {
   return 90 - lat;
@@ -133,6 +134,72 @@ function publishGeGrid0CDiagnostics(stepDeg = GE_GRID_LATITUDE_STEP_DEG) {
     el.dataset.geGridFormula = diag.formula;
     el.dataset.geGridPolarCircleLat = String(diag.polarCircleLat);
     el.dataset.geGridPolarCircleRadiusUnits = String(diag.polarCircleRadiusUnits);
+  }
+  return diag;
+}
+
+function geGridLongitudeCompassDeg(geLon) {
+  const signedLon = geLon > 180 ? geLon - 360 : geLon;
+  let compassDeg = (180 - signedLon) % 360;
+  if (compassDeg < 0) compassDeg += 360;
+  return compassDeg;
+}
+
+function geGridLongitudeSpacingDiagnostics(stepDeg = GE_GRID_LONGITUDE_FINE_STEP_DEG) {
+  const longitudes = [];
+  for (let lon = 0; lon < 360; lon += stepDeg) {
+    longitudes.push(lon);
+  }
+  const deltas = [];
+  for (let i = 1; i < longitudes.length; i++) {
+    deltas.push(Number((longitudes[i] - longitudes[i - 1]).toFixed(12)));
+  }
+  if (longitudes.length > 1) {
+    deltas.push(Number((360 - longitudes[longitudes.length - 1] + longitudes[0]).toFixed(12)));
+  }
+  const minDeltaDeg = deltas.length ? Math.min(...deltas) : 0;
+  const maxDeltaDeg = deltas.length ? Math.max(...deltas) : 0;
+  const variationDeg = Number((maxDeltaDeg - minDeltaDeg).toFixed(12));
+  return {
+    phase: 'GE-GRID-0D',
+    locked: true,
+    method: 'equal-angular-longitude',
+    stepDeg,
+    tickCount: longitudes.length,
+    expectedDeltaDeg: stepDeg,
+    minDeltaDeg,
+    maxDeltaDeg,
+    variationDeg,
+    meridiansMoved: false,
+    greenwichCompassDeg: geGridLongitudeCompassDeg(0),
+    east90CompassDeg: geGridLongitudeCompassDeg(90),
+    datelineCompassDeg: geGridLongitudeCompassDeg(180),
+    west90CompassDeg: geGridLongitudeCompassDeg(270),
+    formula: 'compassDeg = (180 - signedLongitude) mod 360',
+  };
+}
+
+function publishGeGrid0DDiagnostics(stepDeg = GE_GRID_LONGITUDE_FINE_STEP_DEG) {
+  const diag = geGridLongitudeSpacingDiagnostics(stepDeg);
+  globalThis.__GE_GRID_0D = diag;
+  if (typeof window !== 'undefined') window.__GE_GRID_0D = diag;
+  const el = document.getElementById('ge-grid-lon-spacing');
+  if (el) {
+    el.textContent = `locked ${diag.stepDeg} deg, ticks ${diag.tickCount}, var ${diag.variationDeg.toFixed(6)} deg`;
+    el.title = `GE-GRID-0D: ${diag.formula}. Delta ${diag.minDeltaDeg}-${diag.maxDeltaDeg}, meridians moved: ${diag.meridiansMoved}.`;
+    el.dataset.geGridPhase = diag.phase;
+    el.dataset.geGridLocked = String(diag.locked);
+    el.dataset.geGridStepDeg = String(diag.stepDeg);
+    el.dataset.geGridTickCount = String(diag.tickCount);
+    el.dataset.geGridMinDeltaDeg = String(diag.minDeltaDeg);
+    el.dataset.geGridMaxDeltaDeg = String(diag.maxDeltaDeg);
+    el.dataset.geGridVariationDeg = String(diag.variationDeg);
+    el.dataset.geGridMeridiansMoved = String(diag.meridiansMoved);
+    el.dataset.geGridGreenwichCompassDeg = String(diag.greenwichCompassDeg);
+    el.dataset.geGridEast90CompassDeg = String(diag.east90CompassDeg);
+    el.dataset.geGridDatelineCompassDeg = String(diag.datelineCompassDeg);
+    el.dataset.geGridWest90CompassDeg = String(diag.west90CompassDeg);
+    el.dataset.geGridFormula = diag.formula;
   }
   return diag;
 }
@@ -1926,6 +1993,42 @@ function buildGeRing() {
   const geCardinalR = R_OUTER * 1.040;  // v16.55: 0°, 90°E, 180°, 90°W — NÅ PÅ SAMME RING
 
   const yPos = 0.10;  // Y_MAP (0) + CLOCK_Y_SOL (0.05) + 0.05 buffer
+  const geFineTickStartR = R_OUTER * 1.010;
+  const geFineTickEndMinor = R_OUTER * 1.018;
+  const geFineTickEndMid = R_OUTER * 1.023;
+  const geFineTickEndMajor = R_OUTER * 1.028;
+  const geFineTickEndCardinal = R_OUTER * 1.034;
+
+  // GE-GRID-0D: 1° fininndeling. Bare ticks; eksisterende 5°/10°/kardinal-tall flyttes ikke.
+  for (let geLon = 0; geLon < 360; geLon += GE_GRID_LONGITUDE_FINE_STEP_DEG) {
+    const compassDeg = geGridLongitudeCompassDeg(geLon);
+    const a = (compassDeg / 360) * Math.PI * 2;
+    const isCardinal = (geLon === 0 || geLon === 90 || geLon === 180 || geLon === 270);
+    const isMajor = (geLon % 10 === 0);
+    const isMid = (geLon % 5 === 0);
+    const outerR = isCardinal
+      ? geFineTickEndCardinal
+      : (isMajor ? geFineTickEndMajor : (isMid ? geFineTickEndMid : geFineTickEndMinor));
+    const x1 = Math.sin(a) * geFineTickStartR;
+    const z1 = -Math.cos(a) * geFineTickStartR;
+    const x2 = Math.sin(a) * outerR;
+    const z2 = -Math.cos(a) * outerR;
+    const geom = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x1, yPos - 0.006, z1),
+      new THREE.Vector3(x2, yPos - 0.006, z2),
+    ]);
+    const mat = new THREE.LineBasicMaterial({
+      color: isCardinal ? 0x9ee0ff : (isMajor ? 0x7ec8d8 : (isMid ? 0x5a96a8 : 0x355b66)),
+      transparent: true,
+      opacity: isCardinal ? 0.95 : (isMajor ? 0.78 : (isMid ? 0.48 : 0.24)),
+      depthTest: true,
+    });
+    const tick = new THREE.Line(geom, mat);
+    tick.userData.geGridLongitude = geLon;
+    tick.userData.geGridCompassDeg = compassDeg;
+    tick.userData.geGridFineTickLocked = true;
+    grp.add(tick);
+  }
 
   // 72 tall: hver 5° GE-lengdegrad (0, 5, 10, ..., 355)
   for (let geLon = 0; geLon < 360; geLon += 5) {
@@ -1989,6 +2092,7 @@ function buildGeRing() {
 }
 
 buildGeRing();
+publishGeGrid0DDiagnostics();
 // Default: følger layer-grid-toggle (av som default — se binding lenger ned)
 subMap.geRing.visible = false;
 

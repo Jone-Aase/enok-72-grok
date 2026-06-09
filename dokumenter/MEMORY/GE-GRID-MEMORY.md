@@ -63,6 +63,28 @@ GE grid latitude spacing: locked 5 deg, var 0.000000 units
 
 ## Ikke gjort ennå
 
-- Fineste lengdegrad-inndeling er ikke ferdigstilt.
 - GE-nett for solbasert navigasjon/plotting er ikke ferdigstilt.
 - GE-nettet skal ikke blandes inn i 3I/3F tile-loaderlogikk.
+
+## GE-GRID-0D
+
+Implementert 2026-06-09.
+
+Regel:
+
+```text
+1 lengdegrad = 1 grad vinkelsteg
+compassDeg = (180 - signedLongitude) mod 360
+```
+
+Verifiseringsmål:
+
+```text
+tickCount = 360
+minDeltaDeg = 1
+maxDeltaDeg = 1
+variationDeg = 0
+meridiansMoved = false
+```
+
+Eksisterende Greenwich, 0 grader, 180 grader, 90E, 90W og GE-tallring er ikke flyttet.

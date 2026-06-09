@@ -1,13 +1,14 @@
-# Memory Keeper Draft - 2026-06-09 04:22:10
+# Memory Keeper Draft - 2026-06-09 05:17:52
 
 ## Git Status
 
 - Branch: codex/v7-kartmotor-v2-3a-single-base-tile
-- Last commit: 1654a967 Lock GE grid latitude spacing
+- Last commit: d2991322 Add local memory keeper setup
 
 ## Last 10 commits
 
 ```text
+d299132 Add local memory keeper setup
 1654a96 Lock GE grid latitude spacing
 1ca6fc4 Implement 3I polygon coverage guard
 8dd9e3a Add 3I polygon coverage guard plan
@@ -17,14 +18,18 @@ d237fe4 Add 3H viewport coverage diagnostics
 c3aec7f Add Kartmotor V2 3G backpressure plan
 d3a15c5 Compact Kartmotor V2 status overlay
 0df8051 Fix camera control label associations
-c8a6d60 Fix Kartmotor V2 3F Eiendom guard
 ```
 
 ## Working tree status
 
 ```text
-D dokumenter/CODEX-INSTANS-ROLLER.md
+M app.js
+ D dokumenter/CODEX-INSTANS-ROLLER.md
  D dokumenter/LOKAL-ARBEIDSMODELL-OG-SIKKERHET.md
+ M dokumenter/MEMORY/GE-GRID-MEMORY.md
+ M dokumenter/MEMORY/NESTE-STEG.md
+ M dokumenter/MEMORY/SMOKE-TEST-STATUS.md
+ M dokumenter/MEMORY/STATUS-NA.md
  D dokumenter/POC-STATUS-OG-LOD-NESTE-STEG.md
  D dokumenter/PROSJEKTPLAN-TEAM-OG-LOD-ATLAS.md
  D dokumenter/atlas/MARINE-2KM-NORDIC-POC-PLAN.md
@@ -32,8 +37,9 @@ D dokumenter/CODEX-INSTANS-ROLLER.md
  D dokumenter/atlas/coverage/marine-2km-nordic-poc.coverage.plan.geojson
  D dokumenter/atlas/inventory/marine-2km-nordic-poc.tile-inventory.plan.jsonl
  D dokumenter/atlas/reports/marine-2km-nordic-poc-inventory-plan-report.md
+ M index.html
 ?? ARBEIDSKOPI.txt
-?? dokumenter/MEMORY/
+?? dokumenter/GE-GRID-0D-LENGDEGRAD-FIN-INNDELING.md
 ?? dokumenter/SE-EIENDOM-MATRIKKELEN-WMS.md
 ?? enok-72-grok/
 ?? vendor/
@@ -101,6 +107,15 @@ polarCircleLat = 66.55
 polarCircleRadiusUnits = 23.45
 ```
 
+GE-GRID-0D er implementert:
+
+```text
+1 lengdegrad = 1 grad vinkelsteg
+tickCount = 360
+variationDeg = 0
+meridiansMoved = false
+```
+
 ## Viktig advarsel
 
 Ikke gjeninnfør staged pane / retain-last-good / zoom-fikser uten ny eksplisitt plan. En tidligere slik endring flyttet ankerpunkter og gjorde zoom ustabil.
@@ -111,23 +126,27 @@ Ikke gjeninnfør staged pane / retain-last-good / zoom-fikser uten ny eksplisitt
 
 Sist oppdatert: 2026-06-09
 
-## Anbefalt neste steg
+## Sist utført
 
 GE-GRID-0D:
 
-Finere lengdegrad-inndeling uten å flytte eksisterende meridianer.
+Finere 1-graders lengdegrad-inndeling er implementert uten å flytte eksisterende meridianer.
+
+## Anbefalt neste steg
+
+GE-GRID-0E:
+
+Planlegg GE-nett for navigasjon og plotting av posisjon basert på solen.
 
 Scope:
 
-- Behold Greenwich, 0 grader og 180 grader.
-- Behold eksisterende meridianer.
-- Legg bare til/verifiser finere inndeling.
+- Bruk 0A-0D som låst fundament.
 - Ikke endre kartmotor.
 - Ikke endre clean-motor.
 - Ikke endre anker/geometri/transform.
+- Lag plan før kode.
 
 ## Senere
 
-- GE-nett for navigasjon og plotting av posisjon basert på solen.
 - Kartlag legges oppå GE-nettet.
 - Kartmotor V2 kan gjenopptas etter GE-grid fundamentet er låst.
