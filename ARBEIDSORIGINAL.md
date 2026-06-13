@@ -23,6 +23,7 @@ Bekreftet status:
 - GE-GRID-0C: breddegrad lik avstand er implementert og smoke-testet.
 - GE-GRID-0D: 1 lengdegrad = 1 vinkelgrad er implementert og smoke-testet.
 - GE-GRID-0E: intern posisjonskonvertering er implementert og smoke-testet med pass200mm = true.
+- GE breddegradsgrid viser ekvator som del av gridet, ikke bare som separat Equator ring.
 - Solsirklene er besluttet laast mot GE-nettet.
 
 ## Lastekilder for sannhet

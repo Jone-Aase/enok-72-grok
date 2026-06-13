@@ -1054,7 +1054,6 @@ function makeRing(radius, color, opacity = 1.0, segments = 256) {
 function makeLatGrid(stepDeg, color, opacity) {
   const grp = new THREE.Group();
   for (let lat = -85; lat <= 85; lat += stepDeg) {
-    if (lat === 0) continue;
     const r = latToR(lat);
     if (r <= 0) continue;
     const ring = makeRing(r, color, opacity);
