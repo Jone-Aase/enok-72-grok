@@ -8,7 +8,7 @@ Arbeidsoriginal: arbeidsoriginal/ge-nett-0e-2026-06-13
 
 ## 0. Navngiving — Kartmotor vs. Gamingmotor
 
-> **Dette avsnittet mangler i GPTs versjon og er lagt til av Perplexity 2026-06-14.**
+> **Dette avsnittet er lagt til 2026-06-14 for å låse begrepsbruken mellom Kartmotor og Gamingmotor.**
 > Det er kritisk for at alle agenter (GPT, Grok, Perplexity, Copilot m.fl.) skal forstå hva som er hva.
 
 Instrumentet har to separate motorer. De skal ikke blandes sammen:
@@ -18,7 +18,7 @@ Instrumentet har to separate motorer. De skal ikke blandes sammen:
 | **Kartmotor** | Three.js + Kartverket-fliser (WebGL) | Beta — fullt operativ | Henter og viser eksisterende kartdata fra Kartverket/OSM |
 | **Gamingmotor** | Three.js / WebGL — fri pikselflate (Rule 1) | Tidlig alfa — infrastruktur ferdig | Bygger sin egen pikselflate fra grunnen, uavhengig av eksterne kartleverandører |
 
-**Kartmotoren** er ikke Kartverket.no sin motor — den er en Three.js-basert flisrenderer som *bruker Kartverket som datakilde*. Den opererer som en kartfaglig motor: koordinater, kalibrering, avstandsmåling, lagSystem.
+**Kartmotoren** er ikke Kartverket.no sin motor — den er en Three.js-basert flisrenderer som *bruker Kartverket som datakilde*. Den opererer som en kartfaglig motor: koordinater, kalibrering, avstandsmåling, lagsystem.
 
 **Gamingmotoren** bruker nøyaktig den samme underliggende teknologien som moderne spillmotorer (Three.js er WebGL-basert, samme paradigme som Unity/Unreal sin renderingspipeline): egne pikselfunksjoner, shader-kontroll, opacity, brightness/contrast/saturate, og egne overlay-systemer uavhengig av kartfliser.
 
@@ -49,6 +49,16 @@ musens posisjon over GE-edderkoppnettet
 ```
 
 Dette er første test av Gaming-motorens posisjonsgrunnlag.
+
+### Lagplassering
+
+GE-edderkoppnettet + solbaner + plottede punkter ligger som underste del av Layer 1 — over Layer 2 (sol/måne/dynamiske objekter), men under kartene (øverste del av Layer 1). Gaming-motoren opererer på dette laget.
+
+```text
+[Øverste del av Layer 1]  ← Kartlag (kontinenter, kanter)
+[Underste del av Layer 1] ← GE-edderkoppnett + solbaner + plottede punkter  ← (Gaming-motoren her)
+[Layer 2]                  ← Sol / måne / bevegelige objekter (ikke nå)
+```
 
 ---
 
@@ -238,7 +248,7 @@ Det skal ikke flytte objekter, endre geometri eller påvirke kartmotor.
 I denne fasen skal følgende **ikke** endres:
 
 - kartmotor
-- clean-motor / gamingmotor (annet enn GE-GPS-1A)
+- eksisterende gamingmotor-infrastruktur utover read-only GE-GPS-1A
 - kartlag
 - Leaflet-erstatning
 - sol/måne-bevegelse
