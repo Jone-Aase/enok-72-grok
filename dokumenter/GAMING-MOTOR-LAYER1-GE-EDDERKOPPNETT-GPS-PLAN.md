@@ -24,6 +24,8 @@ Dette gjelder: **Perplexity, ChatGPT, Gemini, Copilot, Grok, Codex, Claude Opus*
 
 Før du fortsetter: les filen og bekreft med setningen som står der.
 
+> Se også: **Felles arbeidsmodell** øverst i KOORDINATOR-OPPSTART.md (låst 2026-06-15) — roller, kildehierarki og kritisk regel for store filer.
+
 ---
 
 ## 0. Navngiving — Kartmotor vs. Gamingmotor
@@ -381,7 +383,7 @@ Når kamera-posisjonen og høyden er kjent via GE-GPS, kan kartmotoren bruke det
 ```text
 kamera GE-lat/lon + kamera-høyde/LOD
 → kartmotor vet hvilke kartbiter (tiles) som skal lastes
-→ kartmotor vet riktig zoomnivmå / detaljer
+→ kartmotor vet riktig zoomnivå / detaljer
 ```
 
 Dette gjør at kartmotoren aldri trenger egne koordinatberegninger — den leser alltid fra GE-GPS-laget.
