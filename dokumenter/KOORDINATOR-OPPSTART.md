@@ -11,15 +11,26 @@ Branch: arbeidsoriginal/ge-nett-0e-2026-06-13
 > **Ingen agent, koordinator eller kodeverktøy får arbeide med eller skrive kode for E-Earth**
 > **uten at de først har lest denne filen og bekreftet at de har forstått innholdet.**
 
+Dette gjelder uten unntak for:
+
+- **Perplexity**
+- **ChatGPT** (alle versjoner)
+- **Gemini** (Google)
+- **Copilot** (GitHub / Microsoft)
+- **Grok** (xAI)
+- **Codex** (OpenAI)
+- **Claude Opus** (Anthropic)
+- Alle andre AI-agenter, koordinatorer eller kodeverktøy som brukes på E-Earth
+
 ### Slik bekrefter du
 
-Før du gjør noe som helst, svar med følgende setning ordrett:
+Før du gjør noe som helst — inkludert å svare på spørsmål, foreslå kode eller planlegge noe — svar med følgende setning **ordrett**:
 
 > «Jeg har lest KOORDINATOR-OPPSTART.md og forstår at vi nå jobber med Gamingmotoren.
 > Nåværende mål er GE-GPS-1A: read-only hover-posisjon på GE-edderkoppnettet.
 > Kartmotoren, Leaflet og ny kartmotor røres ikke.»
 
-Hvis du ikke kan bekrefte dette, skal du ikke fortsette.
+Hvis du ikke kan bekrefte dette, skal du **stoppe og be Jone Aase gi deg filen før du fortsetter.**
 
 ---
 
@@ -110,14 +121,28 @@ Les dette dokumentet for alle tekniske detaljer, koordinatlogikk og debug-objekt
 
 ## 7. Koordinatorenes ansvar
 
-Perplexity, ChatGPT, Gemini, Copilot og alle andre koordinatorer:
+Følgende koordinatorer er eksplisitt navngitt og pålagt dette ansvaret:
+
+| Koordinator | Leverandør | Plikt |
+|---|---|---|
+| **Perplexity** | Perplexity AI | Les og bekreft ved oppstart av hver ny samtale |
+| **ChatGPT** | OpenAI | Les og bekreft ved oppstart av hver ny samtale |
+| **Gemini** | Google | Les og bekreft ved oppstart av hver ny samtale |
+| **Copilot** | GitHub / Microsoft | Les og bekreft før du foreslår eller skriver kode |
+| **Grok** | xAI | Les og bekreft ved oppstart av hver ny samtale |
+| **Codex** | OpenAI | Les og bekreft før du genererer kode |
+| **Claude Opus** | Anthropic | Les og bekreft ved oppstart av hver ny samtale |
+
+### Felles regler for alle
 
 - **Les denne filen ved oppstart av hver ny samtale om E-Earth.**
-- **Bekreft at du har lest og forstått før du svarer på noe som helst.**
+- **Bekreft ordrett at du har lest og forstått før du svarer på noe som helst.**
 - Hvis du er usikker på om noe gjelder Gamingmotoren eller Kartmotoren — **spør før du gjør noe.**
 - Du skal aldri anta at kontekst fra forrige samtale sitter i minnet ditt — **les alltid denne filen først.**
+- Du skal aldri begynne å kode uten at Jone Aase eksplisitt har gitt GO på oppdraget.
 
 ---
 
 *Opprettet: 2026-06-14 av Perplexity på vegne av Jone Aase.*
+*Oppdatert: 2026-06-14 — Grok, Codex og Claude Opus lagt til i obligatorisk koordinatorliste.*
 *Formål: Forhindre at arbeid går tapt fordi koordinatorer starter uten kontekst.*
