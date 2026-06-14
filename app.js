@@ -2954,6 +2954,52 @@ function screenToMapWorld(clientX, clientY) {
   return { x: point.x, z: point.z };
 }
 
+// GE-GPS-1A hover readout
+function formatGeGpsDecimal(lat, lon) {
+  const latH = lat >= 0 ? 'N' : 'S';
+  const lonH = lon >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat).toFixed(4)}\u00B0${latH} ${Math.abs(lon).toFixed(4)}\u00B0${lonH}`;
+}
+
+function publishGeGps1A(payload) {
+  globalThis.__GE_GPS_1A = payload;
+  if (typeof window !== 'undefined') window.__GE_GPS_1A = payload;
+  const el = document.getElementById('sb-hover');
+  if (el) el.textContent = payload.hovering ? payload.formatted : '\u2014';
+}
+
+function clearGeGps1AHover() {
+  publishGeGps1A({
+    phase: 'GE-GPS-1A', locked: true, hovering: false, insideDisk: false,
+    source: 'Layer1 GE-edderkoppnett',
+    purpose: 'E-Earth Gamingmotor GE-GPS readout',
+    updatedAt: Date.now(),
+  });
+}
+
+function updateGeGps1AHover(event) {
+  const pt = screenToMapWorld(event.clientX, event.clientY);
+  if (!pt) { clearGeGps1AHover(); return; }
+  const radius = Math.hypot(pt.x, pt.z);
+  if (radius > R_OUTER) { clearGeGps1AHover(); return; }
+  const geo = geGridLatLonFromPosition(pt.x, pt.z);
+  publishGeGps1A({
+    phase: 'GE-GPS-1A', locked: true, hovering: true,
+    lat: geo.lat, lon: geo.lon, x: pt.x, z: pt.z,
+    radius, radiusUnits: geo.radiusUnits, compassDeg: geo.compassDeg,
+    insideDisk: true,
+    formatted: formatGeGpsDecimal(geo.lat, geo.lon),
+    source: 'Layer1 GE-edderkoppnett',
+    purpose: 'E-Earth Gamingmotor GE-GPS readout',
+    updatedAt: Date.now(),
+  });
+}
+
+canvas.addEventListener('mousemove', updateGeGps1AHover);
+canvas.addEventListener('mouseleave', clearGeGps1AHover);
+clearGeGps1AHover();
+// END GE-GPS-1A
+
 function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
   cancelNorgeFreezeWait();
   // Adaptiv zoom: multiplikativ. Mindre følsom enn før.
