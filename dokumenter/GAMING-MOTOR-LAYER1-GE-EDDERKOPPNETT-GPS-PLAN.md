@@ -125,7 +125,7 @@ GE-edderkoppnettet ferdigstilles som posisjons-/GPS-grunnlag.
 Første funksjon:
 **GE-GPS-1A** — read-only hover-posisjon på GE-nettet
 
-Når brukeren beveger musen over GE-edderkoppnettet, skal Instrumentet vise posisjonen som lat/lon i Google Earth-lignende format.
+Når brukeren beveger musen over GE-edderkoppnettet, skal E-Earth vise posisjonen som lat/lon i Google Earth-lignende format.
 
 ### Fase 2 — neste
 
@@ -234,7 +234,7 @@ window.__GE_GPS_HOVER = {
   z,
   insideDisk,
   source: 'Layer1 GE-edderkoppnett',
-  purpose: 'Gaming motor GPS/navigation readout'
+  purpose: 'E-Earth Gamingmotor GE-GPS readout'
 }
 ```
 
@@ -273,13 +273,14 @@ I denne fasen skal følgende **ikke** endres:
 Read-only hover-posisjon på GE-edderkoppnettet.
 
 **GE-GPS-1B**  
-Klikk for å låse/markere posisjon på GE-nettet.
+Read-only kamera-posisjon: kameraets siktepunkt på Layer 1-plane → lat/lon.  
+*(Se seksjon 13 for arkitekturdetaljer.)*
 
 **GE-GPS-1C**  
-Avstand og retning mellom to GE-posisjoner.
+Kamera-høyde / zoom / scale: beregn høyde/avstand/visningsradius som intern LOD-verdi.
 
 **GE-GPS-1D**  
-Objekter i Layer 1 kan rapportere egen GE-posisjon.
+Kartmotor-trigger: kamera-posisjon + høyde/LOD → hvilke kartbiter som skal lastes.
 
 **GE-GPS-1E**  
 Layer 2 kan lese GE-posisjon fra Layer 1.
@@ -324,4 +325,62 @@ Ingen andre funksjoner skal legges til i samme kodeoppdrag.
 
 ---
 
-*Dette er den rene planen: først GE-edderkoppnettet som GPS-/posisjonsgrunnlag, deretter Solens 5 hovedbaner som sikre ankerpunkter, deretter kontinent/kant/kart-festing.*
+## 13. Kamera-posisjon, høyde og senere kartmotor-trigger
+
+> **Arkitekturpresisering lagt til 2026-06-14.**  
+> Dette er ikke del av GE-GPS-1A. Det er dokumentasjon av den større hensikten bak GE-GPS-systemet.
+
+### GE-GPS er ikke bare et koordinatdisplay
+
+GE-edderkoppnettet og `geGridLatLonFromPosition(x, z)` er ikke bare ment for muse-hover.  
+De er **felles posisjonslag for hele E-Earth** — for mus, kamera, objekter og kartmotor.
+
+```text
+GE-GPS gir posisjon til:
+1. Mus / peker          ← GE-GPS-1A (nå)
+2. Kamera (siktepunkt)  ← GE-GPS-1B (neste)
+3. Kamera-høyde / LOD   ← GE-GPS-1C
+4. Kartmotor tile-valg  ← GE-GPS-1D
+5. Layer 2-objekter     ← GE-GPS-1E
+6. Sol/måne/dynamikk    ← GE-GPS-1F
+```
+
+### Kameraet som navigatør
+
+Kameraet i E-Earth skal senere kunne:
+- lese **hvilket punkt på GE-edderkoppnettet det ser mot** (siktepunkt på Layer 1-plane)
+- lese **hvilken lat/lon dette siktepunktet tilsvarer**
+- lese **hvilken høyde/zoom/LOD det befinner seg på**
+
+Dette er nøyaktig samme prinsipp som hover-readout — men med kameraets siktepunkt i stedet for musens posisjon.
+
+### Kartmotor-trigger
+
+Når kamera-posisjonen og høyden er kjent via GE-GPS, kan kartmotoren bruke dette som input:
+
+```text
+kamera GE-lat/lon + kamera-høyde/LOD
+→ kartmotor vet hvilke kartbiter (tiles) som skal lastes
+→ kartmotor vet riktig zoomnivå / detaljer
+```
+
+Dette gjør at kartmotoren aldri trenger egne koordinatberegninger — den leser alltid fra GE-GPS-laget.
+
+### Hvorfor dette styrker Raycaster-metoden
+
+Fordi både mus-hover (GE-GPS-1A) og kamera-posisjon (GE-GPS-1B) bruker **samme Three.js Raycaster mot samme Layer 1-plane (y=0)**, er de garantert konsistente.  
+Kameraet og musen bruker det samme koordinatsystemet som GE-edderkoppnettet — ingen parallelle beregninger, ingen drift.
+
+### Avgrensning for nå
+
+- **GE-GPS-1A** (nå): kun read-only hover-posisjon — **ingen kartmotor-trigger**
+- **GE-GPS-1B** (neste): kamera-siktepunkt → lat/lon
+- **GE-GPS-1C** (senere): kamera-høyde → LOD
+- **GE-GPS-1D** (senere): LOD + kamera-pos → kartmotor tile-valg
+
+Kartmotor-trigger kodes **ikke** før både hover-posisjon og kamera-posisjon er verifisert.
+
+---
+
+*Dette er den rene planen: først GE-edderkoppnettet som GPS-/posisjonsgrunnlag, deretter Solens 5 hovedbaner som sikre ankerpunkter, deretter kontinent/kant/kart-festing.*  
+*GE-GPS er grunnlaget for at E-Earth kan navigere, forstå kameraets plassering og senere hente riktige kartdata.*
