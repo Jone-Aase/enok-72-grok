@@ -52,7 +52,7 @@ Dette er første test av Gaming-motorens posisjonsgrunnlag.
 
 ### Lagplassering
 
-GE-edderkoppnettet + solbaner + plottede punkter ligger som underste del av Layer 1 — over Layer 2 (sol/måne/dynamiske objekter), men under kartene (øverste del av Layer 1). Gaming-motoren opererer på dette laget.
+GE-edderkoppnettet + solbaner + plottede punkter ligger som underste del av Layer 1, men under kartene (øverste del av Layer 1). Gaming-motoren opererer på dette laget.
 
 ```text
 [Øverste del av Layer 1]  ← Kartlag (kontinenter, kanter)
