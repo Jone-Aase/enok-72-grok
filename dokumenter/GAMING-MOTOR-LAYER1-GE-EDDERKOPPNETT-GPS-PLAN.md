@@ -6,6 +6,26 @@ Arbeidsoriginal: arbeidsoriginal/ge-nett-0e-2026-06-13
 
 ---
 
+## ⛔ LES FØRST — OBLIGATORISK OPPSTART
+
+> **Ingen agent, koordinator eller kodeverktøy får lese eller handle på denne planen**
+> **uten å ha lest og bekreftet KOORDINATOR-OPPSTART.md først.**
+
+### Adresse til oppstartsfilen:
+
+```
+dokumenter/KOORDINATOR-OPPSTART.md
+```
+
+**GitHub-lenke (direkte):**  
+https://github.com/Jone-Aase/enok-72-grok/blob/arbeidsoriginal/ge-nett-0e-2026-06-13/dokumenter/KOORDINATOR-OPPSTART.md
+
+Dette gjelder: **Perplexity, ChatGPT, Gemini, Copilot, Grok, Codex, Claude Opus** og alle andre agenter.
+
+Før du fortsetter: les filen og bekreft med setningen som står der.
+
+---
+
 ## 0. Navngiving — Kartmotor vs. Gamingmotor
 
 > **Dette avsnittet er lagt til 2026-06-14 for å låse begrepsbruken mellom Kartmotor og Gamingmotor.**
@@ -361,7 +381,7 @@ Når kamera-posisjonen og høyden er kjent via GE-GPS, kan kartmotoren bruke det
 ```text
 kamera GE-lat/lon + kamera-høyde/LOD
 → kartmotor vet hvilke kartbiter (tiles) som skal lastes
-→ kartmotor vet riktig zoomnivå / detaljer
+→ kartmotor vet riktig zoomnivmå / detaljer
 ```
 
 Dette gjør at kartmotoren aldri trenger egne koordinatberegninger — den leser alltid fra GE-GPS-laget.
