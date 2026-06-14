@@ -267,10 +267,10 @@ I denne fasen skal følgende **ikke** endres:
 
 ---
 
-## 10. Fremtidige delmål
+## 10. Fremtidige delmål (oppdatert rekkefølge 2026-06-14)
 
 **GE-GPS-1A**  
-Read-only hover-posisjon på GE-edderkoppnettet.
+Read-only hover-posisjon på GE-edderkoppnettet. *(nå)*
 
 **GE-GPS-1B**  
 Read-only kamera-posisjon: kameraets siktepunkt på Layer 1-plane → lat/lon.  
@@ -283,10 +283,10 @@ Kamera-høyde / zoom / scale: beregn høyde/avstand/visningsradius som intern LO
 Kartmotor-trigger: kamera-posisjon + høyde/LOD → hvilke kartbiter som skal lastes.
 
 **GE-GPS-1E**  
-Layer 2 kan lese GE-posisjon fra Layer 1.
+Layer 2-objekter kan lese posisjon mot GE-nettet.
 
 **GE-GPS-1F**  
-Sol/måne/dynamiske objekter kan bruke GE-posisjon som navigasjonsreferanse.
+Sol/måne/dynamiske objekter bruker GE-GPS som navigasjonsreferanse.
 
 **SOL-SIRKLER-1A**  
 Inventar og verifikasjon av Solens 5 hovedbaner som sikre ankerpunkter.
