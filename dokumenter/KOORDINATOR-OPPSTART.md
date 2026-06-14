@@ -6,6 +6,59 @@ Branch: arbeidsoriginal/ge-nett-0e-2026-06-13
 
 ---
 
+## Felles arbeidsmodell for E-Earth / Gamingmotor / GE-GPS
+
+> **Låst: 2026-06-15. Alle agenter plikter å følge denne modellen uten unntak.**
+
+### Kildehierarki
+
+GitHub `arbeidsoriginal/*` = originalen og offisielt sannhetslager.
+
+Vercel = primær arbeidskopi og preview-miljø.
+
+Lokal clone = backup-arbeidskopi og backup-preview.
+
+### Rollefordeling
+
+ChatGPT kontrollerer GitHub-originalen:
+- branches
+- commits
+- PR-er
+- diff
+- mergebase
+- status checks
+- merge, kun etter eksplisitt GO fra Jone-Aase
+
+Perplexity kontrollerer Vercel/arbeidskopien:
+- lokal og Vercel-testing
+- preview
+- praktisk kjøring
+- rapport tilbake til teamet
+
+Codex kan patche i arbeidskopien:
+- kun på én angitt branch
+- kun etter eksplisitt instruks
+- må vise full diff før eventuell push
+
+Grok fungerer som reviewer:
+- ikke skrive
+- ikke endre filer
+- ikke pushe uten egen eksplisitt godkjenning
+
+### Kritisk regel for store filer
+
+Ingen agent skal bruke avkortet MCP/API-output som bevis for at noe mangler eller er fraværende.
+
+For store filer gjelder:
+
+Vercel / lokal clone = full lesing og patching.
+
+GitHub / MCP = originalkontroll, PR, diff, status, commits og målrettede linjeutdrag.
+
+Dette oppsettet skal gjøre arbeidet tryggere ved å unngå at agenter bruker chat-grensesnittet som arbeidsbenk for store filer, og ved å sørge for at det alltid finnes én klar original på GitHub.
+
+---
+
 ## ⛔ OBLIGATORISK REGEL — INGEN UNNTAK
 
 > **Ingen agent, koordinator eller kodeverktøy får arbeide med eller skrive kode for E-Earth**
@@ -145,4 +198,5 @@ Følgende koordinatorer er eksplisitt navngitt og pålagt dette ansvaret:
 
 *Opprettet: 2026-06-14 av Perplexity på vegne av Jone Aase.*
 *Oppdatert: 2026-06-14 — Grok, Codex og Claude Opus lagt til i obligatorisk koordinatorliste.*
+*Oppdatert: 2026-06-15 — Felles arbeidsmodell (låst) lagt inn øverst av Perplexity.*
 *Formål: Forhindre at arbeid går tapt fordi koordinatorer starter uten kontekst.*
