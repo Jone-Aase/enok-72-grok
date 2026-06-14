@@ -1,4 +1,3 @@
----
 # AGENTS-LOCAL.md — Lokal pekerfil for enok-72-grok
 
 Denne filen er en lokal pekerfil for agenter som arbeider i den kontrollerte lokale arbeidskopien av enok-72-grok.
@@ -120,6 +119,21 @@ Etter hvert oppdrag skal lokal agent rapportere:
 5. Hva som ikke ble rørt
 6. Test/kommando-resultat hvis relevant
 7. Eventuelle uklarheter
+
+---
+
+## Sky-workflow — bekreftet 2026-06-14
+
+1. Plan: Jone + ChatGPT + Perplexity
+2. Koding: Perplexity/Grok på GitHub feature-branch. Kun én agent skriver.
+3. Preview: Vercel preview-URL fra feature-branch (bekreftet PR #4)
+4. Review: ChatGPT + Perplexity. Gemini/Codex ved behov.
+5. GO: Jone-Aase
+6. Merge: Etter eksplisitt GO
+7. Lokal VS Code: Kun nød/debug
+8. Lovable: Backup-prototype/UI-demo — ikke fasit, ikke release-gate,
+   ikke direkte arbeidsoriginal-koder før separat test.
+9. PR #4 var smoke-test — skal ikke merges.
 
 ---
 
