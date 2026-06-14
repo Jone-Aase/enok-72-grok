@@ -131,8 +131,8 @@ Etter hvert oppdrag skal lokal agent rapportere:
 5. GO: Jone-Aase
 6. Merge: Etter eksplisitt GO
 7. Lokal VS Code: Kun nød/debug
-8. Lovable: Backup-prototype/UI-demo — ikke fasit, ikke release-gate,
-   ikke direkte arbeidsoriginal-koder før separat test.
+8. Lovable: Backup-prototype/UI-demo — ikke fasit, ikke release-gate.
+   Lovable skal ikke kode direkte på arbeidsoriginal før separat test er godkjent.
 9. PR #4 var smoke-test — skal ikke merges.
 
 ---
