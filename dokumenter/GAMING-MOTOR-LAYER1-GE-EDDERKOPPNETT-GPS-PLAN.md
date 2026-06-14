@@ -234,7 +234,7 @@ window.__GE_GPS_HOVER = {
   z,
   insideDisk,
   source: 'Layer1 GE-edderkoppnett',
-  purpose: 'Gaming motor GPS/navigation readout'
+  purpose: 'E-Earth Gamingmotor GE-GPS readout'
 }
 ```
 
@@ -267,25 +267,25 @@ I denne fasen skal følgende **ikke** endres:
 
 ---
 
-## 10. Fremtidige delmål
+## 10. Fremtidige delmål (oppdatert rekkefølge 2026-06-14)
 
 **GE-GPS-1A**  
-Read-only hover-posisjon på GE-edderkoppnettet.
+Read-only hover-posisjon på GE-edderkoppnettet. *(nå)*
 
 **GE-GPS-1B**  
-Klikk for å låse/markere posisjon på GE-nettet.
+Read-only kamera-posisjon: kameraets siktepunkt på Layer 1-plane → lat/lon.
 
 **GE-GPS-1C**  
-Avstand og retning mellom to GE-posisjoner.
+Kamera-høyde / zoom / scale: beregn høyde/avstand/visningsradius som intern LOD-verdi.
 
 **GE-GPS-1D**  
-Objekter i Layer 1 kan rapportere egen GE-posisjon.
+Kartmotor-trigger: kamera-posisjon + høyde/LOD → forslag til hvilke kartbiter som skal lastes.
 
 **GE-GPS-1E**  
-Layer 2 kan lese GE-posisjon fra Layer 1.
+Layer 2-objekter kan lese posisjon mot GE-nettet.
 
 **GE-GPS-1F**  
-Sol/måne/dynamiske objekter kan bruke GE-posisjon som navigasjonsreferanse.
+Sol/måne/dynamiske objekter bruker GE-GPS som navigasjonsreferanse.
 
 **SOL-SIRKLER-1A**  
 Inventar og verifikasjon av Solens 5 hovedbaner som sikre ankerpunkter.
@@ -313,7 +313,7 @@ Denne planfasen er godkjent hvis:
 
 ## 12. Neste steg etter godkjent plan
 
-Når denne planen er godkjent, kan neste feature-branch opprettes for kode:
+Når denne planen er godkjent, kan næste feature-branch opprettes for kode:
 
 ```text
 feature/ge-gps-hover-readout-1a
@@ -321,6 +321,40 @@ feature/ge-gps-hover-readout-1a
 
 Første kodeoppdrag skal kun implementere read-only hover-visning fra GE-edderkoppnettet.  
 Ingen andre funksjoner skal legges til i samme kodeoppdrag.
+
+---
+
+## 13. Kamera-posisjon, høyde og senere kartmotor-trigger
+
+> **Lagt til 2026-06-14 basert på Jone-Aases arkitekturpresisering.**
+
+GE-GPS er ikke bare et koordinatdisplay for muse-hover. Det er **selve posisjonsmotoren i E-Earth**.
+
+Kameraet skal også bruke GE-GPS for å vite:
+- hvilket punkt på GE-edderkoppnettet det ser mot
+- hvilken lat/lon denne posisjonen tilsvarer
+- hvilken høyde / zoom / LOD-nivå kameraet befinner seg på
+
+```text
+Kamera-siktepunkt på Layer 1-plane
+→ geGridLatLonFromPosition(x, z)
+→ lat/lon for kamerasenteret
+→ kamera-høyde/avstand → LOD-nivå
+→ (senere) kartmotor lastes riktige kartbiter
+```
+
+GE-GPS er dermed felles posisjonslag for:
+1. mus/peker (GE-GPS-1A — nå)
+2. kamera (GE-GPS-1B)
+3. kamera-høyde/LOD (GE-GPS-1C)
+4. kartmotor tile-trigger (GE-GPS-1D)
+5. Layer 2-objekter (GE-GPS-1E)
+6. sol/måne/dynamikk (GE-GPS-1F)
+
+Dette er grunnen til at Raycaster mot `THREE.Plane(y=0)` er riktig teknisk metode — kameraet må forstås i samme koordinatsystem som GE-nettet.
+
+**Viktig avgrensning:**  
+GE-GPS-1A koder kun hover-readout. Kamera-posisjon og kartmotor-trigger kommer i GE-GPS-1B/1C/1D, etter at hover er verifisert.
 
 ---
 
