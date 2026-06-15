@@ -2956,14 +2956,32 @@ function screenToMapWorld(clientX, clientY) {
 
 // GE-GPS-1A hover readout
 function formatGeGpsDecimal(lat, lon) {
-  const latH = lat >= 0 ? 'N' : 'S';
-  const lonH = lon >= 0 ? 'E' : 'W';
-  return `${Math.abs(lat).toFixed(4)}\u00B0${latH} ${Math.abs(lon).toFixed(4)}\u00B0${lonH}`;
+  return `lat: ${lat.toFixed(6)} lon: ${lon.toFixed(6)}`;
+}
+
+function formatGeGpsDms(lat, lon) {
+  const toDms = (value, positiveHemisphere, negativeHemisphere) => {
+    let absValue = Math.abs(value);
+    let deg = Math.floor(absValue);
+    let minuteFloat = (absValue - deg) * 60;
+    let min = Math.floor(minuteFloat);
+    let sec = (minuteFloat - min) * 60;
+    sec = Number(sec.toFixed(2));
+    if (sec >= 60) { sec = 0; min += 1; }
+    if (min >= 60) { min = 0; deg += 1; }
+    const hemisphere = value >= 0 ? positiveHemisphere : negativeHemisphere;
+    return `${deg}\u00B0${String(min).padStart(2, '0')}'${sec.toFixed(2).padStart(5, '0')}"${hemisphere}`;
+  };
+  return `GE: ${toDms(lat, 'N', 'S')}, ${toDms(lon, 'E', 'W')}`;
 }
 
 function publishGeGps1A(payload) {
   globalThis.__GE_GPS_1A = payload;
-  if (typeof window !== 'undefined') window.__GE_GPS_1A = payload;
+  globalThis.__GE_GPS_HOVER = payload;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1A = payload;
+    window.__GE_GPS_HOVER = payload;
+  }
   const el = document.getElementById('sb-hover');
   if (el) el.textContent = payload.hovering ? payload.formatted : '\u2014';
 }
@@ -2983,20 +3001,24 @@ function updateGeGps1AHover(event) {
   const radius = Math.hypot(pt.x, pt.z);
   if (radius > R_OUTER) { clearGeGps1AHover(); return; }
   const geo = geGridLatLonFromPosition(pt.x, pt.z);
+  const decimal = formatGeGpsDecimal(geo.lat, geo.lon);
+  const dms = formatGeGpsDms(geo.lat, geo.lon);
   publishGeGps1A({
     phase: 'GE-GPS-1A', locked: true, hovering: true,
     lat: geo.lat, lon: geo.lon, x: pt.x, z: pt.z,
     radius, radiusUnits: geo.radiusUnits, compassDeg: geo.compassDeg,
     insideDisk: true,
-    formatted: formatGeGpsDecimal(geo.lat, geo.lon),
+    decimal,
+    dms,
+    formatted: `${decimal} | ${dms}`,
     source: 'Layer1 GE-edderkoppnett',
     purpose: 'E-Earth Gamingmotor GE-GPS readout',
     updatedAt: Date.now(),
   });
 }
 
-canvas.addEventListener('mousemove', updateGeGps1AHover);
-canvas.addEventListener('mouseleave', clearGeGps1AHover);
+wrap.addEventListener('mousemove', updateGeGps1AHover);
+wrap.addEventListener('mouseleave', clearGeGps1AHover);
 clearGeGps1AHover();
 // END GE-GPS-1A
 
