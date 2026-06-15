@@ -3017,8 +3017,8 @@ function updateGeGps1AHover(event) {
   });
 }
 
-canvas.addEventListener('mousemove', updateGeGps1AHover);
-canvas.addEventListener('mouseleave', clearGeGps1AHover);
+wrap.addEventListener('mousemove', updateGeGps1AHover);
+wrap.addEventListener('mouseleave', clearGeGps1AHover);
 clearGeGps1AHover();
 // END GE-GPS-1A
 
