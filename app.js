@@ -2636,6 +2636,7 @@ function bindCam(id, key, valId, suffix = '°') {
     camState[key] = parseFloat(el.value);
     val.textContent = el.value + suffix;
     applyCamera();
+    updateGeGps1BCamera();
   });
 }
 bindCam('vm-cam-tilt',   'tilt',   'vm-cam-tilt-val',   '°');
@@ -2656,6 +2657,7 @@ function bindLiveCam(id, key, valId) {
     if (other) other.value = el.value;
     if (otherVal) otherVal.textContent = el.value + '°';
     applyCamera();
+    updateGeGps1BCamera();
   });
 }
 bindLiveCam('cam-rot-live',  'rot',  'cam-rot-live-val');
@@ -2678,6 +2680,7 @@ if (camResetBtn) {
     if (vmRot)  { vmRot.value  = 0;  document.getElementById('vm-cam-rot-val').textContent  = '0°';  }
     if (vmTilt) { vmTilt.value = 90; document.getElementById('vm-cam-tilt-val').textContent = '90°'; }
     applyCamera();
+    updateGeGps1BCamera();
     updateZoomReadout();
   });
 }
@@ -2700,6 +2703,7 @@ document.querySelectorAll('[data-cam]').forEach(btn => {
     document.getElementById('vm-cam-rot-val').textContent  = camState.rot + '°';
     document.getElementById('vm-cam-height-val').textContent = camState.height;
     applyCamera();
+    updateGeGps1BCamera();
   });
 });
 
@@ -2752,6 +2756,7 @@ function setCameraHeightKm(heightKm) {
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, dist));
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function updateNorgeFreezeUi() {
@@ -2841,6 +2846,7 @@ function setInstrumentZoomPercent(percent) {
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, 10000 / pct));
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function setInstrumentGridOffset({ x = camState.target.x, y = camState.target.z }) {
@@ -2849,6 +2855,7 @@ function setInstrumentGridOffset({ x = camState.target.x, y = camState.target.z 
   camState.target.z = Math.max(-40, Math.min(40, y));
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function isNorgeMouseGridMode() {
@@ -2878,6 +2885,7 @@ function focusBaseMap(selected) {
   }
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function panCameraTarget(dx, dy) {
@@ -2937,6 +2945,7 @@ window.addEventListener('mousemove', (e) => {
   lastX = e.clientX; lastY = e.clientY;
   panCameraTarget(dx, dy);
   applyCamera();
+  updateGeGps1BCamera();
 });
 
 function screenToMapWorld(clientX, clientY) {
@@ -2986,6 +2995,56 @@ function publishGeGps1A(payload) {
   if (el) el.textContent = payload.hovering ? payload.formatted : '\u2014';
 }
 
+function publishGeGps1BCamera(payload) {
+  globalThis.__GE_GPS_1B = payload;
+  globalThis.__GE_GPS_CAMERA = payload;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1B = payload;
+    window.__GE_GPS_CAMERA = payload;
+  }
+}
+
+function updateGeGps1BCamera() {
+  const rect = wrap.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const pt = screenToMapWorld(centerX, centerY);
+  if (!pt) {
+    publishGeGps1BCamera({
+      phase: 'GE-GPS-1B', locked: true, cameraReadout: true, insideDisk: false,
+      source: 'Camera center on Layer1 GE-edderkoppnett',
+      purpose: 'E-Earth camera GE-GPS readout',
+      updatedAt: Date.now()
+    });
+    return;
+  }
+  const radius = Math.hypot(pt.x, pt.z);
+  const insideDisk = radius <= R_OUTER;
+  if (!insideDisk) {
+    publishGeGps1BCamera({
+      phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
+      x: pt.x, z: pt.z, radius, insideDisk: false,
+      source: 'Camera center on Layer1 GE-edderkoppnett',
+      purpose: 'E-Earth camera GE-GPS readout',
+      updatedAt: Date.now()
+    });
+    return;
+  }
+  const geo = geGridLatLonFromPosition(pt.x, pt.z);
+  const decimal = formatGeGpsDecimal(geo.lat, geo.lon);
+  const dms = formatGeGpsDms(geo.lat, geo.lon);
+  const formatted = `${decimal} | ${dms}`;
+  publishGeGps1BCamera({
+    phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
+    lat: geo.lat, lon: geo.lon, x: pt.x, z: pt.z,
+    radius, radiusUnits: geo.radiusUnits, compassDeg: geo.compassDeg,
+    insideDisk, decimal, dms, formatted,
+    source: 'Camera center on Layer1 GE-edderkoppnett',
+    purpose: 'E-Earth camera GE-GPS readout',
+    updatedAt: Date.now()
+  });
+}
+
 function clearGeGps1AHover() {
   publishGeGps1A({
     phase: 'GE-GPS-1A', locked: true, hovering: false, insideDisk: false,
@@ -3020,6 +3079,7 @@ function updateGeGps1AHover(event) {
 wrap.addEventListener('mousemove', updateGeGps1AHover);
 wrap.addEventListener('mouseleave', clearGeGps1AHover);
 clearGeGps1AHover();
+updateGeGps1BCamera();
 // END GE-GPS-1A
 
 function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
@@ -3044,6 +3104,7 @@ function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
     }
   }
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 canvas.addEventListener('wheel', (e) => {
