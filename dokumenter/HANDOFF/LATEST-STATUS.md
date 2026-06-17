@@ -6,10 +6,10 @@ Source: Sanitized local Codex + AgentMemory status
 ## AM-GitHub Bridge Stage
 
 Stage: 1
-Status: Local files created on `handoff/agentmemory-sync` only.
-Commit: not yet.
-Push: not yet.
-PR: not yet.
+Status: Stage 1 committed and pushed to GitHub.
+Commit: b26ebe7e5e0c1e8d6aafc958d3a8854d25cfaeb (Add AgentMemory GitHub handoff docs).
+Push: yes, branch handoff/agentmemory-sync on origin.
+PR: not created.
 
 ## Local Repository Status Before Stage 1
 
@@ -28,7 +28,7 @@ handoff/agentmemory-sync
 ```
 
 
-## Planning Conflict / Clarification Required
+## Planning Conflict - Resolved For Active Track
 
 Earlier/current `dokumenter/MEMORY/NESTE-STEG.md` states:
 
@@ -48,7 +48,9 @@ GE-GPS-1D later: tile/firkantnett selection
 SOL-SIRKLER-1A after GPS
 ```
 
-Current handoff therefore requires Jone decision before next code branch: continue GE-GPS-1B/1C, or pause GPS coding and make SOL-SIRKLER-1A plan/inventory first.
+Jone decision on 2026-06-17: choose active track A. Continue GE-GPS first: GE-GPS-1B -> GE-GPS-1C -> GE-GPS-1D, then SOL-SIRKLER-1A. The Memory/NESTE-STEG note remains preserved as important context, but is not the active next coding track unless Jone later changes it.
+
+AgentMemory decision record: mem_mqim70x8_96c1acb34445.
 
 ## Superseded/Historical Repo Mentions
 
@@ -107,6 +109,22 @@ git version: 2.43.0
 ```
 
 Meaning: Codex Sky may need GitHub remote/auth setup before it can push from its own container. Current safer plan is not to make Codex Sky push this handoff. Local Codex/Grok should push the sanitized handoff branch, then Codex Sky reads it from GitHub.
+
+## Codex Cloud / Sky Takeover Status
+
+Codex Sky readback test passed after Stage 1. It correctly reported repo, current GE-GPS branch, locked areas, agent roles, historical repo caveat, and the plan conflict.
+
+Current takeover readiness:
+
+```text
+Codex Sky can read GitHub handoff: yes
+Codex Sky can act as backup nr. 2 for planning/review/GitHub orientation: yes
+Codex Sky can assume local VS Code/Go Live/Windows state: no
+Codex Sky can push safely from its own container: not yet proven
+```
+
+Use `dokumenter/HANDOFF/CODEX-CLOUD-TAKEOVER.md` as the explicit takeover manual.
+
 ## What Codex Sky Must Not Assume
 
 Codex Sky must not assume:

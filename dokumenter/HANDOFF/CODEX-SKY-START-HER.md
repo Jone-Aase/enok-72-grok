@@ -2,7 +2,7 @@
 
 Generated: 2026-06-17
 Source: Sanitized AgentMemory project status via local Codex
-Purpose: Give Codex Sky enough project context to act as backup nr. 2 without direct local AM access.
+Purpose: Give Codex Sky enough project context to act as backup nr. 2 without direct local AM access. Updated after Jone chose active track A.
 
 ## Role
 
@@ -72,6 +72,22 @@ c79bfc6f1144c276d25afc1eefd926afe0275677
 Do not start Kartverket/firkantnett/tile selection before GE-GPS-1B and GE-GPS-1C are verified.
 
 
+
+## Jone Decision - Active Track
+
+Decision date: 2026-06-17
+AgentMemory record: `mem_mqim70x8_96c1acb34445`
+
+Jone chose active track A:
+
+```text
+GE-GPS-1B -> GE-GPS-1C -> GE-GPS-1D -> SOL-SIRKLER-1A
+```
+
+This resolves the current planning choice for new work. The older `dokumenter/MEMORY/NESTE-STEG.md` SOL-SIRKLER-1A-first note remains important project history and status context, but it is not the active next coding track unless Jone later changes the plan.
+
+Codex Sky must not reopen this decision on its own. Before code work, it must still ask for a fresh Jone GO scoped to the exact branch/files/task.
+
 ## Status Reconciliation: Memory vs GE-GPS Plan
 
 There are two valid status layers:
@@ -80,10 +96,7 @@ There are two valid status layers:
 
 2. `dokumenter/KOORDINATOR-OPPSTART.md` and `dokumenter/GAMING-MOTOR-LAYER1-GE-EDDERKOPPNETT-GPS-PLAN.md` from the later Gamingmotor/GE-GPS track say the immediate GPS sequence is `GE-GPS-1B` (camera aim point -> lat/lon), then `GE-GPS-1C` (height/zoom/LOD), then `GE-GPS-1D` (tile/firkantnett), with `SOL-SIRKLER-1A` after the GPS foundation.
 
-Codex Sky must not resolve this conflict alone. Before code work, ask Jone which track is active for the current task:
-
-- GE-GPS continuation: 1B -> 1C -> 1D, or
-- Memory/NESTE-STEG continuation: SOL-SIRKLER-1A plan/inventory first.
+This conflict is now resolved for the active workstream by Jone decision on 2026-06-17: continue GE-GPS first (`1B -> 1C -> 1D`), then `SOL-SIRKLER-1A`. Codex Sky must not change that sequence without a later explicit Jone decision.
 
 In both cases, kartmotor, clean-motor, anchors, geometry, transform, aeProject, MARKERS, solbaner and `dokumenter/*` remain locked unless Jone gives explicit scoped GO.
 
@@ -131,7 +144,7 @@ Before doing any code work, report:
 5. Whether `feature/ge-gps-1b-camera-readout` exists.
 6. What the next project plan is.
 7. What you cannot know without local terminal output.
-8. Verdict: KLAR SOM CODEX SKY BACKUP NR. 2 / IKKE KLAR / TRENGER JONE-AVGJORELSE.
+8. Verdict: KLAR SOM CODEX SKY BACKUP NR. 2 / IKKE KLAR.
 
 ## Strict No-Go Without Explicit Jone GO
 

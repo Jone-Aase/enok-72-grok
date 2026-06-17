@@ -2,7 +2,7 @@
 
 Generated: 2026-06-17
 Bridge direction: AgentMemory -> GitHub handoff
-Status: Stage 1 local file creation only. Not committed. Not pushed.
+Status: Stage 1 committed and pushed to GitHub. Active track A decision saved to AgentMemory.
 
 This file is a sanitized snapshot for agents that cannot directly access local AgentMemory.
 It must not contain tokens, passwords, secret paths, or full raw conversation logs.
@@ -32,6 +32,7 @@ mem_mqihnnea_443218cae104  Extra agents: Mistral, Grok Expert Web, JustDone, Cop
 mem_mqiilgl7_60dc1672f5a1  Codex Sky onboarding.
 mem_mqik0lj3_2eff72808712  AM governance: AM is status/handoff only, not code truth.
 mem_mqikvv4j_edacd9d9c317  Codex Sky environment note: branch work, no remote/upstream, no gh; use safe GitHub auth only if needed.
+mem_mqim70x8_96c1acb34445  Jone decision: active track A = GE-GPS-1B -> 1C -> 1D -> SOL-SIRKLER-1A; Codex Cloud/Sky takeover constraints.
 ```
 
 ## Current Local Status Reported By Local Codex
@@ -61,7 +62,7 @@ dokumenter/MEMORY/SMOKE-TEST-STATUS.md
 dokumenter/MEMORY/STATUS-NA.md
 ```
 
-`NESTE-STEG.md` says SOL-SIRKLER-1A is the recommended next step after GE-GRID-0D/0E, with Kartmotor V2 paused. Later GE-GPS documents say GE-GPS-1B/1C are next inside the Gamingmotor GPS sequence. Treat this as a planning nuance requiring Jone confirmation before code.
+`NESTE-STEG.md` says SOL-SIRKLER-1A is the recommended next step after GE-GRID-0D/0E, with Kartmotor V2 paused. Later GE-GPS documents say GE-GPS-1B/1C are next inside the Gamingmotor GPS sequence. Jone resolved the active track on 2026-06-17: continue GE-GPS first, then SOL-SIRKLER-1A. This does not remove the older Memory note; it places it after the GPS foundation for current work.
 ## Next Programming Plan
 
 1. GE-GPS-1B - read-only camera aim point -> lat/lon.

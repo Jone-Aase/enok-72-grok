@@ -12,6 +12,7 @@ Generated: 2026-06-17
    - Backup nr. 2.
    - Best for GitHub-oriented branch, diff, PR, review and coordination work.
    - Must not assume local Windows/VS Code/Go Live state.
+   - Handoff readback test passed: it can read handoff/agentmemory-sync and act as backup nr. 2 for planning/review/GitHub orientation.
    - If it sees branch work with no remote/upstream, it must treat that as an isolated cloud worktree and avoid push until Jone sets safe auth.
 
 3. Grok Build local, PowerShell
