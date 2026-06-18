@@ -1,14 +1,18 @@
 # CODEX SKY START HER - E-Earth / Gamingmotor
 
-Generated: 2026-06-17
+Generated: 2026-06-18
 Source: Sanitized AgentMemory project status via local Codex
 Purpose: Give Codex Sky enough project context to act as backup nr. 2 without direct local AM access. Updated after Jone chose active track A.
 
 ## Role
 
-Codex Sky is backup nr. 2 after local Codex.
+Codex Cloud via Remote Windows host is the emergency operational backup after local Codex.
 
-Codex Sky may help with GitHub-oriented repo, branch, diff, PR and planning work, but must not assume local Windows, VS Code, PowerShell, Go Live, or clean working-tree state unless Jone or local Codex/Grok provides terminal output.
+Codex Cloud/Sky detached container mode remains a read-only/planning/review/GitHub-orientation backup.
+
+Codex Cloud/Sky may help with GitHub-oriented repo, branch, diff, PR and planning work, but detached cloud-container mode must not assume local Windows, VS Code, PowerShell, Go Live, or clean working-tree state unless Jone or local Codex/Grok provides terminal output.
+
+If Codex Cloud is connected through the verified Remote Windows host `DESKTOP-44L36ES`, it may act as emergency local operational backup after explicit Jone GO and release-gate.
 
 
 
@@ -135,7 +139,17 @@ Local clone is used for patching/testing after explicit Jone GO.
 
 ## Codex Sky First Task
 
-Before doing any code work, report:
+Before doing any code work, read these handoff files:
+
+```text
+dokumenter/HANDOFF/ORGANIZATION-MAP.md
+dokumenter/HANDOFF/CODEX-CLOUD-TAKEOVER.md
+dokumenter/HANDOFF/PROJECT-ROOT-INDEX.md
+dokumenter/HANDOFF/LATEST-STATUS.md
+dokumenter/HANDOFF/AGENT-ROLES.md
+```
+
+Then report:
 
 1. Which repo you see.
 2. Which relevant branches you see.

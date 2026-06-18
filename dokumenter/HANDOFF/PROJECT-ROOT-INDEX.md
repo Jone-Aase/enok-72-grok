@@ -11,7 +11,16 @@ C:\Users\a7788\Documents\E-Earth-AgentBase
 
 This folder is the local coordination root for E-Earth / Enok 72 / Gamingmotor work.
 
-Codex Cloud cannot automatically read this Windows folder directly. Cloud agents should use this file and the rest of `dokumenter/HANDOFF/*` as the sanitized GitHub-readable map unless a separate Codex Remote Connection to the Windows host is active and verified.
+Codex Cloud cannot automatically read this Windows folder directly from detached cloud-container mode. Cloud agents should use this file and the rest of `dokumenter/HANDOFF/*` as the sanitized GitHub-readable map unless Codex Remote Connection to the Windows host is active and verified.
+
+Verified local access path:
+
+```text
+Codex Cloud via Remote Windows host DESKTOP-44L36ES
+AgentMemory MCP recall: passed
+Local AgentBase sandbox write: passed
+Controlled Git branch/commit/push: passed
+```
 
 ## Current Official Line
 
@@ -35,33 +44,33 @@ This path was verified clean during setup. Future clones may be placed under the
 
 ```text
 E-Earth-AgentBase
-├─ projects
-│  ├─ enok-72-grok-active
-│  ├─ enok-72-grok-backups
-│  ├─ enok-72-norge-history
-│  └─ future-modules
-├─ handoff
-│  ├─ codex-cloud
-│  ├─ agentmemory
-│  ├─ grok
-│  ├─ perplexity
-│  ├─ chatgpt
-│  └─ codex-local
-├─ reports
-│  ├─ vercel
-│  ├─ github
-│  ├─ release-gates
-│  └─ diagnostics
-├─ patches
-│  ├─ unapproved
-│  └─ archived
-├─ agentmemory
-│  ├─ exports
-│  └─ snapshots
-├─ ngrok
-├─ cloudflare
-├─ mcp-bridge
-└─ notes
++-- projects
+|   +-- enok-72-grok-active
+|   +-- enok-72-grok-backups
+|   +-- enok-72-norge-history
+|   +-- future-modules
++-- handoff
+|   +-- codex-cloud
+|   +-- agentmemory
+|   +-- grok
+|   +-- perplexity
+|   +-- chatgpt
+|   +-- codex-local
++-- reports
+|   +-- vercel
+|   +-- github
+|   +-- release-gates
+|   +-- diagnostics
++-- patches
+|   +-- unapproved
+|   +-- archived
++-- agentmemory
+|   +-- exports
+|   +-- snapshots
++-- ngrok
++-- cloudflare
++-- mcp-bridge
++-- notes
 ```
 
 Additional existing local support folders may also be present, including `agentmemory-runtime`, `cloudflared`, `continue-tools`, and `localtunnel`.
@@ -74,6 +83,7 @@ AgentMemory = status, decisions, lessons, paths and handoff
 Vercel = preview/test signal
 Local clone = patch/test/Go Live truth after fresh terminal output
 E-Earth-AgentBase = local control room and index
+Codex Cloud via Remote Windows host = emergency local operational backup after Jone GO
 ```
 
 ## Safety Rules
@@ -82,7 +92,8 @@ E-Earth-AgentBase = local control room and index
 - Do not use AgentMemory as code truth.
 - Do not use truncated MCP/API output as proof that something is missing.
 - No agent edits, commits, pushes, creates PRs, merges or deploys without explicit Jone GO.
-- Codex Cloud must say when it cannot verify local Windows, VS Code, Go Live, Vercel, or AgentMemory state directly.
+- Codex Cloud detached container must say when it cannot verify local Windows, VS Code, Go Live, Vercel, or AgentMemory state directly.
+- Codex Cloud via Remote Windows host must still prove current directory, branch, HEAD and clean status before work.
 
 ## Locked Areas
 

@@ -1,6 +1,6 @@
 # CODEX CLOUD TAKEOVER - E-Earth / Gamingmotor
 
-Generated: 2026-06-17
+Generated: 2026-06-18
 Purpose: Make Codex Cloud/Sky ready to take over coordination if local Codex is temporarily unavailable.
 
 ## Active Decision
@@ -53,7 +53,52 @@ Do not use AgentMemory as code truth. Do not use truncated API/MCP output as pro
 
 ## What Codex Cloud/Sky Can Do
 
-Codex Cloud/Sky may:
+Codex Cloud/Sky has two different modes. Keep them separate.
+
+### Mode A - Remote Windows host
+
+When Codex Cloud/Sky is connected to Jone's Windows host `DESKTOP-44L36ES` through Codex Remote Connection, it may act as an emergency operational backup for local Codex.
+
+Verified capabilities:
+
+```text
+AgentMemory MCP recall on Windows host: passed
+Local AgentBase sandbox write: passed
+Controlled Git branch/commit/push: passed
+```
+
+Important verified commits / records:
+
+```text
+Remote Git push test commit: 4f36a542999411f1bafc807caf00282afc3f162a
+Remote Git push test branch: test/remote-windows-git-push-2026-06-18
+Remote write proof phrase: REMOTE-WINDOWS-WRITE-READY-2026-06-18
+Remote Git proof phrase: REMOTE-WINDOWS-GIT-PUSH-READY-2026-06-18
+```
+
+In this mode it may, after explicit Jone GO and release-gate:
+
+- run local read-only terminal checks
+- read AgentMemory through local MCP
+- write inside approved sandbox/control-room paths
+- create test/feature branches
+- commit and push scoped changes
+- help operate the local backup workflow
+
+It must still start from the correct path and prove state first.
+
+### Mode B - Detached cloud/web container
+
+When Codex Cloud/Sky sees:
+
+```text
+cwd: /workspace/enok-72-grok
+branch: work
+remote: none
+gh CLI: not installed
+```
+
+it is a detached cloud/container workspace. In this mode it may:
 
 - read GitHub branches and handoff docs
 - summarize current status
@@ -63,7 +108,9 @@ Codex Cloud/Sky may:
 - propose exact next commands/prompts for Jone/local agents
 - prepare PR descriptions after Jone GO
 
-Codex Cloud/Sky must say when it cannot verify local Windows, VS Code, Go Live, Vercel, or AgentMemory state directly.
+It must not push from that detached container. Direct push from that environment failed safely because remote was missing, `gh` was not installed, and GitHub HTTPS was blocked by proxy.
+
+Codex Cloud/Sky must always say when it cannot verify local Windows, VS Code, Go Live, Vercel, or AgentMemory state directly.
 
 ## What Codex Cloud/Sky Must Not Do Without Explicit Jone GO
 
@@ -100,9 +147,16 @@ Exception: this handoff bridge may update `dokumenter/HANDOFF/*` only after expl
 
 ## If Local Codex Is Unavailable
 
-1. Read this handoff branch from GitHub.
-2. Confirm active track A.
-3. Ask Jone for fresh local terminal output before trusting local state:
+1. Prefer Codex Cloud via Remote Windows host `DESKTOP-44L36ES`.
+2. Read this handoff branch from GitHub.
+3. Confirm active track A.
+4. Change/open the active working copy before work:
+
+```text
+C:\Users\a7788\Desktop\enok-72-grok-ge-gps-1a-format-alias-clean
+```
+
+5. Ask Jone for fresh local terminal output before trusting local state:
 
 ```text
 git branch --show-current
@@ -113,9 +167,9 @@ git diff --check
 node --check app.js
 ```
 
-4. If code work is needed, propose the smallest scoped branch/file plan.
-5. Do not push or open PR unless Jone gives explicit GO.
-6. Local testing should be handled by Jone, Grok Build, Perplexity/Vercel, or another local tool that can actually see the running app.
+6. If code work is needed, propose the smallest scoped branch/file plan.
+7. Do not push or open PR unless Jone gives explicit GO.
+8. Local UI testing should be handled on the Windows host, by Jone, Grok Build, Perplexity/Vercel, or another tool that can actually see the running app.
 
 ## First Takeover Prompt For Codex Cloud/Sky
 
@@ -129,6 +183,7 @@ Do not edit files, commit, push, create PR, merge, or deploy.
 ## Readiness Verdict
 
 ```text
-Codex Cloud/Sky is ready as backup nr. 2 for read-only takeover, planning, review, GitHub orientation, and PR/diff coordination.
-Codex Cloud/Sky is not yet proven as a direct push operator from its own container.
+Codex Cloud/Sky via Remote Windows host is ready as emergency operational backup for local Codex after explicit Jone GO and release-gate.
+Codex Cloud/Sky detached web-container mode remains read-only/planning/review/GitHub-orientation only.
+Direct push from the detached container is not available in the currently tested environment.
 ```

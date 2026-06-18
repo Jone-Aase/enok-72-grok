@@ -33,6 +33,11 @@ mem_mqiilgl7_60dc1672f5a1  Codex Sky onboarding.
 mem_mqik0lj3_2eff72808712  AM governance: AM is status/handoff only, not code truth.
 mem_mqikvv4j_edacd9d9c317  Codex Sky environment note: branch work, no remote/upstream, no gh; use safe GitHub auth only if needed.
 mem_mqim70x8_96c1acb34445  Jone decision: active track A = GE-GPS-1B -> 1C -> 1D -> SOL-SIRKLER-1A; Codex Cloud/Sky takeover constraints.
+mem_mqisq9ax_f853825b7d5d  Windows Codex App / desktop-host verification passed on DESKTOP-44L36ES.
+mem_mqitq5bw_39cb22e658ec  Codex remote Windows host local AgentBase write sandbox test passed.
+mem_mqitv45g_5e3e83e1fd26  Codex remote Windows host controlled Git branch/commit/push test passed.
+mem_mqityoqq_e014405a779e  Local working copy restored to handoff/agentmemory-sync after remote Git test.
+mem_mqitjgid_57d01a2d89a5  PROJECT-ROOT-INDEX handoff committed and pushed.
 ```
 
 ## Current Local Status Reported By Local Codex
@@ -76,6 +81,20 @@ dokumenter/MEMORY/STATUS-NA.md
 A previous Codex Sky/cloud discussion reported an isolated Linux container at `/workspace/enok-72-grok`, on branch `work`, with no remote, no upstream, no `gh`, SSH available, and Git 2.43.0.
 
 This is useful environment guidance, not repo truth. If Codex Sky sees this again, it should not assume it can push safely. Preferred bridge flow remains local Codex/Grok -> GitHub handoff branch -> Codex Sky reads GitHub.
+
+## Codex Cloud / Remote Windows Status
+
+Codex Cloud via Remote Windows host `DESKTOP-44L36ES` is now a verified emergency operational backup path.
+
+```text
+AgentMemory MCP recall on Windows host: passed
+Local AgentBase sandbox write: passed
+Controlled Git branch/commit/push: passed
+Local branch restored to handoff/agentmemory-sync after test: passed
+```
+
+Detached cloud-container mode remains read-only/planning/review/GitHub-orientation only unless a future safe auth/runtime test proves otherwise.
+
 ## Security Notes
 
 The remote AgentMemory MCP URL and secret path are intentionally not stored here.

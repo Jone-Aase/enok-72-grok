@@ -1,13 +1,13 @@
 # LATEST STATUS - E-Earth / Gamingmotor
 
-Generated: 2026-06-17
+Generated: 2026-06-18
 Source: Sanitized local Codex + AgentMemory status
 
 ## AM-GitHub Bridge Stage
 
 Stage: 1
 Status: Stage 1 committed and pushed to GitHub.
-Commit: b26ebe7e5e0c1e8d6aafc958d3a8854d25cfaeb (Add AgentMemory GitHub handoff docs).
+Commit: bb26ebe7e5e0c1e8d6aafc958d3a8854d25cfaeb (Add AgentMemory GitHub handoff docs).
 Push: yes, branch handoff/agentmemory-sync on origin.
 PR: not created.
 
@@ -117,13 +117,28 @@ Codex Sky readback test passed after Stage 1. It correctly reported repo, curren
 Current takeover readiness:
 
 ```text
-Codex Sky can read GitHub handoff: yes
-Codex Sky can act as backup nr. 2 for planning/review/GitHub orientation: yes
-Codex Sky can assume local VS Code/Go Live/Windows state: no
-Codex Sky can push safely from its own container: not yet proven
+Codex Cloud/Sky can read GitHub handoff: yes
+Detached cloud container can act as planning/review/GitHub orientation backup: yes
+Detached cloud container can assume local VS Code/Go Live/Windows state: no
+Detached cloud container can push safely from its own container: no, test failed safely
+Codex Cloud via Remote Windows host can read AgentMemory MCP: yes
+Codex Cloud via Remote Windows host can write local AgentBase sandbox: yes
+Codex Cloud via Remote Windows host can create branch/commit/push on GitHub: yes, controlled test passed
 ```
 
 Use `dokumenter/HANDOFF/CODEX-CLOUD-TAKEOVER.md` as the explicit takeover manual.
+
+Verified remote Windows host facts:
+
+```text
+Host: DESKTOP-44L36ES
+AgentMemory/local status check: passed
+Local sandbox write proof phrase: REMOTE-WINDOWS-WRITE-READY-2026-06-18
+Controlled Git push branch: test/remote-windows-git-push-2026-06-18
+Controlled Git push commit: 4f36a542999411f1bafc807caf00282afc3f162a
+Controlled Git push proof phrase: REMOTE-WINDOWS-GIT-PUSH-READY-2026-06-18
+Local working copy restored to handoff/agentmemory-sync after test: yes
+```
 
 ## What Codex Sky Must Not Assume
 
