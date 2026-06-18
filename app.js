@@ -3008,10 +3008,13 @@ function updateGeGps1BCamera() {
   const rect = wrap.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
+  const heightKm = Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM);
+  const zoomPercent = Math.round(10000 / camState.dist);
   const pt = screenToMapWorld(centerX, centerY);
   if (!pt) {
     publishGeGps1BCamera({
       phase: 'GE-GPS-1B', locked: true, cameraReadout: true, insideDisk: false,
+      heightKm, zoomPercent,
       source: 'Camera center on Layer1 GE-edderkoppnett',
       purpose: 'E-Earth camera GE-GPS readout',
       updatedAt: Date.now()
@@ -3024,6 +3027,7 @@ function updateGeGps1BCamera() {
     publishGeGps1BCamera({
       phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
       x: pt.x, z: pt.z, radius, insideDisk: false,
+      heightKm, zoomPercent,
       source: 'Camera center on Layer1 GE-edderkoppnett',
       purpose: 'E-Earth camera GE-GPS readout',
       updatedAt: Date.now()
@@ -3039,6 +3043,7 @@ function updateGeGps1BCamera() {
     lat: geo.lat, lon: geo.lon, x: pt.x, z: pt.z,
     radius, radiusUnits: geo.radiusUnits, compassDeg: geo.compassDeg,
     insideDisk, decimal, dms, formatted,
+    heightKm, zoomPercent,
     source: 'Camera center on Layer1 GE-edderkoppnett',
     purpose: 'E-Earth camera GE-GPS readout',
     updatedAt: Date.now()
