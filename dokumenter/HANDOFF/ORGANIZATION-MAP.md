@@ -13,7 +13,28 @@ Handoff/status branch: handoff/agentmemory-sync
 Active track: GE-GPS-1B -> GE-GPS-1C -> GE-GPS-1D -> SOL-SIRKLER-1A
 ```
 
-## Command Structure
+## Decision Authority
+
+1. Jone Aase
+   - Final decision maker.
+   - Only Jone can give GO for edits, commits, pushes, PRs, merges, deploys or locked-area work.
+
+## Local Control Agents
+
+These are the local/remote-local agents that may operate from Jone's Windows setup after explicit Jone GO and release-gate:
+
+1. Local Codex
+   - Primary local agent.
+
+2. Codex Cloud via Remote Windows host
+   - Emergency operational backup through `DESKTOP-44L36ES`.
+
+3. Grok Build local PowerShell
+   - Local control agent nr. 3 under training.
+   - Must continue certification before it gets broad coding authority.
+   - May run controlled local tasks only after scoped Jone GO.
+
+## Full Role Map
 
 1. Jone Aase
    - Final decision maker.
@@ -39,7 +60,7 @@ Active track: GE-GPS-1B -> GE-GPS-1C -> GE-GPS-1D -> SOL-SIRKLER-1A
    - Direct push from detached container is not available in the tested environment.
 
 5. Grok Build local PowerShell
-   - Reserve primary local substitute under training.
+   - Local control agent nr. 3 and reserve primary local substitute under training.
    - Certified through Level 5C.
    - May help with local review and, after scoped GO, controlled local tasks.
 

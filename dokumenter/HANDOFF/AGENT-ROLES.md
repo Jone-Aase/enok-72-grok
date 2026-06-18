@@ -4,6 +4,21 @@ Generated: 2026-06-18
 
 ## Fallback Order
 
+## Local Control Agents
+
+1. Codex local
+   - Primary local patch and release-gate agent.
+
+2. Codex Cloud via Remote Windows host
+   - Emergency operational backup through `DESKTOP-44L36ES`.
+
+3. Grok Build local, PowerShell
+   - Local control agent nr. 3 under training.
+   - Certified through Level 5C so far.
+   - Must continue certification before broad coding authority.
+
+## Full Fallback Order
+
 1. Codex local
    - Primary local patch and release-gate agent.
    - Best for local Windows, PowerShell, VS Code, Go Live and true working-tree checks.
@@ -26,7 +41,7 @@ Generated: 2026-06-18
    - Direct push from that detached container is not available in the current tested environment.
 
 4. Grok Build local, PowerShell
-   - Reserve primary local substitute under training.
+   - Local control agent nr. 3 and reserve primary local substitute under training.
    - Certified through Level 5C: read-only gates, diff review, sandbox patch/cleanup, real-clone micro-patch/cleanup.
    - No commit/push/feature work without explicit Jone GO and review.
 
