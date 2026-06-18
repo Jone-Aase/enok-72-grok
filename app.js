@@ -3004,33 +3004,115 @@ function publishGeGps1BCamera(payload) {
   }
 }
 
+function geGps1DMetricReason(heightKm, zoomPercent) {
+  if (!Number.isFinite(heightKm)) return 'invalid-heightKm';
+  if (!Number.isFinite(zoomPercent)) return 'invalid-zoomPercent';
+  return null;
+}
+
+function geGps1DLodLevel(zoomPercent) {
+  if (!Number.isFinite(zoomPercent)) return 'invalid';
+  if (zoomPercent >= 5000) return 'close';
+  if (zoomPercent >= 1000) return 'medium';
+  return 'far';
+}
+
+function createGeGps1DALod(heightKm, zoomPercent) {
+  const metricsReason = geGps1DMetricReason(heightKm, zoomPercent);
+  return Object.freeze({
+    phase: 'GE-GPS-1D-A',
+    readOnly: true,
+    provisional: true,
+    metricsReady: !metricsReason,
+    metricsReason,
+    heightKm,
+    zoomPercent,
+    level: geGps1DLodLevel(zoomPercent),
+  });
+}
+
+function createGeGps1DATileCandidate({
+  ready,
+  reason,
+  insideDisk,
+  heightKm,
+  zoomPercent,
+  lat = null,
+  lon = null,
+  x = null,
+  z = null,
+  updatedAt,
+}) {
+  return Object.freeze({
+    phase: 'GE-GPS-1D-A',
+    readOnly: true,
+    provisional: true,
+    ready,
+    reason,
+    tileLoading: false,
+    engine: 'not-called',
+    insideDisk,
+    heightKm,
+    zoomPercent,
+    lat: ready ? lat : null,
+    lon: ready ? lon : null,
+    x: ready ? x : null,
+    z: ready ? z : null,
+    source: 'GE-GPS-1D-A-camera-payload',
+    purpose: 'Future kartmotor tile selection input',
+    updatedAt,
+  });
+}
+
 function updateGeGps1BCamera() {
   const rect = wrap.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
-  const heightKm = Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM);
-  const zoomPercent = Math.round(10000 / camState.dist);
+  const hasCameraDistance = Number.isFinite(camState.dist) && camState.dist > 0;
+  const heightKm = hasCameraDistance ? Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM) : null;
+  const zoomPercent = hasCameraDistance ? Math.round(10000 / camState.dist) : null;
+  const metricReason = geGps1DMetricReason(heightKm, zoomPercent);
+  const lod = createGeGps1DALod(heightKm, zoomPercent);
+  const updatedAt = Date.now();
   const pt = screenToMapWorld(centerX, centerY);
   if (!pt) {
+    const tileCandidate = createGeGps1DATileCandidate({
+      ready: false,
+      reason: metricReason || 'no-layer1-intersection',
+      insideDisk: false,
+      heightKm,
+      zoomPercent,
+      updatedAt,
+    });
     publishGeGps1BCamera({
       phase: 'GE-GPS-1B', locked: true, cameraReadout: true, insideDisk: false,
       heightKm, zoomPercent,
+      lod, tileCandidate,
       source: 'Camera center on Layer1 GE-edderkoppnett',
       purpose: 'E-Earth camera GE-GPS readout',
-      updatedAt: Date.now()
+      updatedAt
     });
     return;
   }
   const radius = Math.hypot(pt.x, pt.z);
   const insideDisk = radius <= R_OUTER;
   if (!insideDisk) {
+    const tileCandidate = createGeGps1DATileCandidate({
+      ready: false,
+      reason: metricReason || 'outside-disk',
+      insideDisk: false,
+      heightKm,
+      zoomPercent,
+      updatedAt,
+    });
     publishGeGps1BCamera({
       phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
       x: pt.x, z: pt.z, radius, insideDisk: false,
       heightKm, zoomPercent,
+      lod, tileCandidate,
       source: 'Camera center on Layer1 GE-edderkoppnett',
       purpose: 'E-Earth camera GE-GPS readout',
-      updatedAt: Date.now()
+      updatedAt
     });
     return;
   }
@@ -3038,15 +3120,30 @@ function updateGeGps1BCamera() {
   const decimal = formatGeGpsDecimal(geo.lat, geo.lon);
   const dms = formatGeGpsDms(geo.lat, geo.lon);
   const formatted = `${decimal} | ${dms}`;
+  // GE-GPS-1D-A read-only tile candidate contract - no tile loading.
+  // 1D-B must validate tileCandidate.ready before any tile loading.
+  const tileCandidate = createGeGps1DATileCandidate({
+    ready: !metricReason,
+    reason: metricReason,
+    insideDisk: true,
+    heightKm,
+    zoomPercent,
+    lat: geo.lat,
+    lon: geo.lon,
+    x: pt.x,
+    z: pt.z,
+    updatedAt,
+  });
   publishGeGps1BCamera({
     phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
     lat: geo.lat, lon: geo.lon, x: pt.x, z: pt.z,
     radius, radiusUnits: geo.radiusUnits, compassDeg: geo.compassDeg,
     insideDisk, decimal, dms, formatted,
     heightKm, zoomPercent,
+    lod, tileCandidate,
     source: 'Camera center on Layer1 GE-edderkoppnett',
     purpose: 'E-Earth camera GE-GPS readout',
-    updatedAt: Date.now()
+    updatedAt
   });
 }
 
