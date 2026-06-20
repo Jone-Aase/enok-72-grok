@@ -3002,7 +3002,130 @@ function publishGeGps1BCamera(payload) {
     window.__GE_GPS_1B = payload;
     window.__GE_GPS_CAMERA = payload;
   }
+  publishGeGps1DB(payload);
 }
+
+const GE_GPS_1D_B_N5_OSLO = Object.freeze({
+  kartblad: '33-5-462-135-10',
+  rasterKartid: 'CO045-5-3',
+  frameEastWestM: 3200,
+  frameNorthSouthM: 2400,
+  areaM2: 7680000,
+  expectedDiagonalM: 4000,
+  gridRole: 'first-start-cell',
+  gridOwner: 'Kartmotor metadata only',
+  sourceGeometryDeltaDocumented: true,
+});
+
+const GE_GPS_1D_B_CORNERS = Object.freeze(['SW', 'SE', 'NW', 'NE']);
+
+const geGps1DBReason = function geGps1DBReason(payload) {
+  const tileCandidate = payload && payload.tileCandidate;
+  if (!payload) return 'missing-payload';
+  if (!tileCandidate) return 'missing-tileCandidate';
+  if (!payload.lod) return 'missing-lod';
+  if (tileCandidate.ready !== true) return tileCandidate.reason || 'tileCandidate-not-ready';
+  if (tileCandidate.insideDisk !== true) return 'outside-disk';
+  if (tileCandidate.tileLoading !== false) return 'tileLoading-not-false';
+  if (tileCandidate.engine !== 'not-called') return 'engine-not-safe';
+  if (!Number.isFinite(tileCandidate.heightKm)) return 'invalid-heightKm';
+  if (!Number.isFinite(tileCandidate.zoomPercent)) return 'invalid-zoomPercent';
+  if (!Number.isFinite(tileCandidate.lat)) return 'invalid-lat';
+  if (!Number.isFinite(tileCandidate.lon)) return 'invalid-lon';
+  if (!Number.isFinite(tileCandidate.x)) return 'invalid-x';
+  if (!Number.isFinite(tileCandidate.z)) return 'invalid-z';
+  if (!Number.isFinite(payload.updatedAt)) return 'invalid-updatedAt';
+  return null;
+};
+
+const geGps1DBFreshnessStatus = function geGps1DBFreshnessStatus(sourcePayloadUpdatedAt, evaluatedAt) {
+  if (!Number.isFinite(sourcePayloadUpdatedAt)) return 'unknown';
+  return evaluatedAt - sourcePayloadUpdatedAt <= 2000 ? 'ok' : 'warning';
+};
+
+const createGeGps1DBDeviationReport = function createGeGps1DBDeviationReport(payload, reason, evaluatedAt, freshnessStatus) {
+  return Object.freeze({
+    phase: 'GE-GPS-1D-B',
+    reportType: 'GE-GPS-1D-B-deviation-report',
+    readOnly: true,
+    provisional: true,
+    candidateReady: false,
+    reason,
+    sourcePayloadUpdatedAt: Number.isFinite(payload && payload.updatedAt) ? payload.updatedAt : null,
+    tileCandidateUpdatedAt: Number.isFinite(payload && payload.tileCandidate && payload.tileCandidate.updatedAt)
+      ? payload.tileCandidate.updatedAt
+      : null,
+    evaluatedAt,
+    freshnessStatus,
+    freshnessHardStop: false,
+    kartmotorCalled: false,
+    tileLoading: false,
+    networkTileLoading: false,
+    cacheOrIdbTouched: false,
+    hiddenCorrection: false,
+    correctionApplied: false,
+    rawDeltaPreserved: true,
+    sourceGeometryDeltaDocumented: GE_GPS_1D_B_N5_OSLO.sourceGeometryDeltaDocumented,
+    checkId: 'GE-GPS-1D-B-hard-gate',
+    expected: Object.freeze({ source: 'valid GE-GPS-1D-A camera payload' }),
+    observed: Object.freeze({ reason }),
+    delta: Object.freeze({}),
+    status: 'blocked',
+    category: 'payload',
+    nextAction: 'document',
+  });
+};
+
+const createGeGps1DBCandidate = function createGeGps1DBCandidate(payload) {
+  const evaluatedAt = Date.now();
+  const reason = geGps1DBReason(payload);
+  const freshnessStatus = geGps1DBFreshnessStatus(payload && payload.updatedAt, evaluatedAt);
+  if (reason) return createGeGps1DBDeviationReport(payload, reason, evaluatedAt, freshnessStatus);
+  const tileCandidate = payload.tileCandidate;
+  return Object.freeze({
+    phase: 'GE-GPS-1D-B',
+    readOnly: true,
+    provisional: true,
+    candidateReady: true,
+    reason: null,
+    sourcePayloadUpdatedAt: payload.updatedAt,
+    tileCandidateUpdatedAt: tileCandidate.updatedAt,
+    evaluatedAt,
+    freshnessStatus,
+    freshnessHardStop: false,
+    kartmotorCalled: false,
+    tileLoading: false,
+    networkTileLoading: false,
+    cacheOrIdbTouched: false,
+    hiddenCorrection: false,
+    correctionApplied: false,
+    rawDeltaPreserved: true,
+    sourceGeometryDeltaDocumented: GE_GPS_1D_B_N5_OSLO.sourceGeometryDeltaDocumented,
+    kartblad: GE_GPS_1D_B_N5_OSLO.kartblad,
+    rasterKartid: GE_GPS_1D_B_N5_OSLO.rasterKartid,
+    frameEastWestM: GE_GPS_1D_B_N5_OSLO.frameEastWestM,
+    frameNorthSouthM: GE_GPS_1D_B_N5_OSLO.frameNorthSouthM,
+    areaM2: GE_GPS_1D_B_N5_OSLO.areaM2,
+    expectedDiagonalM: GE_GPS_1D_B_N5_OSLO.expectedDiagonalM,
+    cornerIds: GE_GPS_1D_B_CORNERS,
+    gridRole: GE_GPS_1D_B_N5_OSLO.gridRole,
+    gridOwner: GE_GPS_1D_B_N5_OSLO.gridOwner,
+    heightKm: tileCandidate.heightKm,
+    zoomPercent: tileCandidate.zoomPercent,
+    lat: tileCandidate.lat,
+    lon: tileCandidate.lon,
+    x: tileCandidate.x,
+    z: tileCandidate.z,
+  });
+};
+
+const publishGeGps1DB = function publishGeGps1DB(payload) {
+  const oneDB = createGeGps1DBCandidate(payload);
+  globalThis.__GE_GPS_1D_B = oneDB;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_B = oneDB;
+  }
+};
 
 function geGps1DMetricReason(heightKm, zoomPercent) {
   if (!Number.isFinite(heightKm)) return 'invalid-heightKm';
