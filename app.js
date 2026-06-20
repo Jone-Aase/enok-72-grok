@@ -3005,6 +3005,8 @@ function publishGeGps1BCamera(payload) {
   publishGeGps1DB(payload);
   publishGeGps1DC(payload, globalThis.__GE_GPS_1D_B);
   publishGeGps1DD();
+  // GE-GPS-1D-E must remain a synchronous same-chain shadow read after 1D-D.
+  publishGeGps1DE();
 }
 
 const GE_GPS_1D_B_N5_OSLO = Object.freeze({
@@ -3572,6 +3574,289 @@ const publishGeGps1DD = function publishGeGps1DD() {
   globalThis.__GE_GPS_1D_D = oneDD;
   if (typeof window !== 'undefined') {
     window.__GE_GPS_1D_D = oneDD;
+  }
+};
+
+// GE-GPS-1D-E is the only canonical Kartmotor-facing shadow seam.
+// It is still read-only telemetry: no action, no loading, no Kartmotor authority.
+// Closed enum: no additions without new Jone review.
+const GE_GPS_1D_E_REASON_VALUES = Object.freeze([
+  null,
+  '1d-d-missing',
+  '1d-d-unfrozen',
+  '1d-d-wrong-phase',
+  '1d-d-wrong-report-type',
+  '1d-d-contract-fail',
+  '1d-d-source-conflict',
+]);
+
+// Closed enum: candidate state only, never action authority.
+const GE_GPS_1D_E_CANDIDATE_REASON_VALUES = Object.freeze([
+  'shadow-evaluation-candidate',
+  'source-contract-satisfied',
+  'source-not-ready',
+  '1d-d-liveness-fail',
+  '1d-d-future-evaluation-false',
+  'no-action-authority',
+]);
+
+// Closed enum: trust/debug warnings only.
+const GE_GPS_1D_E_WARNING_VALUES = Object.freeze([
+  '1d-d-readOnly-false',
+  '1d-d-noAction-false',
+  '1d-d-operationalAuthority-not-none',
+  '1d-d-handoffReportReady-false',
+  '1d-d-readContractSatisfied-false',
+  '1d-d-liveness-unknown',
+  '1d-d-liveness-stale-or-false',
+  '1d-d-source1DCVerification-missing-or-unfrozen',
+  '1d-d-permittedFutureReads-missing-or-unfrozen',
+  '1d-d-forbiddenNow-missing-or-unfrozen',
+  'evictionCandidate-may-be-missed-on-async-poll',
+]);
+
+// Closed whitelist: future Kartmotor may read only this curated shadow seam.
+const GE_GPS_1D_E_PERMITTED_FUTURE_READ_FIELDS = Object.freeze([
+  'shadowEvaluationCandidate',
+  'candidateReason',
+  'candidateReasons',
+  'reason',
+  'warnings',
+  'handoffShadowReady',
+  'source1DDReadiness.contractSatisfied',
+  'source1DDReadiness.livenessOk',
+  'source1DDReadiness.livenessStatus',
+  'cellIdentity.kartblad',
+  'cellIdentity.rasterKartid',
+  'cellIdentity.role',
+  'metricStandard.frameEastWestM',
+  'metricStandard.frameNorthSouthM',
+  'metricStandard.areaM2',
+  'metricStandard.expectedDiagonalM',
+  'metricStandard.metricStandardOnly',
+  'guards.noAction',
+  'guards.operationalAuthority',
+  'guards.shadowOnly',
+  'guards.kartmotorAuthority',
+  'forbiddenNow',
+]);
+
+const GE_GPS_1D_E_GUARDS = Object.freeze({
+  noAction: true,
+  operationalAuthority: 'none',
+  shadowOnly: true,
+  kartmotorAuthority: false,
+});
+
+const GE_GPS_1D_E_FORBIDDEN_NOW = Object.freeze({
+  kartmotorCallsForbidden: true,
+  loadingForbidden: true,
+  unloadDeactivationForbidden: true,
+  fetchForbidden: true,
+  cacheIdbStorageForbidden: true,
+  tileManagerForbidden: true,
+  neighborPrefetchWarmupForbidden: true,
+  drawingRenderingForbidden: true,
+  lockedAreaChangesForbidden: true,
+  hiddenCorrectionForbidden: true,
+  bboxTruthForbidden: true,
+  xzMembershipForbidden: true,
+  transformFittingForbidden: true,
+  asyncDelayedHookForbidden: true,
+  mergeDeployPrStateForbidden: true,
+  policyFlagsAreProof: false,
+  staticDiffScanRequired: true,
+});
+
+const geGps1DECellIdentity = Object.freeze({
+  kartblad: GE_GPS_1D_B_N5_OSLO.kartblad,
+  rasterKartid: GE_GPS_1D_B_N5_OSLO.rasterKartid,
+  role: GE_GPS_1D_B_N5_OSLO.gridRole,
+});
+
+const geGps1DEMetricStandard = Object.freeze({
+  frameEastWestM: GE_GPS_1D_B_N5_OSLO.frameEastWestM,
+  frameNorthSouthM: GE_GPS_1D_B_N5_OSLO.frameNorthSouthM,
+  areaM2: GE_GPS_1D_B_N5_OSLO.areaM2,
+  expectedDiagonalM: GE_GPS_1D_B_N5_OSLO.expectedDiagonalM,
+  metricStandardOnly: true,
+});
+
+const geGps1DESectionFrozen = function geGps1DESectionFrozen(section) {
+  return !!section && Object.isFrozen(section);
+};
+
+const geGps1DESourceReadiness = function geGps1DESourceReadiness(oneDD) {
+  const source1DCVerification = oneDD && oneDD.source1DCVerification;
+  const permittedFutureReads = oneDD && oneDD.permittedFutureReads;
+  const forbiddenNow = oneDD && oneDD.forbiddenNow;
+  const liveness = oneDD && oneDD.liveness;
+  const sourceConflict = !!(source1DCVerification && (
+    source1DCVerification.sourceConflict === true
+    || source1DCVerification.canonicalRasterKartid !== 'CO045-5-3'
+    || source1DCVerification.observedRasterKartid !== 'CO045-5-3'
+  ));
+  const source1DCVerificationFrozen = geGps1DESectionFrozen(source1DCVerification);
+  const permittedFutureReadsFrozen = geGps1DESectionFrozen(permittedFutureReads);
+  const forbiddenNowFrozen = geGps1DESectionFrozen(forbiddenNow);
+  const contractSatisfied = !!oneDD
+    && Object.isFrozen(oneDD)
+    && oneDD.readOnly === true
+    && oneDD.phase === 'GE-GPS-1D-D'
+    && oneDD.reportType === 'GE-GPS-1D-D-handoff-report'
+    && oneDD.noAction === true
+    && oneDD.operationalAuthority === 'none'
+    && oneDD.handoffReportReady === true
+    && oneDD.readContractSatisfied === true
+    && oneDD.reason === null
+    && !sourceConflict
+    && source1DCVerificationFrozen
+    && permittedFutureReadsFrozen
+    && forbiddenNowFrozen;
+  return Object.freeze({
+    exists: !!oneDD,
+    isFrozen: !!oneDD && Object.isFrozen(oneDD),
+    readOnly: !!(oneDD && oneDD.readOnly === true),
+    phase: oneDD ? oneDD.phase : null,
+    reportType: oneDD ? oneDD.reportType : null,
+    noAction: !!(oneDD && oneDD.noAction === true),
+    operationalAuthority: oneDD ? oneDD.operationalAuthority : null,
+    handoffReportReady: !!(oneDD && oneDD.handoffReportReady === true),
+    readContractSatisfied: !!(oneDD && oneDD.readContractSatisfied === true),
+    sourceReason: oneDD ? oneDD.reason : null,
+    sourceFutureEvaluationCandidate: !!(oneDD && oneDD.futureEvaluationCandidate === true),
+    livenessOk: !!(liveness && liveness.livenessOk === true),
+    livenessStatus: liveness ? liveness.livenessStatus : 'unknown',
+    sourceConflict,
+    source1DCVerificationFrozen,
+    permittedFutureReadsFrozen,
+    forbiddenNowFrozen,
+    canonicalRasterKartid: source1DCVerification ? source1DCVerification.canonicalRasterKartid : null,
+    observedRasterKartid: source1DCVerification ? source1DCVerification.observedRasterKartid : null,
+    contractSatisfied,
+  });
+};
+
+// reason is structural/read-contract only. Candidate and liveness states cannot set it.
+const geGps1DEStructuralReason = function geGps1DEStructuralReason(readiness) {
+  if (!readiness.exists) return '1d-d-missing';
+  if (!readiness.isFrozen) return '1d-d-unfrozen';
+  if (readiness.phase !== 'GE-GPS-1D-D') return '1d-d-wrong-phase';
+  if (readiness.reportType !== 'GE-GPS-1D-D-handoff-report') return '1d-d-wrong-report-type';
+  if (readiness.sourceConflict) return '1d-d-source-conflict';
+  if (!readiness.contractSatisfied) return '1d-d-contract-fail';
+  return null;
+};
+
+const geGps1DEWarnings = function geGps1DEWarnings(readiness, oneDD) {
+  const warnings = [
+    readiness.exists && !readiness.readOnly ? '1d-d-readOnly-false' : null,
+    readiness.exists && !readiness.noAction ? '1d-d-noAction-false' : null,
+    readiness.exists && readiness.operationalAuthority !== 'none'
+      ? '1d-d-operationalAuthority-not-none'
+      : null,
+    readiness.exists && !readiness.handoffReportReady ? '1d-d-handoffReportReady-false' : null,
+    readiness.exists && !readiness.readContractSatisfied ? '1d-d-readContractSatisfied-false' : null,
+    readiness.exists && readiness.livenessStatus === 'unknown' ? '1d-d-liveness-unknown' : null,
+    readiness.exists && readiness.livenessStatus !== 'unknown' && !readiness.livenessOk
+      ? '1d-d-liveness-stale-or-false'
+      : null,
+    readiness.exists && !readiness.source1DCVerificationFrozen
+      ? '1d-d-source1DCVerification-missing-or-unfrozen'
+      : null,
+    readiness.exists && !readiness.permittedFutureReadsFrozen
+      ? '1d-d-permittedFutureReads-missing-or-unfrozen'
+      : null,
+    readiness.exists && !readiness.forbiddenNowFrozen
+      ? '1d-d-forbiddenNow-missing-or-unfrozen'
+      : null,
+    oneDD && Array.isArray(oneDD.warnings) && oneDD.warnings.includes('evictionCandidate-may-be-missed-on-async-poll')
+      ? 'evictionCandidate-may-be-missed-on-async-poll'
+      : null,
+  ].filter(Boolean);
+  return Object.freeze(warnings.filter(warning => GE_GPS_1D_E_WARNING_VALUES.includes(warning)));
+};
+
+const geGps1DECandidateReasons = function geGps1DECandidateReasons(reason, readiness) {
+  if (reason !== null) {
+    return Object.freeze(['source-not-ready']);
+  }
+  // no-action-authority is a reminder, not an error; top-level guards enforce it.
+  const reasons = [
+    readiness.livenessOk ? null : '1d-d-liveness-fail',
+    readiness.sourceFutureEvaluationCandidate ? null : '1d-d-future-evaluation-false',
+    readiness.sourceFutureEvaluationCandidate && readiness.livenessOk ? 'shadow-evaluation-candidate' : null,
+    'source-contract-satisfied',
+    'no-action-authority',
+  ].filter(Boolean);
+  return Object.freeze(reasons.filter(candidateReason => GE_GPS_1D_E_CANDIDATE_REASON_VALUES.includes(candidateReason)));
+};
+
+const geGps1DEPrimaryCandidateReason = function geGps1DEPrimaryCandidateReason(candidateReasons) {
+  const priority = [
+    'source-not-ready',
+    '1d-d-liveness-fail',
+    '1d-d-future-evaluation-false',
+    'shadow-evaluation-candidate',
+    'source-contract-satisfied',
+    'no-action-authority',
+  ];
+  return priority.find(reason => candidateReasons.includes(reason)) || null;
+};
+
+const createGeGps1DEReport = function createGeGps1DEReport() {
+  const evaluatedAt = Date.now();
+  const oneDD = globalThis.__GE_GPS_1D_D;
+  const source1DDReadiness = geGps1DESourceReadiness(oneDD);
+  const reason = geGps1DEStructuralReason(source1DDReadiness);
+  const candidateReasons = geGps1DECandidateReasons(reason, source1DDReadiness);
+  const candidateReason = geGps1DEPrimaryCandidateReason(candidateReasons);
+  const shadowEvaluationCandidate = reason === null
+    && source1DDReadiness.sourceFutureEvaluationCandidate
+    && source1DDReadiness.livenessOk;
+  const warnings = geGps1DEWarnings(source1DDReadiness, oneDD);
+  const permittedFutureReads = Object.freeze({
+    source: 'window.__GE_GPS_1D_E',
+    fields: GE_GPS_1D_E_PERMITTED_FUTURE_READ_FIELDS,
+    whitelistOnly: true,
+    actionGrant: false,
+  });
+  return Object.freeze({
+    phase: 'GE-GPS-1D-E',
+    reportType: 'GE-GPS-1D-E-shadow-seam-report',
+    readOnly: true,
+    // True means this shadow report was produced/frozen, not that its source is OK.
+    handoffShadowReady: true,
+    shadowEvaluationCandidate,
+    candidateReason,
+    candidateReasons,
+    reason,
+    warnings,
+    evaluatedAt,
+    source1DDEvaluatedAt: Number.isFinite(oneDD && oneDD.evaluatedAt) ? oneDD.evaluatedAt : null,
+    source1DDReadiness,
+    cellIdentity: geGps1DECellIdentity,
+    metricStandard: geGps1DEMetricStandard,
+    trust: Object.freeze({
+      livenessOk: source1DDReadiness.livenessOk,
+      livenessStatus: source1DDReadiness.livenessStatus,
+      source: '1D-D inherited liveness only',
+    }),
+    guards: GE_GPS_1D_E_GUARDS,
+    noAction: GE_GPS_1D_E_GUARDS.noAction,
+    operationalAuthority: GE_GPS_1D_E_GUARDS.operationalAuthority,
+    shadowOnly: GE_GPS_1D_E_GUARDS.shadowOnly,
+    kartmotorAuthority: GE_GPS_1D_E_GUARDS.kartmotorAuthority,
+    permittedFutureReads,
+    forbiddenNow: GE_GPS_1D_E_FORBIDDEN_NOW,
+  });
+};
+
+const publishGeGps1DE = function publishGeGps1DE() {
+  const oneDE = createGeGps1DEReport();
+  globalThis.__GE_GPS_1D_E = oneDE;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_E = oneDE;
   }
 };
 
