@@ -3003,6 +3003,7 @@ function publishGeGps1BCamera(payload) {
     window.__GE_GPS_CAMERA = payload;
   }
   publishGeGps1DB(payload);
+  publishGeGps1DC(payload, globalThis.__GE_GPS_1D_B);
 }
 
 const GE_GPS_1D_B_N5_OSLO = Object.freeze({
@@ -3126,6 +3127,243 @@ const publishGeGps1DB = function publishGeGps1DB(payload) {
     window.__GE_GPS_1D_B = oneDB;
   }
 };
+
+const GE_GPS_1D_C_CORNER_ORDER = Object.freeze(['SW', 'SE', 'NE', 'NW']);
+
+const GE_GPS_1D_C_OSLO_CORNERS = Object.freeze({
+  SW: Object.freeze({ id: 'SW', lat: 59.89949242, lon: 10.70821324 }),
+  SE: Object.freeze({ id: 'SE', lat: 59.90134046, lon: 10.76525371 }),
+  NE: Object.freeze({ id: 'NE', lat: 59.92283208, lon: 10.76251090 }),
+  NW: Object.freeze({ id: 'NW', lat: 59.92098245, lon: 10.70543376 }),
+});
+
+const GE_GPS_1D_C_THRESHOLDS = Object.freeze({
+  bufferEnterM: 1000,
+  bufferExitM: 2000,
+  heightEnterKm: 10,
+  heightExitKm: 15,
+  zoomMirrorTolerancePercent: 1,
+});
+
+const GE_GPS_1D_C_DISTANCE_METHOD = 'local-tangent-plane';
+const GE_GPS_1D_C_POINT_IN_POLYGON_METHOD = 'ray-cast-even-odd';
+let geGps1DCWasActive = false;
+
+const geGps1DCFlatMetricStandard = Object.freeze({
+  kartblad: GE_GPS_1D_B_N5_OSLO.kartblad,
+  rasterKartid: GE_GPS_1D_B_N5_OSLO.rasterKartid,
+  frameEastWestM: GE_GPS_1D_B_N5_OSLO.frameEastWestM,
+  frameNorthSouthM: GE_GPS_1D_B_N5_OSLO.frameNorthSouthM,
+  areaM2: GE_GPS_1D_B_N5_OSLO.areaM2,
+  expectedDiagonalM: GE_GPS_1D_B_N5_OSLO.expectedDiagonalM,
+  metricStandardOnly: true,
+  membershipSource: 'GE-GPS point-in-polygon only',
+});
+
+const geGps1DCCornerList = function geGps1DCCornerList() {
+  return GE_GPS_1D_C_CORNER_ORDER.map(id => GE_GPS_1D_C_OSLO_CORNERS[id]);
+};
+
+const geGps1DCCenter = function geGps1DCCenter(corners) {
+  const sum = corners.reduce((acc, corner) => {
+    acc.lat += corner.lat;
+    acc.lon += corner.lon;
+    return acc;
+  }, { lat: 0, lon: 0 });
+  return Object.freeze({
+    lat: sum.lat / corners.length,
+    lon: sum.lon / corners.length,
+  });
+};
+
+const geGps1DCToLocalMeters = function geGps1DCToLocalMeters(point, origin) {
+  const latMetersPerDeg = 111320;
+  const lonMetersPerDeg = 111320 * Math.cos(origin.lat * Math.PI / 180);
+  return Object.freeze({
+    x: (point.lon - origin.lon) * lonMetersPerDeg,
+    y: (point.lat - origin.lat) * latMetersPerDeg,
+  });
+};
+
+const geGps1DCRayCastEvenOdd = function geGps1DCRayCastEvenOdd(point, corners, origin) {
+  const p = geGps1DCToLocalMeters(point, origin);
+  const localCorners = corners.map(corner => geGps1DCToLocalMeters(corner, origin));
+  let inside = false;
+  for (let i = 0, j = localCorners.length - 1; i < localCorners.length; j = i++) {
+    const a = localCorners[i];
+    const b = localCorners[j];
+    const intersects = (a.y > p.y) !== (b.y > p.y)
+      && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+};
+
+const geGps1DCPointToSegmentDistanceM = function geGps1DCPointToSegmentDistanceM(point, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const segmentLenSq = dx * dx + dy * dy;
+  if (segmentLenSq === 0) return Math.hypot(point.x - a.x, point.y - a.y);
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / segmentLenSq));
+  const closestX = a.x + t * dx;
+  const closestY = a.y + t * dy;
+  return Math.hypot(point.x - closestX, point.y - closestY);
+};
+
+// GE-GPS verification distance near Oslo; not Kartmotor placement or hidden transform.
+const geGps1DCDistanceToCellM = function geGps1DCDistanceToCellM(point, corners, origin, inside) {
+  if (inside) return 0;
+  const p = geGps1DCToLocalMeters(point, origin);
+  const localCorners = corners.map(corner => geGps1DCToLocalMeters(corner, origin));
+  let minDistanceM = Infinity;
+  for (let i = 0; i < localCorners.length; i += 1) {
+    const a = localCorners[i];
+    const b = localCorners[(i + 1) % localCorners.length];
+    minDistanceM = Math.min(minDistanceM, geGps1DCPointToSegmentDistanceM(p, a, b));
+  }
+  return Number(minDistanceM.toFixed(3));
+};
+
+const geGps1DCReason = function geGps1DCReason(payload, oneDB) {
+  const tileCandidate = payload && payload.tileCandidate;
+  if (!payload) return 'missing-payload';
+  if (!tileCandidate) return 'missing-tileCandidate';
+  if (!payload.lod) return 'missing-lod';
+  if (!oneDB) return 'missing-1D-B';
+  if (oneDB.candidateReady !== true) return oneDB.reason || '1D-B-candidate-not-ready';
+  if (tileCandidate.ready !== true) return tileCandidate.reason || 'tileCandidate-not-ready';
+  if (tileCandidate.insideDisk !== true) return 'outside-disk';
+  if (tileCandidate.tileLoading !== false) return 'tileLoading-not-false';
+  if (tileCandidate.engine !== 'not-called') return 'engine-not-safe';
+  if (!Number.isFinite(tileCandidate.lat)) return 'invalid-lat';
+  if (!Number.isFinite(tileCandidate.lon)) return 'invalid-lon';
+  if (!Number.isFinite(tileCandidate.heightKm)) return 'invalid-heightKm';
+  if (!Number.isFinite(payload.updatedAt)) return 'invalid-updatedAt';
+  return null;
+};
+
+const geGps1DCZoomMirror = function geGps1DCZoomMirror(heightKm, zoomPercent) {
+  if (!Number.isFinite(heightKm) || heightKm <= 0 || !Number.isFinite(zoomPercent)) {
+    return Object.freeze({
+      zoomRole: 'diagnostics-mirror-only',
+      zoomUsedForGate: false,
+      expectedZoomPercent: null,
+      zoomMirrorTolerancePercent: GE_GPS_1D_C_THRESHOLDS.zoomMirrorTolerancePercent,
+      zoomMismatchPercent: null,
+      zoomMismatchWarning: null,
+    });
+  }
+  const expectedZoomPercent = 10000000 / heightKm;
+  const zoomMismatchPercent = Math.abs(zoomPercent - expectedZoomPercent) / expectedZoomPercent * 100;
+  return Object.freeze({
+    zoomRole: 'diagnostics-mirror-only',
+    zoomUsedForGate: false,
+    expectedZoomPercent: Math.round(expectedZoomPercent),
+    zoomMirrorTolerancePercent: GE_GPS_1D_C_THRESHOLDS.zoomMirrorTolerancePercent,
+    zoomMismatchPercent: Number(zoomMismatchPercent.toFixed(3)),
+    zoomMismatchWarning: zoomMismatchPercent > GE_GPS_1D_C_THRESHOLDS.zoomMirrorTolerancePercent
+      ? 'zoom-height-mismatch'
+      : null,
+  });
+};
+
+const createGeGps1DCReport = function createGeGps1DCReport(payload, oneDB) {
+  const evaluatedAt = Date.now();
+  const tileCandidate = payload && payload.tileCandidate;
+  const reason = geGps1DCReason(payload, oneDB);
+  const corners = Object.freeze(geGps1DCCornerList().map(corner => Object.freeze({ ...corner })));
+  const center = geGps1DCCenter(corners);
+  const hasGeometryInput = tileCandidate
+    && Number.isFinite(tileCandidate.lat)
+    && Number.isFinite(tileCandidate.lon);
+  const cameraPoint = hasGeometryInput
+    ? Object.freeze({ lat: tileCandidate.lat, lon: tileCandidate.lon })
+    : Object.freeze({ lat: null, lon: null });
+  const insideFirstStartCell = hasGeometryInput
+    ? geGps1DCRayCastEvenOdd(cameraPoint, corners, center)
+    : false;
+  const distanceToFirstStartCellM = hasGeometryInput
+    ? geGps1DCDistanceToCellM(cameraPoint, corners, center, insideFirstStartCell)
+    : null;
+  const withinEnterBuffer = Number.isFinite(distanceToFirstStartCellM)
+    && distanceToFirstStartCellM <= GE_GPS_1D_C_THRESHOLDS.bufferEnterM;
+  const outsideExitBuffer = Number.isFinite(distanceToFirstStartCellM)
+    && distanceToFirstStartCellM > GE_GPS_1D_C_THRESHOLDS.bufferExitM;
+  const inHysteresisBand = Number.isFinite(distanceToFirstStartCellM)
+    && distanceToFirstStartCellM > GE_GPS_1D_C_THRESHOLDS.bufferEnterM
+    && distanceToFirstStartCellM <= GE_GPS_1D_C_THRESHOLDS.bufferExitM;
+  const heightKm = tileCandidate && tileCandidate.heightKm;
+  const heightEnterGate = Number.isFinite(heightKm) && heightKm <= GE_GPS_1D_C_THRESHOLDS.heightEnterKm;
+  const heightExitGate = Number.isFinite(heightKm) && heightKm >= GE_GPS_1D_C_THRESHOLDS.heightExitKm;
+  const locationEnterGate = insideFirstStartCell || withinEnterBuffer;
+  const hardGateOk = !reason;
+  const enterCandidate = hardGateOk && locationEnterGate && heightEnterGate;
+  const exitCandidate = !hardGateOk || outsideExitBuffer || heightExitGate;
+  const firstStartCellActiveCandidate = enterCandidate || (geGps1DCWasActive && !exitCandidate);
+  const evictionCandidate = geGps1DCWasActive && exitCandidate;
+  geGps1DCWasActive = firstStartCellActiveCandidate;
+  const freshnessStatus = geGps1DBFreshnessStatus(payload && payload.updatedAt, evaluatedAt);
+  const zoomMirror = geGps1DCZoomMirror(heightKm, tileCandidate && tileCandidate.zoomPercent);
+  const warnings = Object.freeze([
+    freshnessStatus === 'warning' ? 'stale-payload' : null,
+    zoomMirror.zoomMismatchWarning,
+  ].filter(Boolean));
+  const geGpsVerification = Object.freeze({
+    cameraLat: cameraPoint.lat,
+    cameraLon: cameraPoint.lon,
+    corners,
+    center,
+    pointInPolygonMethod: GE_GPS_1D_C_POINT_IN_POLYGON_METHOD,
+    distanceMethod: GE_GPS_1D_C_DISTANCE_METHOD,
+    insideFirstStartCell,
+    distanceToFirstStartCellM,
+    withinEnterBuffer,
+    outsideExitBuffer,
+    inHysteresisBand,
+    locationGate: locationEnterGate ? 'inside-or-enter-buffer' : 'outside-range',
+  });
+  const engineDiagnosticsOnly = Object.freeze({
+    x: tileCandidate && Number.isFinite(tileCandidate.x) ? tileCandidate.x : null,
+    z: tileCandidate && Number.isFinite(tileCandidate.z) ? tileCandidate.z : null,
+    diagnosticsOnly: true,
+  });
+  return Object.freeze({
+    phase: 'GE-GPS-1D-C',
+    readOnly: true,
+    provisional: true,
+    warningCalibrated: true,
+    firstStartCellActiveCandidate,
+    evictionCandidate,
+    reason: reason || null,
+    warnings,
+    sourcePayloadUpdatedAt: Number.isFinite(payload && payload.updatedAt) ? payload.updatedAt : null,
+    evaluatedAt,
+    freshnessStatus,
+    freshnessHardStop: false,
+    geGpsVerification,
+    flatMetricStandard: geGps1DCFlatMetricStandard,
+    engineDiagnosticsOnly,
+    thresholds: GE_GPS_1D_C_THRESHOLDS,
+    heightKm: Number.isFinite(heightKm) ? heightKm : null,
+    heightGate: heightEnterGate ? 'enter' : (heightExitGate ? 'exit' : 'between'),
+    zoomPercent: tileCandidate && Number.isFinite(tileCandidate.zoomPercent) ? tileCandidate.zoomPercent : null,
+    zoomMirror,
+    tileLoading: false,
+    networkTileLoading: false,
+    kartmotorCalled: false,
+    cacheOrIdbTouched: false,
+    hiddenCorrection: false,
+    correctionApplied: false,
+  });
+};
+
+function publishGeGps1DC(payload, oneDB) {
+  const oneDC = createGeGps1DCReport(payload, oneDB);
+  globalThis.__GE_GPS_1D_C = oneDC;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_C = oneDC;
+  }
+}
 
 function geGps1DMetricReason(heightKm, zoomPercent) {
   if (!Number.isFinite(heightKm)) return 'invalid-heightKm';
