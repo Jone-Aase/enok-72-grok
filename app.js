@@ -3007,6 +3007,7 @@ function publishGeGps1BCamera(payload) {
   publishGeGps1DD();
   // GE-GPS-1D-E must remain a synchronous same-chain shadow read after 1D-D.
   publishGeGps1DE();
+  renderGeGps1DFDebugPanel();
 }
 
 const GE_GPS_1D_B_N5_OSLO = Object.freeze({
@@ -3859,6 +3860,173 @@ const publishGeGps1DE = function publishGeGps1DE() {
     window.__GE_GPS_1D_E = oneDE;
   }
 };
+
+const GE_GPS_1D_F_DISPLAY_ROWS = Object.freeze([
+  Object.freeze({ key: 'phase', label: 'phase' }),
+  Object.freeze({ key: 'reportType', label: 'reportType' }),
+  Object.freeze({ key: 'handoffShadowReady', label: 'handoffShadowReady' }),
+  Object.freeze({ key: 'shadowEvaluationCandidate', label: 'shadowEvaluationCandidate' }),
+  Object.freeze({ key: 'reason', label: 'reason' }),
+  Object.freeze({ key: 'candidateReason', label: 'candidateReason' }),
+  Object.freeze({ key: 'candidateReasons', label: 'candidateReasons' }),
+  Object.freeze({ key: 'warnings', label: 'warnings' }),
+  Object.freeze({ key: 'trust.livenessOk', label: 'trust.livenessOk' }),
+  Object.freeze({ key: 'trust.livenessStatus', label: 'trust.livenessStatus' }),
+  Object.freeze({ key: 'cellIdentity.kartblad', label: 'cellIdentity.kartblad' }),
+  Object.freeze({ key: 'cellIdentity.rasterKartid', label: 'cellIdentity.rasterKartid' }),
+  Object.freeze({ key: 'metricStandard.frameEastWestM', label: 'metricStandard.frameEastWestM' }),
+  Object.freeze({ key: 'metricStandard.frameNorthSouthM', label: 'metricStandard.frameNorthSouthM' }),
+  Object.freeze({ key: 'metricStandard.areaM2', label: 'metricStandard.areaM2' }),
+  Object.freeze({ key: 'metricStandard.expectedDiagonalM', label: 'metricStandard.expectedDiagonalM' }),
+  Object.freeze({ key: 'noAction', label: 'noAction' }),
+  Object.freeze({ key: 'operationalAuthority', label: 'operationalAuthority' }),
+  Object.freeze({ key: 'shadowOnly', label: 'shadowOnly' }),
+  Object.freeze({ key: 'kartmotorAuthority', label: 'kartmotorAuthority' }),
+  Object.freeze({ key: 'evaluatedAt', label: 'evaluatedAt' }),
+  Object.freeze({ key: 'source1DDEvaluatedAt', label: 'source1DDEvaluatedAt' }),
+  Object.freeze({ key: 'forbiddenNow.policyFlagsAreProof', label: 'forbiddenNow.policyFlagsAreProof' }),
+  Object.freeze({ key: 'forbiddenNow.staticDiffScanRequired', label: 'forbiddenNow.staticDiffScanRequired' }),
+]);
+
+const GE_GPS_1D_F_UNAVAILABLE = Object.freeze({
+  missing: 'unavailable - shadow seam not published',
+  unfrozen: 'unsupported - shadow seam not frozen',
+  wrongPhase: 'unsupported - wrong phase',
+});
+
+const geGps1DFCreateText = function geGps1DFCreateText(tagName, text) {
+  const el = document.createElement(tagName);
+  el.textContent = text;
+  return el;
+};
+
+const geGps1DFSetStyles = function geGps1DFSetStyles(el, styles) {
+  for (const [name, value] of styles) {
+    el.style[name] = value;
+  }
+};
+
+const geGps1DFEnsurePanel = function geGps1DFEnsurePanel() {
+  let panel = document.getElementById('ge-gps-1d-f-debug');
+  if (panel) return panel;
+
+  const parent = document.getElementById('norge-controls') || document.getElementById('panel-left');
+  if (!parent) return null;
+
+  panel = document.createElement('div');
+  panel.id = 'ge-gps-1d-f-debug';
+  panel.className = 'norge-section';
+  geGps1DFSetStyles(panel, [
+    ['borderTop', '1px solid #2a2a2a'],
+    ['paddingTop', '8px'],
+  ]);
+
+  const title = geGps1DFCreateText('div', 'GE-GPS / Kartmotor Shadow - READ ONLY');
+  title.className = 'norge-title';
+  panel.appendChild(title);
+
+  const authority = geGps1DFCreateText('div', 'OBSERVATION ONLY - NOT KARTMOTOR-GO');
+  geGps1DFSetStyles(authority, [
+    ['color', '#d4af37'],
+    ['fontSize', '10px'],
+    ['fontFamily', 'ui-monospace, monospace'],
+    ['lineHeight', '1.35'],
+    ['marginBottom', '2px'],
+  ]);
+  panel.appendChild(authority);
+
+  const guards = geGps1DFCreateText(
+    'div',
+    'noAction:true | authority:none | shadowOnly:true | kartmotorAuthority:false'
+  );
+  geGps1DFSetStyles(guards, [
+    ['color', '#aaa'],
+    ['fontSize', '10px'],
+    ['fontFamily', 'ui-monospace, monospace'],
+    ['lineHeight', '1.35'],
+    ['marginBottom', '6px'],
+  ]);
+  panel.appendChild(guards);
+
+  const status = document.createElement('div');
+  status.className = 'norge-info-row';
+  status.appendChild(geGps1DFCreateText('span', 'status'));
+  const statusValue = geGps1DFCreateText('span', 'n/a');
+  statusValue.id = 'ge-gps-1d-f-value-status';
+  status.appendChild(statusValue);
+  panel.appendChild(status);
+
+  // GE-GPS-1D-F closed display list - no additions without new Jone review.
+  for (const row of GE_GPS_1D_F_DISPLAY_ROWS) {
+    const line = document.createElement('div');
+    line.className = 'norge-info-row';
+    line.appendChild(geGps1DFCreateText('span', row.label));
+    const value = geGps1DFCreateText('span', 'n/a');
+    value.id = `ge-gps-1d-f-value-${row.key.replace(/\./g, '-')}`;
+    line.appendChild(value);
+    panel.appendChild(line);
+  }
+
+  parent.appendChild(panel);
+  return panel;
+};
+
+const geGps1DFDisplayValue = function geGps1DFDisplayValue(oneDE, key) {
+  let value;
+  if (key === 'phase') value = oneDE.phase;
+  else if (key === 'reportType') value = oneDE.reportType;
+  else if (key === 'handoffShadowReady') value = oneDE.handoffShadowReady;
+  else if (key === 'shadowEvaluationCandidate') value = oneDE.shadowEvaluationCandidate;
+  else if (key === 'reason') value = oneDE.reason;
+  else if (key === 'candidateReason') value = oneDE.candidateReason;
+  else if (key === 'candidateReasons') value = oneDE.candidateReasons;
+  else if (key === 'warnings') value = oneDE.warnings;
+  else if (key === 'trust.livenessOk') value = oneDE.trust && oneDE.trust.livenessOk;
+  else if (key === 'trust.livenessStatus') value = oneDE.trust && oneDE.trust.livenessStatus;
+  else if (key === 'cellIdentity.kartblad') value = oneDE.cellIdentity && oneDE.cellIdentity.kartblad;
+  else if (key === 'cellIdentity.rasterKartid') value = oneDE.cellIdentity && oneDE.cellIdentity.rasterKartid;
+  else if (key === 'metricStandard.frameEastWestM') value = oneDE.metricStandard && oneDE.metricStandard.frameEastWestM;
+  else if (key === 'metricStandard.frameNorthSouthM') value = oneDE.metricStandard && oneDE.metricStandard.frameNorthSouthM;
+  else if (key === 'metricStandard.areaM2') value = oneDE.metricStandard && oneDE.metricStandard.areaM2;
+  else if (key === 'metricStandard.expectedDiagonalM') value = oneDE.metricStandard && oneDE.metricStandard.expectedDiagonalM;
+  else if (key === 'noAction') value = oneDE.noAction;
+  else if (key === 'operationalAuthority') value = oneDE.operationalAuthority;
+  else if (key === 'shadowOnly') value = oneDE.shadowOnly;
+  else if (key === 'kartmotorAuthority') value = oneDE.kartmotorAuthority;
+  else if (key === 'evaluatedAt') value = oneDE.evaluatedAt;
+  else if (key === 'source1DDEvaluatedAt') value = oneDE.source1DDEvaluatedAt;
+  else if (key === 'forbiddenNow.policyFlagsAreProof') {
+    value = oneDE.forbiddenNow && oneDE.forbiddenNow.policyFlagsAreProof;
+  } else if (key === 'forbiddenNow.staticDiffScanRequired') {
+    value = oneDE.forbiddenNow && oneDE.forbiddenNow.staticDiffScanRequired;
+  }
+
+  if (Array.isArray(value)) return value.length ? value.join(', ') : 'none';
+  if (value === null || value === undefined) return 'n/a';
+  return String(value);
+};
+
+function renderGeGps1DFDebugPanel() {
+  if (typeof document === 'undefined') return;
+
+  const panel = geGps1DFEnsurePanel();
+  if (!panel) return;
+
+  const oneDE = typeof window !== 'undefined' ? window.__GE_GPS_1D_E : globalThis.__GE_GPS_1D_E;
+  let statusText = 'ok';
+  if (!oneDE) statusText = GE_GPS_1D_F_UNAVAILABLE.missing;
+  else if (!Object.isFrozen(oneDE)) statusText = GE_GPS_1D_F_UNAVAILABLE.unfrozen;
+  else if (oneDE.phase !== 'GE-GPS-1D-E') statusText = GE_GPS_1D_F_UNAVAILABLE.wrongPhase;
+
+  const statusValue = document.getElementById('ge-gps-1d-f-value-status');
+  if (statusValue) statusValue.textContent = statusText;
+
+  for (const row of GE_GPS_1D_F_DISPLAY_ROWS) {
+    const value = document.getElementById(`ge-gps-1d-f-value-${row.key.replace(/\./g, '-')}`);
+    if (!value) continue;
+    value.textContent = statusText === 'ok' ? geGps1DFDisplayValue(oneDE, row.key) : 'n/a';
+  }
+}
 
 function geGps1DMetricReason(heightKm, zoomPercent) {
   if (!Number.isFinite(heightKm)) return 'invalid-heightKm';
