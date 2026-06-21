@@ -2636,6 +2636,7 @@ function bindCam(id, key, valId, suffix = '°') {
     camState[key] = parseFloat(el.value);
     val.textContent = el.value + suffix;
     applyCamera();
+    updateGeGps1BCamera();
   });
 }
 bindCam('vm-cam-tilt',   'tilt',   'vm-cam-tilt-val',   '°');
@@ -2656,6 +2657,7 @@ function bindLiveCam(id, key, valId) {
     if (other) other.value = el.value;
     if (otherVal) otherVal.textContent = el.value + '°';
     applyCamera();
+    updateGeGps1BCamera();
   });
 }
 bindLiveCam('cam-rot-live',  'rot',  'cam-rot-live-val');
@@ -2678,6 +2680,7 @@ if (camResetBtn) {
     if (vmRot)  { vmRot.value  = 0;  document.getElementById('vm-cam-rot-val').textContent  = '0°';  }
     if (vmTilt) { vmTilt.value = 90; document.getElementById('vm-cam-tilt-val').textContent = '90°'; }
     applyCamera();
+    updateGeGps1BCamera();
     updateZoomReadout();
   });
 }
@@ -2700,6 +2703,7 @@ document.querySelectorAll('[data-cam]').forEach(btn => {
     document.getElementById('vm-cam-rot-val').textContent  = camState.rot + '°';
     document.getElementById('vm-cam-height-val').textContent = camState.height;
     applyCamera();
+    updateGeGps1BCamera();
   });
 });
 
@@ -2752,6 +2756,7 @@ function setCameraHeightKm(heightKm) {
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, dist));
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function updateNorgeFreezeUi() {
@@ -2841,6 +2846,7 @@ function setInstrumentZoomPercent(percent) {
   camState.dist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, 10000 / pct));
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function setInstrumentGridOffset({ x = camState.target.x, y = camState.target.z }) {
@@ -2849,6 +2855,7 @@ function setInstrumentGridOffset({ x = camState.target.x, y = camState.target.z 
   camState.target.z = Math.max(-40, Math.min(40, y));
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function isNorgeMouseGridMode() {
@@ -2878,6 +2885,7 @@ function focusBaseMap(selected) {
   }
   applyCamera();
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 function panCameraTarget(dx, dy) {
@@ -2937,6 +2945,7 @@ window.addEventListener('mousemove', (e) => {
   lastX = e.clientX; lastY = e.clientY;
   panCameraTarget(dx, dy);
   applyCamera();
+  updateGeGps1BCamera();
 });
 
 function screenToMapWorld(clientX, clientY) {
@@ -2986,6 +2995,1182 @@ function publishGeGps1A(payload) {
   if (el) el.textContent = payload.hovering ? payload.formatted : '\u2014';
 }
 
+function publishGeGps1BCamera(payload) {
+  globalThis.__GE_GPS_1B = payload;
+  globalThis.__GE_GPS_CAMERA = payload;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1B = payload;
+    window.__GE_GPS_CAMERA = payload;
+  }
+  publishGeGps1DB(payload);
+  publishGeGps1DC(payload, globalThis.__GE_GPS_1D_B);
+  publishGeGps1DD();
+  // GE-GPS-1D-E must remain a synchronous same-chain shadow read after 1D-D.
+  publishGeGps1DE();
+  renderGeGps1DFDebugPanel();
+}
+
+const GE_GPS_1D_B_N5_OSLO = Object.freeze({
+  kartblad: '33-5-462-135-10',
+  rasterKartid: 'CO045-5-3',
+  frameEastWestM: 3200,
+  frameNorthSouthM: 2400,
+  areaM2: 7680000,
+  expectedDiagonalM: 4000,
+  gridRole: 'first-start-cell',
+  gridOwner: 'Kartmotor metadata only',
+  sourceGeometryDeltaDocumented: true,
+});
+
+const GE_GPS_1D_B_CORNERS = Object.freeze(['SW', 'SE', 'NW', 'NE']);
+
+const geGps1DBReason = function geGps1DBReason(payload) {
+  const tileCandidate = payload && payload.tileCandidate;
+  if (!payload) return 'missing-payload';
+  if (!tileCandidate) return 'missing-tileCandidate';
+  if (!payload.lod) return 'missing-lod';
+  if (tileCandidate.ready !== true) return tileCandidate.reason || 'tileCandidate-not-ready';
+  if (tileCandidate.insideDisk !== true) return 'outside-disk';
+  if (tileCandidate.tileLoading !== false) return 'tileLoading-not-false';
+  if (tileCandidate.engine !== 'not-called') return 'engine-not-safe';
+  if (!Number.isFinite(tileCandidate.heightKm)) return 'invalid-heightKm';
+  if (!Number.isFinite(tileCandidate.zoomPercent)) return 'invalid-zoomPercent';
+  if (!Number.isFinite(tileCandidate.lat)) return 'invalid-lat';
+  if (!Number.isFinite(tileCandidate.lon)) return 'invalid-lon';
+  if (!Number.isFinite(tileCandidate.x)) return 'invalid-x';
+  if (!Number.isFinite(tileCandidate.z)) return 'invalid-z';
+  if (!Number.isFinite(payload.updatedAt)) return 'invalid-updatedAt';
+  return null;
+};
+
+const geGps1DBFreshnessStatus = function geGps1DBFreshnessStatus(sourcePayloadUpdatedAt, evaluatedAt) {
+  if (!Number.isFinite(sourcePayloadUpdatedAt)) return 'unknown';
+  return evaluatedAt - sourcePayloadUpdatedAt <= 2000 ? 'ok' : 'warning';
+};
+
+const createGeGps1DBDeviationReport = function createGeGps1DBDeviationReport(payload, reason, evaluatedAt, freshnessStatus) {
+  return Object.freeze({
+    phase: 'GE-GPS-1D-B',
+    reportType: 'GE-GPS-1D-B-deviation-report',
+    readOnly: true,
+    provisional: true,
+    candidateReady: false,
+    reason,
+    sourcePayloadUpdatedAt: Number.isFinite(payload && payload.updatedAt) ? payload.updatedAt : null,
+    tileCandidateUpdatedAt: Number.isFinite(payload && payload.tileCandidate && payload.tileCandidate.updatedAt)
+      ? payload.tileCandidate.updatedAt
+      : null,
+    evaluatedAt,
+    freshnessStatus,
+    freshnessHardStop: false,
+    kartmotorCalled: false,
+    tileLoading: false,
+    networkTileLoading: false,
+    cacheOrIdbTouched: false,
+    hiddenCorrection: false,
+    correctionApplied: false,
+    rawDeltaPreserved: true,
+    sourceGeometryDeltaDocumented: GE_GPS_1D_B_N5_OSLO.sourceGeometryDeltaDocumented,
+    checkId: 'GE-GPS-1D-B-hard-gate',
+    expected: Object.freeze({ source: 'valid GE-GPS-1D-A camera payload' }),
+    observed: Object.freeze({ reason }),
+    delta: Object.freeze({}),
+    status: 'blocked',
+    category: 'payload',
+    nextAction: 'document',
+  });
+};
+
+const createGeGps1DBCandidate = function createGeGps1DBCandidate(payload) {
+  const evaluatedAt = Date.now();
+  const reason = geGps1DBReason(payload);
+  const freshnessStatus = geGps1DBFreshnessStatus(payload && payload.updatedAt, evaluatedAt);
+  if (reason) return createGeGps1DBDeviationReport(payload, reason, evaluatedAt, freshnessStatus);
+  const tileCandidate = payload.tileCandidate;
+  return Object.freeze({
+    phase: 'GE-GPS-1D-B',
+    readOnly: true,
+    provisional: true,
+    candidateReady: true,
+    reason: null,
+    sourcePayloadUpdatedAt: payload.updatedAt,
+    tileCandidateUpdatedAt: tileCandidate.updatedAt,
+    evaluatedAt,
+    freshnessStatus,
+    freshnessHardStop: false,
+    kartmotorCalled: false,
+    tileLoading: false,
+    networkTileLoading: false,
+    cacheOrIdbTouched: false,
+    hiddenCorrection: false,
+    correctionApplied: false,
+    rawDeltaPreserved: true,
+    sourceGeometryDeltaDocumented: GE_GPS_1D_B_N5_OSLO.sourceGeometryDeltaDocumented,
+    kartblad: GE_GPS_1D_B_N5_OSLO.kartblad,
+    rasterKartid: GE_GPS_1D_B_N5_OSLO.rasterKartid,
+    frameEastWestM: GE_GPS_1D_B_N5_OSLO.frameEastWestM,
+    frameNorthSouthM: GE_GPS_1D_B_N5_OSLO.frameNorthSouthM,
+    areaM2: GE_GPS_1D_B_N5_OSLO.areaM2,
+    expectedDiagonalM: GE_GPS_1D_B_N5_OSLO.expectedDiagonalM,
+    cornerIds: GE_GPS_1D_B_CORNERS,
+    gridRole: GE_GPS_1D_B_N5_OSLO.gridRole,
+    gridOwner: GE_GPS_1D_B_N5_OSLO.gridOwner,
+    heightKm: tileCandidate.heightKm,
+    zoomPercent: tileCandidate.zoomPercent,
+    lat: tileCandidate.lat,
+    lon: tileCandidate.lon,
+    x: tileCandidate.x,
+    z: tileCandidate.z,
+  });
+};
+
+const publishGeGps1DB = function publishGeGps1DB(payload) {
+  const oneDB = createGeGps1DBCandidate(payload);
+  globalThis.__GE_GPS_1D_B = oneDB;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_B = oneDB;
+  }
+};
+
+const GE_GPS_1D_C_CORNER_ORDER = Object.freeze(['SW', 'SE', 'NE', 'NW']);
+
+const GE_GPS_1D_C_OSLO_CORNERS = Object.freeze({
+  SW: Object.freeze({ id: 'SW', lat: 59.89949242, lon: 10.70821324 }),
+  SE: Object.freeze({ id: 'SE', lat: 59.90134046, lon: 10.76525371 }),
+  NE: Object.freeze({ id: 'NE', lat: 59.92283208, lon: 10.76251090 }),
+  NW: Object.freeze({ id: 'NW', lat: 59.92098245, lon: 10.70543376 }),
+});
+
+const GE_GPS_1D_C_THRESHOLDS = Object.freeze({
+  bufferEnterM: 1000,
+  bufferExitM: 2000,
+  heightEnterKm: 10,
+  heightExitKm: 15,
+  zoomMirrorTolerancePercent: 1,
+});
+
+const GE_GPS_1D_C_DISTANCE_METHOD = 'local-tangent-plane';
+const GE_GPS_1D_C_POINT_IN_POLYGON_METHOD = 'ray-cast-even-odd';
+let geGps1DCWasActive = false;
+
+const geGps1DCFlatMetricStandard = Object.freeze({
+  kartblad: GE_GPS_1D_B_N5_OSLO.kartblad,
+  rasterKartid: GE_GPS_1D_B_N5_OSLO.rasterKartid,
+  frameEastWestM: GE_GPS_1D_B_N5_OSLO.frameEastWestM,
+  frameNorthSouthM: GE_GPS_1D_B_N5_OSLO.frameNorthSouthM,
+  areaM2: GE_GPS_1D_B_N5_OSLO.areaM2,
+  expectedDiagonalM: GE_GPS_1D_B_N5_OSLO.expectedDiagonalM,
+  metricStandardOnly: true,
+  membershipSource: 'GE-GPS point-in-polygon only',
+});
+
+const geGps1DCCornerList = function geGps1DCCornerList() {
+  return GE_GPS_1D_C_CORNER_ORDER.map(id => GE_GPS_1D_C_OSLO_CORNERS[id]);
+};
+
+const geGps1DCCenter = function geGps1DCCenter(corners) {
+  const sum = corners.reduce((acc, corner) => {
+    acc.lat += corner.lat;
+    acc.lon += corner.lon;
+    return acc;
+  }, { lat: 0, lon: 0 });
+  return Object.freeze({
+    lat: sum.lat / corners.length,
+    lon: sum.lon / corners.length,
+  });
+};
+
+const geGps1DCToLocalMeters = function geGps1DCToLocalMeters(point, origin) {
+  const latMetersPerDeg = 111320;
+  const lonMetersPerDeg = 111320 * Math.cos(origin.lat * Math.PI / 180);
+  return Object.freeze({
+    x: (point.lon - origin.lon) * lonMetersPerDeg,
+    y: (point.lat - origin.lat) * latMetersPerDeg,
+  });
+};
+
+const geGps1DCRayCastEvenOdd = function geGps1DCRayCastEvenOdd(point, corners, origin) {
+  const p = geGps1DCToLocalMeters(point, origin);
+  const localCorners = corners.map(corner => geGps1DCToLocalMeters(corner, origin));
+  let inside = false;
+  for (let i = 0, j = localCorners.length - 1; i < localCorners.length; j = i++) {
+    const a = localCorners[i];
+    const b = localCorners[j];
+    const intersects = (a.y > p.y) !== (b.y > p.y)
+      && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+};
+
+const geGps1DCPointToSegmentDistanceM = function geGps1DCPointToSegmentDistanceM(point, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const segmentLenSq = dx * dx + dy * dy;
+  if (segmentLenSq === 0) return Math.hypot(point.x - a.x, point.y - a.y);
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / segmentLenSq));
+  const closestX = a.x + t * dx;
+  const closestY = a.y + t * dy;
+  return Math.hypot(point.x - closestX, point.y - closestY);
+};
+
+// GE-GPS verification distance near Oslo; not Kartmotor placement or hidden transform.
+const geGps1DCDistanceToCellM = function geGps1DCDistanceToCellM(point, corners, origin, inside) {
+  if (inside) return 0;
+  const p = geGps1DCToLocalMeters(point, origin);
+  const localCorners = corners.map(corner => geGps1DCToLocalMeters(corner, origin));
+  let minDistanceM = Infinity;
+  for (let i = 0; i < localCorners.length; i += 1) {
+    const a = localCorners[i];
+    const b = localCorners[(i + 1) % localCorners.length];
+    minDistanceM = Math.min(minDistanceM, geGps1DCPointToSegmentDistanceM(p, a, b));
+  }
+  return Number(minDistanceM.toFixed(3));
+};
+
+const geGps1DCReason = function geGps1DCReason(payload, oneDB) {
+  const tileCandidate = payload && payload.tileCandidate;
+  if (!payload) return 'missing-payload';
+  if (!tileCandidate) return 'missing-tileCandidate';
+  if (!payload.lod) return 'missing-lod';
+  if (!oneDB) return 'missing-1D-B';
+  if (oneDB.candidateReady !== true) return oneDB.reason || '1D-B-candidate-not-ready';
+  if (tileCandidate.ready !== true) return tileCandidate.reason || 'tileCandidate-not-ready';
+  if (tileCandidate.insideDisk !== true) return 'outside-disk';
+  if (tileCandidate.tileLoading !== false) return 'tileLoading-not-false';
+  if (tileCandidate.engine !== 'not-called') return 'engine-not-safe';
+  if (!Number.isFinite(tileCandidate.lat)) return 'invalid-lat';
+  if (!Number.isFinite(tileCandidate.lon)) return 'invalid-lon';
+  if (!Number.isFinite(tileCandidate.heightKm)) return 'invalid-heightKm';
+  if (!Number.isFinite(payload.updatedAt)) return 'invalid-updatedAt';
+  return null;
+};
+
+const geGps1DCZoomMirror = function geGps1DCZoomMirror(heightKm, zoomPercent) {
+  if (!Number.isFinite(heightKm) || heightKm <= 0 || !Number.isFinite(zoomPercent)) {
+    return Object.freeze({
+      zoomRole: 'diagnostics-mirror-only',
+      zoomUsedForGate: false,
+      expectedZoomPercent: null,
+      zoomMirrorTolerancePercent: GE_GPS_1D_C_THRESHOLDS.zoomMirrorTolerancePercent,
+      zoomMismatchPercent: null,
+      zoomMismatchWarning: null,
+    });
+  }
+  const expectedZoomPercent = 10000000 / heightKm;
+  const zoomMismatchPercent = Math.abs(zoomPercent - expectedZoomPercent) / expectedZoomPercent * 100;
+  return Object.freeze({
+    zoomRole: 'diagnostics-mirror-only',
+    zoomUsedForGate: false,
+    expectedZoomPercent: Math.round(expectedZoomPercent),
+    zoomMirrorTolerancePercent: GE_GPS_1D_C_THRESHOLDS.zoomMirrorTolerancePercent,
+    zoomMismatchPercent: Number(zoomMismatchPercent.toFixed(3)),
+    zoomMismatchWarning: zoomMismatchPercent > GE_GPS_1D_C_THRESHOLDS.zoomMirrorTolerancePercent
+      ? 'zoom-height-mismatch'
+      : null,
+  });
+};
+
+const createGeGps1DCReport = function createGeGps1DCReport(payload, oneDB) {
+  const evaluatedAt = Date.now();
+  const tileCandidate = payload && payload.tileCandidate;
+  const reason = geGps1DCReason(payload, oneDB);
+  const corners = Object.freeze(geGps1DCCornerList().map(corner => Object.freeze({ ...corner })));
+  const center = geGps1DCCenter(corners);
+  const hasGeometryInput = tileCandidate
+    && Number.isFinite(tileCandidate.lat)
+    && Number.isFinite(tileCandidate.lon);
+  const cameraPoint = hasGeometryInput
+    ? Object.freeze({ lat: tileCandidate.lat, lon: tileCandidate.lon })
+    : Object.freeze({ lat: null, lon: null });
+  const insideFirstStartCell = hasGeometryInput
+    ? geGps1DCRayCastEvenOdd(cameraPoint, corners, center)
+    : false;
+  const distanceToFirstStartCellM = hasGeometryInput
+    ? geGps1DCDistanceToCellM(cameraPoint, corners, center, insideFirstStartCell)
+    : null;
+  const withinEnterBuffer = Number.isFinite(distanceToFirstStartCellM)
+    && distanceToFirstStartCellM <= GE_GPS_1D_C_THRESHOLDS.bufferEnterM;
+  const outsideExitBuffer = Number.isFinite(distanceToFirstStartCellM)
+    && distanceToFirstStartCellM > GE_GPS_1D_C_THRESHOLDS.bufferExitM;
+  const inHysteresisBand = Number.isFinite(distanceToFirstStartCellM)
+    && distanceToFirstStartCellM > GE_GPS_1D_C_THRESHOLDS.bufferEnterM
+    && distanceToFirstStartCellM <= GE_GPS_1D_C_THRESHOLDS.bufferExitM;
+  const heightKm = tileCandidate && tileCandidate.heightKm;
+  const heightEnterGate = Number.isFinite(heightKm) && heightKm <= GE_GPS_1D_C_THRESHOLDS.heightEnterKm;
+  const heightExitGate = Number.isFinite(heightKm) && heightKm >= GE_GPS_1D_C_THRESHOLDS.heightExitKm;
+  const locationEnterGate = insideFirstStartCell || withinEnterBuffer;
+  const hardGateOk = !reason;
+  const enterCandidate = hardGateOk && locationEnterGate && heightEnterGate;
+  const exitCandidate = !hardGateOk || outsideExitBuffer || heightExitGate;
+  const firstStartCellActiveCandidate = enterCandidate || (geGps1DCWasActive && !exitCandidate);
+  const evictionCandidate = geGps1DCWasActive && exitCandidate;
+  geGps1DCWasActive = firstStartCellActiveCandidate;
+  const freshnessStatus = geGps1DBFreshnessStatus(payload && payload.updatedAt, evaluatedAt);
+  const zoomMirror = geGps1DCZoomMirror(heightKm, tileCandidate && tileCandidate.zoomPercent);
+  const warnings = Object.freeze([
+    freshnessStatus === 'warning' ? 'stale-payload' : null,
+    zoomMirror.zoomMismatchWarning,
+  ].filter(Boolean));
+  const geGpsVerification = Object.freeze({
+    cameraLat: cameraPoint.lat,
+    cameraLon: cameraPoint.lon,
+    corners,
+    center,
+    pointInPolygonMethod: GE_GPS_1D_C_POINT_IN_POLYGON_METHOD,
+    distanceMethod: GE_GPS_1D_C_DISTANCE_METHOD,
+    insideFirstStartCell,
+    distanceToFirstStartCellM,
+    withinEnterBuffer,
+    outsideExitBuffer,
+    inHysteresisBand,
+    locationGate: locationEnterGate ? 'inside-or-enter-buffer' : 'outside-range',
+  });
+  const engineDiagnosticsOnly = Object.freeze({
+    x: tileCandidate && Number.isFinite(tileCandidate.x) ? tileCandidate.x : null,
+    z: tileCandidate && Number.isFinite(tileCandidate.z) ? tileCandidate.z : null,
+    diagnosticsOnly: true,
+  });
+  return Object.freeze({
+    phase: 'GE-GPS-1D-C',
+    readOnly: true,
+    provisional: true,
+    warningCalibrated: true,
+    firstStartCellActiveCandidate,
+    evictionCandidate,
+    reason: reason || null,
+    warnings,
+    sourcePayloadUpdatedAt: Number.isFinite(payload && payload.updatedAt) ? payload.updatedAt : null,
+    evaluatedAt,
+    freshnessStatus,
+    freshnessHardStop: false,
+    geGpsVerification,
+    flatMetricStandard: geGps1DCFlatMetricStandard,
+    engineDiagnosticsOnly,
+    thresholds: GE_GPS_1D_C_THRESHOLDS,
+    heightKm: Number.isFinite(heightKm) ? heightKm : null,
+    heightGate: heightEnterGate ? 'enter' : (heightExitGate ? 'exit' : 'between'),
+    zoomPercent: tileCandidate && Number.isFinite(tileCandidate.zoomPercent) ? tileCandidate.zoomPercent : null,
+    zoomMirror,
+    tileLoading: false,
+    networkTileLoading: false,
+    kartmotorCalled: false,
+    cacheOrIdbTouched: false,
+    hiddenCorrection: false,
+    correctionApplied: false,
+  });
+};
+
+function publishGeGps1DC(payload, oneDB) {
+  const oneDC = createGeGps1DCReport(payload, oneDB);
+  globalThis.__GE_GPS_1D_C = oneDC;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_C = oneDC;
+  }
+}
+
+const GE_GPS_1D_D_REQUIRED_LIVENESS_FIELDS = Object.freeze([
+  'freshnessStatus',
+  'evaluatedAt',
+  'sourcePayloadUpdatedAt',
+]);
+
+const GE_GPS_1D_D_PERMITTED_FUTURE_READ_FIELDS = Object.freeze([
+  'readOnly',
+  'phase',
+  'reason',
+  'warnings',
+  'firstStartCellActiveCandidate',
+  'evictionCandidate',
+  'heightGate',
+  'freshnessStatus',
+  'evaluatedAt',
+  'sourcePayloadUpdatedAt',
+  'geGpsVerification.insideFirstStartCell',
+  'geGpsVerification.distanceToFirstStartCellM',
+  'geGpsVerification.withinEnterBuffer',
+  'geGpsVerification.outsideExitBuffer',
+  'geGpsVerification.inHysteresisBand',
+  'geGpsVerification.locationGate',
+  'geGpsVerification.pointInPolygonMethod',
+  'geGpsVerification.distanceMethod',
+  'flatMetricStandard.kartblad',
+  'flatMetricStandard.rasterKartid',
+  'flatMetricStandard.frameEastWestM',
+  'flatMetricStandard.frameNorthSouthM',
+  'flatMetricStandard.areaM2',
+  'flatMetricStandard.expectedDiagonalM',
+  'flatMetricStandard.metricStandardOnly',
+  'flatMetricStandard.membershipSource',
+  'engineDiagnosticsOnly.diagnosticsOnly',
+]);
+
+const GE_GPS_1D_D_FORBIDDEN_NOW = Object.freeze({
+  kartmotorCallsForbidden: true,
+  loadingForbidden: true,
+  fetchForbidden: true,
+  cacheIdbStorageForbidden: true,
+  tileManagerForbidden: true,
+  neighborPrefetchWarmupForbidden: true,
+  drawingRenderingForbidden: true,
+  lockedAreaChangesForbidden: true,
+  hiddenCorrectionForbidden: true,
+  bboxTruthForbidden: true,
+  xzMembershipForbidden: true,
+  flatMetricAsCoordinateSystemForbidden: true,
+  mergeDeployPrStateForbidden: true,
+  policyFlagsAreProof: false,
+  staticDiffScanRequired: true,
+});
+
+const geGps1DDHasOwn = function geGps1DDHasOwn(obj, key) {
+  return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
+};
+
+const geGps1DDMissingLivenessFields = function geGps1DDMissingLivenessFields(oneDC) {
+  return GE_GPS_1D_D_REQUIRED_LIVENESS_FIELDS.filter((field) => {
+    if (!geGps1DDHasOwn(oneDC, field)) return true;
+    if (field === 'freshnessStatus') return typeof oneDC[field] !== 'string';
+    return !Number.isFinite(oneDC[field]);
+  });
+};
+
+const geGps1DDLiveness = function geGps1DDLiveness(oneDC) {
+  const unsupportedFields = Object.freeze(geGps1DDMissingLivenessFields(oneDC));
+  const freshnessStatus = typeof (oneDC && oneDC.freshnessStatus) === 'string'
+    ? oneDC.freshnessStatus
+    : 'unknown';
+  const livenessOk = unsupportedFields.length === 0 && freshnessStatus === 'ok';
+  const warnings = Object.freeze([
+    unsupportedFields.length ? 'missing-liveness-fields' : null,
+    freshnessStatus !== 'ok' ? `freshness-${freshnessStatus}` : null,
+  ].filter(Boolean));
+  return Object.freeze({
+    livenessStatus: freshnessStatus,
+    livenessOk,
+    unsupportedFields,
+    warnings,
+  });
+};
+
+const geGps1DDSourceVerification = function geGps1DDSourceVerification(oneDC) {
+  const geGpsVerification = oneDC && oneDC.geGpsVerification;
+  const flatMetricStandard = oneDC && oneDC.flatMetricStandard;
+  const engineDiagnosticsOnly = oneDC && oneDC.engineDiagnosticsOnly;
+  const forbiddenFlagsFalse = !!oneDC
+    && oneDC.tileLoading === false
+    && oneDC.networkTileLoading === false
+    && oneDC.kartmotorCalled === false
+    && oneDC.cacheOrIdbTouched === false
+    && oneDC.hiddenCorrection === false
+    && oneDC.correctionApplied === false;
+  const sourceConflict = !!flatMetricStandard && (
+    flatMetricStandard.kartblad !== GE_GPS_1D_B_N5_OSLO.kartblad
+    || flatMetricStandard.rasterKartid !== 'CO045-5-3'
+    || flatMetricStandard.frameEastWestM !== GE_GPS_1D_B_N5_OSLO.frameEastWestM
+    || flatMetricStandard.frameNorthSouthM !== GE_GPS_1D_B_N5_OSLO.frameNorthSouthM
+    || flatMetricStandard.areaM2 !== GE_GPS_1D_B_N5_OSLO.areaM2
+    || flatMetricStandard.expectedDiagonalM !== GE_GPS_1D_B_N5_OSLO.expectedDiagonalM
+  );
+  return Object.freeze({
+    exists: !!oneDC,
+    isFrozen: !!oneDC && Object.isFrozen(oneDC),
+    readOnly: !!(oneDC && oneDC.readOnly === true),
+    phase: oneDC ? oneDC.phase : null,
+    reason: oneDC ? oneDC.reason : '1d-c-missing',
+    firstStartCellActiveCandidate: !!(oneDC && oneDC.firstStartCellActiveCandidate === true),
+    evictionCandidate: !!(oneDC && oneDC.evictionCandidate === true),
+    evictionSemantics: 'edge-triggered-transition-telemetry',
+    evictionPulseWarning: 'evictionCandidate-may-be-missed-on-async-poll',
+    hasGeGpsVerification: !!geGpsVerification,
+    geGpsVerificationFrozen: !!geGpsVerification && Object.isFrozen(geGpsVerification),
+    hasFlatMetricStandard: !!flatMetricStandard,
+    flatMetricStandardFrozen: !!flatMetricStandard && Object.isFrozen(flatMetricStandard),
+    hasEngineDiagnosticsOnly: !!engineDiagnosticsOnly,
+    engineDiagnosticsOnlyFrozen: !!engineDiagnosticsOnly && Object.isFrozen(engineDiagnosticsOnly),
+    pointInPolygonMethod: geGpsVerification ? geGpsVerification.pointInPolygonMethod : null,
+    distanceMethod: geGpsVerification ? geGpsVerification.distanceMethod : null,
+    metricStandardOnly: !!(flatMetricStandard && flatMetricStandard.metricStandardOnly === true),
+    membershipSource: flatMetricStandard ? flatMetricStandard.membershipSource : null,
+    diagnosticsOnly: !!(engineDiagnosticsOnly && engineDiagnosticsOnly.diagnosticsOnly === true),
+    canonicalRasterKartid: 'CO045-5-3',
+    observedRasterKartid: flatMetricStandard ? flatMetricStandard.rasterKartid : null,
+    sourceConflict,
+    forbiddenFlagsFalse,
+  });
+};
+
+const geGps1DDStructuralReason = function geGps1DDStructuralReason(source1DCVerification) {
+  if (!source1DCVerification.exists) return '1d-c-missing';
+  if (!source1DCVerification.isFrozen) return '1d-c-unfrozen';
+  if (source1DCVerification.phase !== 'GE-GPS-1D-C') return '1d-c-wrong-phase';
+  if (source1DCVerification.sourceConflict) return 'source-conflict';
+  if (
+    !source1DCVerification.readOnly
+    || source1DCVerification.reason !== null
+    || !source1DCVerification.geGpsVerificationFrozen
+    || !source1DCVerification.flatMetricStandardFrozen
+    || !source1DCVerification.engineDiagnosticsOnlyFrozen
+    || source1DCVerification.pointInPolygonMethod !== GE_GPS_1D_C_POINT_IN_POLYGON_METHOD
+    || source1DCVerification.distanceMethod !== GE_GPS_1D_C_DISTANCE_METHOD
+    || !source1DCVerification.metricStandardOnly
+    || source1DCVerification.membershipSource !== 'GE-GPS point-in-polygon only'
+    || !source1DCVerification.diagnosticsOnly
+    || !source1DCVerification.forbiddenFlagsFalse
+  ) {
+    return '1d-c-structural-fail';
+  }
+  return null;
+};
+
+const createGeGps1DDReport = function createGeGps1DDReport() {
+  const evaluatedAt = Date.now();
+  const oneDC = globalThis.__GE_GPS_1D_C;
+  const source1DCVerification = geGps1DDSourceVerification(oneDC);
+  const structuralReason = geGps1DDStructuralReason(source1DCVerification);
+  const readContractSatisfied = structuralReason === null;
+  const liveness = geGps1DDLiveness(oneDC);
+  const futureEvaluationCandidate = readContractSatisfied
+    && source1DCVerification.firstStartCellActiveCandidate
+    && liveness.livenessOk;
+  const unsupportedFields = Object.freeze([...liveness.unsupportedFields]);
+  const warnings = Object.freeze([
+    ...liveness.warnings,
+    source1DCVerification.evictionCandidate ? 'evictionCandidate-may-be-missed-on-async-poll' : null,
+  ].filter(Boolean));
+  return Object.freeze({
+    phase: 'GE-GPS-1D-D',
+    reportType: 'GE-GPS-1D-D-handoff-report',
+    readOnly: true,
+    noAction: true,
+    operationalAuthority: 'none',
+    handoffReportReady: true,
+    readContractSatisfied,
+    futureEvaluationCandidate,
+    reason: structuralReason,
+    warnings,
+    unsupportedFields,
+    evaluatedAt,
+    source1DCEvaluatedAt: Number.isFinite(oneDC && oneDC.evaluatedAt) ? oneDC.evaluatedAt : null,
+    source1DCSourcePayloadUpdatedAt: Number.isFinite(oneDC && oneDC.sourcePayloadUpdatedAt)
+      ? oneDC.sourcePayloadUpdatedAt
+      : null,
+    source1DCFreshnessStatus: typeof (oneDC && oneDC.freshnessStatus) === 'string'
+      ? oneDC.freshnessStatus
+      : null,
+    liveness,
+    source1DCVerification,
+    permittedFutureReads: Object.freeze({
+      source: 'window.__GE_GPS_1D_C',
+      fields: GE_GPS_1D_D_PERMITTED_FUTURE_READ_FIELDS,
+      whitelistOnly: true,
+      actionGrant: false,
+    }),
+    forbiddenNow: GE_GPS_1D_D_FORBIDDEN_NOW,
+  });
+};
+
+const publishGeGps1DD = function publishGeGps1DD() {
+  const oneDD = createGeGps1DDReport();
+  globalThis.__GE_GPS_1D_D = oneDD;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_D = oneDD;
+  }
+};
+
+// GE-GPS-1D-E is the only canonical Kartmotor-facing shadow seam.
+// It is still read-only telemetry: no action, no loading, no Kartmotor authority.
+// Closed enum: no additions without new Jone review.
+const GE_GPS_1D_E_REASON_VALUES = Object.freeze([
+  null,
+  '1d-d-missing',
+  '1d-d-unfrozen',
+  '1d-d-wrong-phase',
+  '1d-d-wrong-report-type',
+  '1d-d-contract-fail',
+  '1d-d-source-conflict',
+]);
+
+// Closed enum: candidate state only, never action authority.
+const GE_GPS_1D_E_CANDIDATE_REASON_VALUES = Object.freeze([
+  'shadow-evaluation-candidate',
+  'source-contract-satisfied',
+  'source-not-ready',
+  '1d-d-liveness-fail',
+  '1d-d-future-evaluation-false',
+  'no-action-authority',
+]);
+
+// Closed enum: trust/debug warnings only.
+const GE_GPS_1D_E_WARNING_VALUES = Object.freeze([
+  '1d-d-readOnly-false',
+  '1d-d-noAction-false',
+  '1d-d-operationalAuthority-not-none',
+  '1d-d-handoffReportReady-false',
+  '1d-d-readContractSatisfied-false',
+  '1d-d-liveness-unknown',
+  '1d-d-liveness-stale-or-false',
+  '1d-d-source1DCVerification-missing-or-unfrozen',
+  '1d-d-permittedFutureReads-missing-or-unfrozen',
+  '1d-d-forbiddenNow-missing-or-unfrozen',
+  'evictionCandidate-may-be-missed-on-async-poll',
+]);
+
+// Closed whitelist: future Kartmotor may read only this curated shadow seam.
+const GE_GPS_1D_E_PERMITTED_FUTURE_READ_FIELDS = Object.freeze([
+  'shadowEvaluationCandidate',
+  'candidateReason',
+  'candidateReasons',
+  'reason',
+  'warnings',
+  'handoffShadowReady',
+  'source1DDReadiness.contractSatisfied',
+  'source1DDReadiness.livenessOk',
+  'source1DDReadiness.livenessStatus',
+  'cellIdentity.kartblad',
+  'cellIdentity.rasterKartid',
+  'cellIdentity.role',
+  'metricStandard.frameEastWestM',
+  'metricStandard.frameNorthSouthM',
+  'metricStandard.areaM2',
+  'metricStandard.expectedDiagonalM',
+  'metricStandard.metricStandardOnly',
+  'guards.noAction',
+  'guards.operationalAuthority',
+  'guards.shadowOnly',
+  'guards.kartmotorAuthority',
+  'forbiddenNow',
+]);
+
+const GE_GPS_1D_E_GUARDS = Object.freeze({
+  noAction: true,
+  operationalAuthority: 'none',
+  shadowOnly: true,
+  kartmotorAuthority: false,
+});
+
+const GE_GPS_1D_E_FORBIDDEN_NOW = Object.freeze({
+  kartmotorCallsForbidden: true,
+  loadingForbidden: true,
+  unloadDeactivationForbidden: true,
+  fetchForbidden: true,
+  cacheIdbStorageForbidden: true,
+  tileManagerForbidden: true,
+  neighborPrefetchWarmupForbidden: true,
+  drawingRenderingForbidden: true,
+  lockedAreaChangesForbidden: true,
+  hiddenCorrectionForbidden: true,
+  bboxTruthForbidden: true,
+  xzMembershipForbidden: true,
+  transformFittingForbidden: true,
+  asyncDelayedHookForbidden: true,
+  mergeDeployPrStateForbidden: true,
+  policyFlagsAreProof: false,
+  staticDiffScanRequired: true,
+});
+
+const geGps1DECellIdentity = Object.freeze({
+  kartblad: GE_GPS_1D_B_N5_OSLO.kartblad,
+  rasterKartid: GE_GPS_1D_B_N5_OSLO.rasterKartid,
+  role: GE_GPS_1D_B_N5_OSLO.gridRole,
+});
+
+const geGps1DEMetricStandard = Object.freeze({
+  frameEastWestM: GE_GPS_1D_B_N5_OSLO.frameEastWestM,
+  frameNorthSouthM: GE_GPS_1D_B_N5_OSLO.frameNorthSouthM,
+  areaM2: GE_GPS_1D_B_N5_OSLO.areaM2,
+  expectedDiagonalM: GE_GPS_1D_B_N5_OSLO.expectedDiagonalM,
+  metricStandardOnly: true,
+});
+
+const geGps1DESectionFrozen = function geGps1DESectionFrozen(section) {
+  return !!section && Object.isFrozen(section);
+};
+
+const geGps1DESourceReadiness = function geGps1DESourceReadiness(oneDD) {
+  const source1DCVerification = oneDD && oneDD.source1DCVerification;
+  const permittedFutureReads = oneDD && oneDD.permittedFutureReads;
+  const forbiddenNow = oneDD && oneDD.forbiddenNow;
+  const liveness = oneDD && oneDD.liveness;
+  const sourceConflict = !!(source1DCVerification && (
+    source1DCVerification.sourceConflict === true
+    || source1DCVerification.canonicalRasterKartid !== 'CO045-5-3'
+    || source1DCVerification.observedRasterKartid !== 'CO045-5-3'
+  ));
+  const source1DCVerificationFrozen = geGps1DESectionFrozen(source1DCVerification);
+  const permittedFutureReadsFrozen = geGps1DESectionFrozen(permittedFutureReads);
+  const forbiddenNowFrozen = geGps1DESectionFrozen(forbiddenNow);
+  const contractSatisfied = !!oneDD
+    && Object.isFrozen(oneDD)
+    && oneDD.readOnly === true
+    && oneDD.phase === 'GE-GPS-1D-D'
+    && oneDD.reportType === 'GE-GPS-1D-D-handoff-report'
+    && oneDD.noAction === true
+    && oneDD.operationalAuthority === 'none'
+    && oneDD.handoffReportReady === true
+    && oneDD.readContractSatisfied === true
+    && oneDD.reason === null
+    && !sourceConflict
+    && source1DCVerificationFrozen
+    && permittedFutureReadsFrozen
+    && forbiddenNowFrozen;
+  return Object.freeze({
+    exists: !!oneDD,
+    isFrozen: !!oneDD && Object.isFrozen(oneDD),
+    readOnly: !!(oneDD && oneDD.readOnly === true),
+    phase: oneDD ? oneDD.phase : null,
+    reportType: oneDD ? oneDD.reportType : null,
+    noAction: !!(oneDD && oneDD.noAction === true),
+    operationalAuthority: oneDD ? oneDD.operationalAuthority : null,
+    handoffReportReady: !!(oneDD && oneDD.handoffReportReady === true),
+    readContractSatisfied: !!(oneDD && oneDD.readContractSatisfied === true),
+    sourceReason: oneDD ? oneDD.reason : null,
+    sourceFutureEvaluationCandidate: !!(oneDD && oneDD.futureEvaluationCandidate === true),
+    livenessOk: !!(liveness && liveness.livenessOk === true),
+    livenessStatus: liveness ? liveness.livenessStatus : 'unknown',
+    sourceConflict,
+    source1DCVerificationFrozen,
+    permittedFutureReadsFrozen,
+    forbiddenNowFrozen,
+    canonicalRasterKartid: source1DCVerification ? source1DCVerification.canonicalRasterKartid : null,
+    observedRasterKartid: source1DCVerification ? source1DCVerification.observedRasterKartid : null,
+    contractSatisfied,
+  });
+};
+
+// reason is structural/read-contract only. Candidate and liveness states cannot set it.
+const geGps1DEStructuralReason = function geGps1DEStructuralReason(readiness) {
+  if (!readiness.exists) return '1d-d-missing';
+  if (!readiness.isFrozen) return '1d-d-unfrozen';
+  if (readiness.phase !== 'GE-GPS-1D-D') return '1d-d-wrong-phase';
+  if (readiness.reportType !== 'GE-GPS-1D-D-handoff-report') return '1d-d-wrong-report-type';
+  if (readiness.sourceConflict) return '1d-d-source-conflict';
+  if (!readiness.contractSatisfied) return '1d-d-contract-fail';
+  return null;
+};
+
+const geGps1DEWarnings = function geGps1DEWarnings(readiness, oneDD) {
+  const warnings = [
+    readiness.exists && !readiness.readOnly ? '1d-d-readOnly-false' : null,
+    readiness.exists && !readiness.noAction ? '1d-d-noAction-false' : null,
+    readiness.exists && readiness.operationalAuthority !== 'none'
+      ? '1d-d-operationalAuthority-not-none'
+      : null,
+    readiness.exists && !readiness.handoffReportReady ? '1d-d-handoffReportReady-false' : null,
+    readiness.exists && !readiness.readContractSatisfied ? '1d-d-readContractSatisfied-false' : null,
+    readiness.exists && readiness.livenessStatus === 'unknown' ? '1d-d-liveness-unknown' : null,
+    readiness.exists && readiness.livenessStatus !== 'unknown' && !readiness.livenessOk
+      ? '1d-d-liveness-stale-or-false'
+      : null,
+    readiness.exists && !readiness.source1DCVerificationFrozen
+      ? '1d-d-source1DCVerification-missing-or-unfrozen'
+      : null,
+    readiness.exists && !readiness.permittedFutureReadsFrozen
+      ? '1d-d-permittedFutureReads-missing-or-unfrozen'
+      : null,
+    readiness.exists && !readiness.forbiddenNowFrozen
+      ? '1d-d-forbiddenNow-missing-or-unfrozen'
+      : null,
+    oneDD && Array.isArray(oneDD.warnings) && oneDD.warnings.includes('evictionCandidate-may-be-missed-on-async-poll')
+      ? 'evictionCandidate-may-be-missed-on-async-poll'
+      : null,
+  ].filter(Boolean);
+  return Object.freeze(warnings.filter(warning => GE_GPS_1D_E_WARNING_VALUES.includes(warning)));
+};
+
+const geGps1DECandidateReasons = function geGps1DECandidateReasons(reason, readiness) {
+  if (reason !== null) {
+    return Object.freeze(['source-not-ready']);
+  }
+  // no-action-authority is a reminder, not an error; top-level guards enforce it.
+  const reasons = [
+    readiness.livenessOk ? null : '1d-d-liveness-fail',
+    readiness.sourceFutureEvaluationCandidate ? null : '1d-d-future-evaluation-false',
+    readiness.sourceFutureEvaluationCandidate && readiness.livenessOk ? 'shadow-evaluation-candidate' : null,
+    'source-contract-satisfied',
+    'no-action-authority',
+  ].filter(Boolean);
+  return Object.freeze(reasons.filter(candidateReason => GE_GPS_1D_E_CANDIDATE_REASON_VALUES.includes(candidateReason)));
+};
+
+const geGps1DEPrimaryCandidateReason = function geGps1DEPrimaryCandidateReason(candidateReasons) {
+  const priority = [
+    'source-not-ready',
+    '1d-d-liveness-fail',
+    '1d-d-future-evaluation-false',
+    'shadow-evaluation-candidate',
+    'source-contract-satisfied',
+    'no-action-authority',
+  ];
+  return priority.find(reason => candidateReasons.includes(reason)) || null;
+};
+
+const createGeGps1DEReport = function createGeGps1DEReport() {
+  const evaluatedAt = Date.now();
+  const oneDD = globalThis.__GE_GPS_1D_D;
+  const source1DDReadiness = geGps1DESourceReadiness(oneDD);
+  const reason = geGps1DEStructuralReason(source1DDReadiness);
+  const candidateReasons = geGps1DECandidateReasons(reason, source1DDReadiness);
+  const candidateReason = geGps1DEPrimaryCandidateReason(candidateReasons);
+  const shadowEvaluationCandidate = reason === null
+    && source1DDReadiness.sourceFutureEvaluationCandidate
+    && source1DDReadiness.livenessOk;
+  const warnings = geGps1DEWarnings(source1DDReadiness, oneDD);
+  const permittedFutureReads = Object.freeze({
+    source: 'window.__GE_GPS_1D_E',
+    fields: GE_GPS_1D_E_PERMITTED_FUTURE_READ_FIELDS,
+    whitelistOnly: true,
+    actionGrant: false,
+  });
+  return Object.freeze({
+    phase: 'GE-GPS-1D-E',
+    reportType: 'GE-GPS-1D-E-shadow-seam-report',
+    readOnly: true,
+    // True means this shadow report was produced/frozen, not that its source is OK.
+    handoffShadowReady: true,
+    shadowEvaluationCandidate,
+    candidateReason,
+    candidateReasons,
+    reason,
+    warnings,
+    evaluatedAt,
+    source1DDEvaluatedAt: Number.isFinite(oneDD && oneDD.evaluatedAt) ? oneDD.evaluatedAt : null,
+    source1DDReadiness,
+    cellIdentity: geGps1DECellIdentity,
+    metricStandard: geGps1DEMetricStandard,
+    trust: Object.freeze({
+      livenessOk: source1DDReadiness.livenessOk,
+      livenessStatus: source1DDReadiness.livenessStatus,
+      source: '1D-D inherited liveness only',
+    }),
+    guards: GE_GPS_1D_E_GUARDS,
+    noAction: GE_GPS_1D_E_GUARDS.noAction,
+    operationalAuthority: GE_GPS_1D_E_GUARDS.operationalAuthority,
+    shadowOnly: GE_GPS_1D_E_GUARDS.shadowOnly,
+    kartmotorAuthority: GE_GPS_1D_E_GUARDS.kartmotorAuthority,
+    permittedFutureReads,
+    forbiddenNow: GE_GPS_1D_E_FORBIDDEN_NOW,
+  });
+};
+
+const publishGeGps1DE = function publishGeGps1DE() {
+  const oneDE = createGeGps1DEReport();
+  globalThis.__GE_GPS_1D_E = oneDE;
+  if (typeof window !== 'undefined') {
+    window.__GE_GPS_1D_E = oneDE;
+  }
+};
+
+const GE_GPS_1D_F_DISPLAY_ROWS = Object.freeze([
+  Object.freeze({ key: 'phase', label: 'phase' }),
+  Object.freeze({ key: 'reportType', label: 'reportType' }),
+  Object.freeze({ key: 'handoffShadowReady', label: 'handoffShadowReady' }),
+  Object.freeze({ key: 'shadowEvaluationCandidate', label: 'shadowEvaluationCandidate' }),
+  Object.freeze({ key: 'reason', label: 'reason' }),
+  Object.freeze({ key: 'candidateReason', label: 'candidateReason' }),
+  Object.freeze({ key: 'candidateReasons', label: 'candidateReasons' }),
+  Object.freeze({ key: 'warnings', label: 'warnings' }),
+  Object.freeze({ key: 'trust.livenessOk', label: 'trust.livenessOk' }),
+  Object.freeze({ key: 'trust.livenessStatus', label: 'trust.livenessStatus' }),
+  Object.freeze({ key: 'cellIdentity.kartblad', label: 'cellIdentity.kartblad' }),
+  Object.freeze({ key: 'cellIdentity.rasterKartid', label: 'cellIdentity.rasterKartid' }),
+  Object.freeze({ key: 'metricStandard.frameEastWestM', label: 'metricStandard.frameEastWestM' }),
+  Object.freeze({ key: 'metricStandard.frameNorthSouthM', label: 'metricStandard.frameNorthSouthM' }),
+  Object.freeze({ key: 'metricStandard.areaM2', label: 'metricStandard.areaM2' }),
+  Object.freeze({ key: 'metricStandard.expectedDiagonalM', label: 'metricStandard.expectedDiagonalM' }),
+  Object.freeze({ key: 'noAction', label: 'noAction' }),
+  Object.freeze({ key: 'operationalAuthority', label: 'operationalAuthority' }),
+  Object.freeze({ key: 'shadowOnly', label: 'shadowOnly' }),
+  Object.freeze({ key: 'kartmotorAuthority', label: 'kartmotorAuthority' }),
+  Object.freeze({ key: 'evaluatedAt', label: 'evaluatedAt' }),
+  Object.freeze({ key: 'source1DDEvaluatedAt', label: 'source1DDEvaluatedAt' }),
+  Object.freeze({ key: 'forbiddenNow.policyFlagsAreProof', label: 'forbiddenNow.policyFlagsAreProof' }),
+  Object.freeze({ key: 'forbiddenNow.staticDiffScanRequired', label: 'forbiddenNow.staticDiffScanRequired' }),
+]);
+
+const GE_GPS_1D_F_UNAVAILABLE = Object.freeze({
+  missing: 'unavailable - shadow seam not published',
+  unfrozen: 'unsupported - shadow seam not frozen',
+  wrongPhase: 'unsupported - wrong phase',
+});
+
+const geGps1DFCreateText = function geGps1DFCreateText(tagName, text) {
+  const el = document.createElement(tagName);
+  el.textContent = text;
+  return el;
+};
+
+const geGps1DFSetStyles = function geGps1DFSetStyles(el, styles) {
+  for (const [name, value] of styles) {
+    el.style[name] = value;
+  }
+};
+
+const geGps1DFEnsurePanel = function geGps1DFEnsurePanel() {
+  let panel = document.getElementById('ge-gps-1d-f-debug');
+  if (panel) return panel;
+
+  const parent = document.getElementById('norge-controls') || document.getElementById('panel-left');
+  if (!parent) return null;
+
+  panel = document.createElement('div');
+  panel.id = 'ge-gps-1d-f-debug';
+  panel.className = 'norge-section';
+  geGps1DFSetStyles(panel, [
+    ['borderTop', '1px solid #2a2a2a'],
+    ['paddingTop', '8px'],
+  ]);
+
+  const title = geGps1DFCreateText('div', 'GE-GPS / Kartmotor Shadow - READ ONLY');
+  title.className = 'norge-title';
+  panel.appendChild(title);
+
+  const authority = geGps1DFCreateText('div', 'OBSERVATION ONLY - NOT KARTMOTOR-GO');
+  geGps1DFSetStyles(authority, [
+    ['color', '#d4af37'],
+    ['fontSize', '10px'],
+    ['fontFamily', 'ui-monospace, monospace'],
+    ['lineHeight', '1.35'],
+    ['marginBottom', '2px'],
+  ]);
+  panel.appendChild(authority);
+
+  const guards = geGps1DFCreateText(
+    'div',
+    'noAction:true | authority:none | shadowOnly:true | kartmotorAuthority:false'
+  );
+  geGps1DFSetStyles(guards, [
+    ['color', '#aaa'],
+    ['fontSize', '10px'],
+    ['fontFamily', 'ui-monospace, monospace'],
+    ['lineHeight', '1.35'],
+    ['marginBottom', '6px'],
+  ]);
+  panel.appendChild(guards);
+
+  const status = document.createElement('div');
+  status.className = 'norge-info-row';
+  status.appendChild(geGps1DFCreateText('span', 'status'));
+  const statusValue = geGps1DFCreateText('span', 'n/a');
+  statusValue.id = 'ge-gps-1d-f-value-status';
+  status.appendChild(statusValue);
+  panel.appendChild(status);
+
+  // GE-GPS-1D-F closed display list - no additions without new Jone review.
+  for (const row of GE_GPS_1D_F_DISPLAY_ROWS) {
+    const line = document.createElement('div');
+    line.className = 'norge-info-row';
+    line.appendChild(geGps1DFCreateText('span', row.label));
+    const value = geGps1DFCreateText('span', 'n/a');
+    value.id = `ge-gps-1d-f-value-${row.key.replace(/\./g, '-')}`;
+    line.appendChild(value);
+    panel.appendChild(line);
+  }
+
+  parent.appendChild(panel);
+  return panel;
+};
+
+const geGps1DFDisplayValue = function geGps1DFDisplayValue(oneDE, key) {
+  let value;
+  if (key === 'phase') value = oneDE.phase;
+  else if (key === 'reportType') value = oneDE.reportType;
+  else if (key === 'handoffShadowReady') value = oneDE.handoffShadowReady;
+  else if (key === 'shadowEvaluationCandidate') value = oneDE.shadowEvaluationCandidate;
+  else if (key === 'reason') value = oneDE.reason;
+  else if (key === 'candidateReason') value = oneDE.candidateReason;
+  else if (key === 'candidateReasons') value = oneDE.candidateReasons;
+  else if (key === 'warnings') value = oneDE.warnings;
+  else if (key === 'trust.livenessOk') value = oneDE.trust && oneDE.trust.livenessOk;
+  else if (key === 'trust.livenessStatus') value = oneDE.trust && oneDE.trust.livenessStatus;
+  else if (key === 'cellIdentity.kartblad') value = oneDE.cellIdentity && oneDE.cellIdentity.kartblad;
+  else if (key === 'cellIdentity.rasterKartid') value = oneDE.cellIdentity && oneDE.cellIdentity.rasterKartid;
+  else if (key === 'metricStandard.frameEastWestM') value = oneDE.metricStandard && oneDE.metricStandard.frameEastWestM;
+  else if (key === 'metricStandard.frameNorthSouthM') value = oneDE.metricStandard && oneDE.metricStandard.frameNorthSouthM;
+  else if (key === 'metricStandard.areaM2') value = oneDE.metricStandard && oneDE.metricStandard.areaM2;
+  else if (key === 'metricStandard.expectedDiagonalM') value = oneDE.metricStandard && oneDE.metricStandard.expectedDiagonalM;
+  else if (key === 'noAction') value = oneDE.noAction;
+  else if (key === 'operationalAuthority') value = oneDE.operationalAuthority;
+  else if (key === 'shadowOnly') value = oneDE.shadowOnly;
+  else if (key === 'kartmotorAuthority') value = oneDE.kartmotorAuthority;
+  else if (key === 'evaluatedAt') value = oneDE.evaluatedAt;
+  else if (key === 'source1DDEvaluatedAt') value = oneDE.source1DDEvaluatedAt;
+  else if (key === 'forbiddenNow.policyFlagsAreProof') {
+    value = oneDE.forbiddenNow && oneDE.forbiddenNow.policyFlagsAreProof;
+  } else if (key === 'forbiddenNow.staticDiffScanRequired') {
+    value = oneDE.forbiddenNow && oneDE.forbiddenNow.staticDiffScanRequired;
+  }
+
+  if (Array.isArray(value)) return value.length ? value.join(', ') : 'none';
+  if (value === null || value === undefined) return 'n/a';
+  return String(value);
+};
+
+function renderGeGps1DFDebugPanel() {
+  if (typeof document === 'undefined') return;
+
+  const panel = geGps1DFEnsurePanel();
+  if (!panel) return;
+
+  const oneDE = typeof window !== 'undefined' ? window.__GE_GPS_1D_E : globalThis.__GE_GPS_1D_E;
+  let statusText = 'ok';
+  if (!oneDE) statusText = GE_GPS_1D_F_UNAVAILABLE.missing;
+  else if (!Object.isFrozen(oneDE)) statusText = GE_GPS_1D_F_UNAVAILABLE.unfrozen;
+  else if (oneDE.phase !== 'GE-GPS-1D-E') statusText = GE_GPS_1D_F_UNAVAILABLE.wrongPhase;
+
+  const statusValue = document.getElementById('ge-gps-1d-f-value-status');
+  if (statusValue) statusValue.textContent = statusText;
+
+  for (const row of GE_GPS_1D_F_DISPLAY_ROWS) {
+    const value = document.getElementById(`ge-gps-1d-f-value-${row.key.replace(/\./g, '-')}`);
+    if (!value) continue;
+    value.textContent = statusText === 'ok' ? geGps1DFDisplayValue(oneDE, row.key) : 'n/a';
+  }
+}
+
+function geGps1DMetricReason(heightKm, zoomPercent) {
+  if (!Number.isFinite(heightKm)) return 'invalid-heightKm';
+  if (!Number.isFinite(zoomPercent)) return 'invalid-zoomPercent';
+  return null;
+}
+
+function geGps1DLodLevel(zoomPercent) {
+  if (!Number.isFinite(zoomPercent)) return 'invalid';
+  if (zoomPercent >= 5000) return 'close';
+  if (zoomPercent >= 1000) return 'medium';
+  return 'far';
+}
+
+function createGeGps1DALod(heightKm, zoomPercent) {
+  const metricsReason = geGps1DMetricReason(heightKm, zoomPercent);
+  return Object.freeze({
+    phase: 'GE-GPS-1D-A',
+    readOnly: true,
+    provisional: true,
+    metricsReady: !metricsReason,
+    metricsReason,
+    heightKm,
+    zoomPercent,
+    level: geGps1DLodLevel(zoomPercent),
+  });
+}
+
+function createGeGps1DATileCandidate({
+  ready,
+  reason,
+  insideDisk,
+  heightKm,
+  zoomPercent,
+  lat = null,
+  lon = null,
+  x = null,
+  z = null,
+  updatedAt,
+}) {
+  return Object.freeze({
+    phase: 'GE-GPS-1D-A',
+    readOnly: true,
+    provisional: true,
+    ready,
+    reason,
+    tileLoading: false,
+    engine: 'not-called',
+    insideDisk,
+    heightKm,
+    zoomPercent,
+    lat: ready ? lat : null,
+    lon: ready ? lon : null,
+    x: ready ? x : null,
+    z: ready ? z : null,
+    source: 'GE-GPS-1D-A-camera-payload',
+    purpose: 'Future kartmotor tile selection input',
+    updatedAt,
+  });
+}
+
+function updateGeGps1BCamera() {
+  const rect = wrap.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const hasCameraDistance = Number.isFinite(camState.dist) && camState.dist > 0;
+  const heightKm = hasCameraDistance ? Math.max(0, (camState.dist / R_OUTER) * R_OUTER_KM) : null;
+  const zoomPercent = hasCameraDistance ? Math.round(10000 / camState.dist) : null;
+  const metricReason = geGps1DMetricReason(heightKm, zoomPercent);
+  const lod = createGeGps1DALod(heightKm, zoomPercent);
+  const updatedAt = Date.now();
+  const pt = screenToMapWorld(centerX, centerY);
+  if (!pt) {
+    const tileCandidate = createGeGps1DATileCandidate({
+      ready: false,
+      reason: metricReason || 'no-layer1-intersection',
+      insideDisk: false,
+      heightKm,
+      zoomPercent,
+      updatedAt,
+    });
+    publishGeGps1BCamera({
+      phase: 'GE-GPS-1B', locked: true, cameraReadout: true, insideDisk: false,
+      heightKm, zoomPercent,
+      lod, tileCandidate,
+      source: 'Camera center on Layer1 GE-edderkoppnett',
+      purpose: 'E-Earth camera GE-GPS readout',
+      updatedAt
+    });
+    return;
+  }
+  const radius = Math.hypot(pt.x, pt.z);
+  const insideDisk = radius <= R_OUTER;
+  if (!insideDisk) {
+    const tileCandidate = createGeGps1DATileCandidate({
+      ready: false,
+      reason: metricReason || 'outside-disk',
+      insideDisk: false,
+      heightKm,
+      zoomPercent,
+      updatedAt,
+    });
+    publishGeGps1BCamera({
+      phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
+      x: pt.x, z: pt.z, radius, insideDisk: false,
+      heightKm, zoomPercent,
+      lod, tileCandidate,
+      source: 'Camera center on Layer1 GE-edderkoppnett',
+      purpose: 'E-Earth camera GE-GPS readout',
+      updatedAt
+    });
+    return;
+  }
+  const geo = geGridLatLonFromPosition(pt.x, pt.z);
+  const decimal = formatGeGpsDecimal(geo.lat, geo.lon);
+  const dms = formatGeGpsDms(geo.lat, geo.lon);
+  const formatted = `${decimal} | ${dms}`;
+  // GE-GPS-1D-A read-only tile candidate contract - no tile loading.
+  // 1D-B must validate tileCandidate.ready before any tile loading.
+  const tileCandidate = createGeGps1DATileCandidate({
+    ready: !metricReason,
+    reason: metricReason,
+    insideDisk: true,
+    heightKm,
+    zoomPercent,
+    lat: geo.lat,
+    lon: geo.lon,
+    x: pt.x,
+    z: pt.z,
+    updatedAt,
+  });
+  publishGeGps1BCamera({
+    phase: 'GE-GPS-1B', locked: true, cameraReadout: true,
+    lat: geo.lat, lon: geo.lon, x: pt.x, z: pt.z,
+    radius, radiusUnits: geo.radiusUnits, compassDeg: geo.compassDeg,
+    insideDisk, decimal, dms, formatted,
+    heightKm, zoomPercent,
+    lod, tileCandidate,
+    source: 'Camera center on Layer1 GE-edderkoppnett',
+    purpose: 'E-Earth camera GE-GPS readout',
+    updatedAt
+  });
+}
+
 function clearGeGps1AHover() {
   publishGeGps1A({
     phase: 'GE-GPS-1A', locked: true, hovering: false, insideDisk: false,
@@ -3020,6 +4205,7 @@ function updateGeGps1AHover(event) {
 wrap.addEventListener('mousemove', updateGeGps1AHover);
 wrap.addEventListener('mouseleave', clearGeGps1AHover);
 clearGeGps1AHover();
+updateGeGps1BCamera();
 // END GE-GPS-1A
 
 function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
@@ -3044,6 +4230,7 @@ function zoomInstrumentOverlay(deltaY, anchorEvent = null) {
     }
   }
   updateZoomReadout();
+  updateGeGps1BCamera();
 }
 
 canvas.addEventListener('wheel', (e) => {
